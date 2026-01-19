@@ -135,10 +135,14 @@ function createInventoryEmbed(inventory, categoryName = null) {
   return embed;
 }
 
+// 자동 새로고침 타이머 저장
+const autoRefreshTimers = new Map();
+
 // 버튼 생성
-function createButtons(categoryName = null) {
+function createButtons(categoryName = null, autoRefresh = false) {
   const refreshId = categoryName ? `refresh_${categoryName}` : 'refresh';
   const collectingId = categoryName ? `collecting_${categoryName}` : 'collecting';
+  const autoRefreshId = categoryName ? `auto_refresh_${categoryName}` : 'auto_refresh';
   
   return new ActionRowBuilder()
     .addComponents(
@@ -149,7 +153,11 @@ function createButtons(categoryName = null) {
       new ButtonBuilder()
         .setCustomId(collectingId)
         .setLabel('📦 수집중')
-        .setStyle(ButtonStyle.Success)
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(autoRefreshId)
+        .setLabel(autoRefresh ? '⏸️ 자동새로고침 중지' : '▶️ 자동새로고침')
+        .setStyle(autoRefresh ? ButtonStyle.Danger : ButtonStyle.Secondary)
     );
 }
 
@@ -289,7 +297,7 @@ client.on('interactionCreate', async (interaction) => {
         const category = interaction.options.getString('카테고리');
         const inventory = await loadInventory();
         const embed = createInventoryEmbed(inventory, category);
-        const buttons = createButtons(category);
+        const buttons = createButtons(category, false);
         await interaction.reply({ embeds: [embed], components: [buttons] });
       }
 
@@ -428,13 +436,69 @@ client.on('interactionCreate', async (interaction) => {
         
         const inventory = await loadInventory();
         const embed = createInventoryEmbed(inventory, category);
-        const buttons = createButtons(category);
+        
+        // 현재 자동 새로고침 상태 확인
+        const messageId = interaction.message.id;
+        const isAutoRefreshing = autoRefreshTimers.has(messageId);
+        const buttons = createButtons(category, isAutoRefreshing);
         
         await interaction.update({ embeds: [embed], components: [buttons] });
         console.log('✅ 새로고침 완료');
       } catch (error) {
         console.error('❌ 새로고침 에러:', error);
         await interaction.reply({ content: '새로고침 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('auto_refresh')) {
+      try {
+        const category = interaction.customId === 'auto_refresh' ? null : interaction.customId.replace('auto_refresh_', '');
+        const messageId = interaction.message.id;
+        
+        // 자동 새로고침 토글
+        if (autoRefreshTimers.has(messageId)) {
+          // 중지
+          clearInterval(autoRefreshTimers.get(messageId));
+          autoRefreshTimers.delete(messageId);
+          console.log('⏸️ 자동 새로고침 중지:', messageId);
+          
+          const inventory = await loadInventory();
+          const embed = createInventoryEmbed(inventory, category);
+          const buttons = createButtons(category, false);
+          
+          await interaction.update({ embeds: [embed], components: [buttons] });
+        } else {
+          // 시작
+          console.log('▶️ 자동 새로고침 시작:', messageId, '/ 카테고리:', category || '전체');
+          
+          const inventory = await loadInventory();
+          const embed = createInventoryEmbed(inventory, category);
+          const buttons = createButtons(category, true);
+          
+          await interaction.update({ embeds: [embed], components: [buttons] });
+          
+          // 5초마다 자동 새로고침
+          const timer = setInterval(async () => {
+            try {
+              const inv = await loadInventory();
+              const emb = createInventoryEmbed(inv, category);
+              const btns = createButtons(category, true);
+              
+              await interaction.message.edit({ embeds: [emb], components: [btns] });
+              console.log('🔄 자동 새로고침 실행:', new Date().toLocaleTimeString());
+            } catch (error) {
+              console.error('❌ 자동 새로고침 에러:', error);
+              // 에러 발생 시 타이머 중지
+              clearInterval(timer);
+              autoRefreshTimers.delete(messageId);
+            }
+          }, 5000); // 5초
+          
+          autoRefreshTimers.set(messageId, timer);
+        }
+      } catch (error) {
+        console.error('❌ 자동 새로고침 토글 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
       }
     }
     
