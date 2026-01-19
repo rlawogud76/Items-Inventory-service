@@ -86,17 +86,17 @@ function createInventoryEmbed(inventory, categoryName = null) {
       // 수집 중인 사람 확인
       const collectingInfo = inventory.collecting?.[categoryName]?.[itemName];
       const collectingText = collectingInfo 
-        ? `\n👤 **수집중:** ${collectingInfo.userName}` 
+        ? `\n> 👤 **수집중:** ${collectingInfo.userName}` 
         : '';
       
       const fieldValue = [
-        `**현재 수량:** ${data.quantity}개`,
-        `**충족 수량:** ${data.required}개 (${percentage}%)`,
-        `${progressBar} ${status}${collectingText}`
+        `# ${data.quantity} / ${data.required}`,
+        `### ${percentage}% 충족 ${status}`,
+        `\`\`\`${progressBar}\`\`\`${collectingText}`
       ].join('\n');
 
       embed.addFields({
-        name: `${icon} ${itemName}`,
+        name: `${icon} **${itemName}**`,
         value: fieldValue,
         inline: false
       });
@@ -119,13 +119,13 @@ function createInventoryEmbed(inventory, categoryName = null) {
         
         // 수집 중인 사람 확인
         const collectingInfo = inventory.collecting?.[catName]?.[itemName];
-        const collectingText = collectingInfo ? ` 👤 ${collectingInfo.userName}` : '';
+        const collectingText = collectingInfo ? ` 👤 **${collectingInfo.userName}**` : '';
         
-        categoryText += `${icon} ${itemName}: ${data.quantity}/${data.required} (${percentage}%) ${status}${collectingText}\n`;
+        categoryText += `### ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${collectingText}\n\n`;
       }
       
       embed.addFields({
-        name: `📦 ${catName}`,
+        name: `📦 **${catName}**`,
         value: categoryText || '아이템 없음',
         inline: false
       });
