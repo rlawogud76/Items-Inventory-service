@@ -84,7 +84,7 @@ function createInventoryEmbed(inventory) {
     
     const fieldValue = [
       `**현재 수량:** ${data.quantity}개`,
-      `**필요 요구량:** ${data.required}개 (${percentage}%)`,
+      `**충족 수량:** ${data.required}개 (${percentage}%)`,
       `${progressBar} ${status}`
     ].join('\n');
 
@@ -111,7 +111,7 @@ function createButtons() {
 
 client.on('ready', async () => {
   console.log(`✅ ${client.user.tag} 봇이 준비되었습니다!`);
-  console.log('슬래시 커맨드를 사용하세요: /재고, /추가, /제거, /목록추가, /목록제거, /도움말');
+  console.log('슬래시 커맨드를 사용하세요: /재고, /현재수량변경, /충족수량변경, /목록추가, /목록제거, /도움말');
   
   // 슬래시 커맨드 자동 등록
   try {
@@ -123,26 +123,26 @@ client.on('ready', async () => {
         .setName('재고')
         .setDescription('현재 재고 현황을 확인합니다'),
       new SlashCommandBuilder()
-        .setName('추가')
-        .setDescription('재고를 추가합니다')
+        .setName('현재수량변경')
+        .setDescription('아이템의 현재 수량을 변경합니다')
         .addStringOption(option =>
           option.setName('아이템')
-            .setDescription('추가할 아이템 이름')
+            .setDescription('변경할 아이템 이름')
             .setRequired(true))
         .addIntegerOption(option =>
           option.setName('수량')
-            .setDescription('추가할 수량')
+            .setDescription('새로운 현재 수량')
             .setRequired(true)),
       new SlashCommandBuilder()
-        .setName('제거')
-        .setDescription('재고를 제거합니다')
+        .setName('충족수량변경')
+        .setDescription('아이템의 충족 수량을 변경합니다')
         .addStringOption(option =>
           option.setName('아이템')
-            .setDescription('제거할 아이템 이름')
+            .setDescription('변경할 아이템 이름')
             .setRequired(true))
         .addIntegerOption(option =>
           option.setName('수량')
-            .setDescription('제거할 수량')
+            .setDescription('새로운 충족 수량')
             .setRequired(true)),
       new SlashCommandBuilder()
         .setName('도움말')
@@ -159,8 +159,8 @@ client.on('ready', async () => {
             .setDescription('초기 수량')
             .setRequired(true))
         .addIntegerOption(option =>
-          option.setName('필요요구량')
-            .setDescription('필요 요구량 (목표치)')
+          option.setName('충족수량')
+            .setDescription('충족 수량 (목표치)')
             .setRequired(true)),
       new SlashCommandBuilder()
         .setName('목록제거')
@@ -201,44 +201,46 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.reply({ embeds: [embed], components: [buttons] });
       }
 
-      else if (commandName === '추가') {
+      else if (commandName === '현재수량변경') {
         const itemName = interaction.options.getString('아이템');
-        const amount = interaction.options.getInteger('수량');
+        const newQuantity = interaction.options.getInteger('수량');
 
         const inventory = await loadInventory();
         if (!inventory.items[itemName]) {
           return interaction.reply({ content: `❌ "${itemName}" 아이템을 찾을 수 없습니다.`, ephemeral: true });
         }
 
-        inventory.items[itemName].quantity += amount;
+        const oldQuantity = inventory.items[itemName].quantity;
+        inventory.items[itemName].quantity = newQuantity;
         await saveInventory(inventory);
 
         const icon = getItemIcon(itemName);
         const embed = createInventoryEmbed(inventory);
         const successEmbed = new EmbedBuilder()
-          .setColor(0x57F287)
-          .setDescription(`### ✅ 재고 추가 완료\n${icon} **${itemName}** ${amount}개가 추가되었습니다!`);
+          .setColor(0x5865F2)
+          .setDescription(`### ✅ 현재 수량 변경 완료\n${icon} **${itemName}**\n${oldQuantity}개 → ${newQuantity}개`);
         
         await interaction.reply({ embeds: [successEmbed, embed] });
       }
 
-      else if (commandName === '제거') {
+      else if (commandName === '충족수량변경') {
         const itemName = interaction.options.getString('아이템');
-        const amount = interaction.options.getInteger('수량');
+        const newRequired = interaction.options.getInteger('수량');
 
         const inventory = await loadInventory();
         if (!inventory.items[itemName]) {
           return interaction.reply({ content: `❌ "${itemName}" 아이템을 찾을 수 없습니다.`, ephemeral: true });
         }
 
-        inventory.items[itemName].quantity = Math.max(0, inventory.items[itemName].quantity - amount);
+        const oldRequired = inventory.items[itemName].required;
+        inventory.items[itemName].required = newRequired;
         await saveInventory(inventory);
 
         const icon = getItemIcon(itemName);
         const embed = createInventoryEmbed(inventory);
         const successEmbed = new EmbedBuilder()
-          .setColor(0xED4245)
-          .setDescription(`### ✅ 재고 제거 완료\n${icon} **${itemName}** ${amount}개가 제거되었습니다!`);
+          .setColor(0x5865F2)
+          .setDescription(`### ✅ 충족 수량 변경 완료\n${icon} **${itemName}**\n${oldRequired}개 → ${newRequired}개`);
         
         await interaction.reply({ embeds: [successEmbed, embed] });
       }
@@ -249,9 +251,9 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0x5865F2)
           .addFields(
             { name: '/재고', value: '현재 재고 현황을 확인합니다.' },
-            { name: '/추가 [아이템] [수량]', value: '재고를 추가합니다.\n예: /추가 아이템:다이아몬드 수량:10' },
-            { name: '/제거 [아이템] [수량]', value: '재고를 제거합니다.\n예: /제거 아이템:철괴 수량:5' },
-            { name: '/목록추가 [아이템] [초기수량] [필요요구량]', value: '새로운 아이템을 목록에 추가합니다.\n예: /목록추가 아이템:금괴 초기수량:20 필요요구량:100' },
+            { name: '/현재수량변경 [아이템] [수량]', value: '아이템의 현재 수량을 변경합니다.\n예: /현재수량변경 아이템:다이아몬드 수량:50' },
+            { name: '/충족수량변경 [아이템] [수량]', value: '아이템의 충족 수량을 변경합니다.\n예: /충족수량변경 아이템:철괴 수량:200' },
+            { name: '/목록추가 [아이템] [초기수량] [충족수량]', value: '새로운 아이템을 목록에 추가합니다.\n예: /목록추가 아이템:금괴 초기수량:20 충족수량:100' },
             { name: '/목록제거 [아이템]', value: '아이템을 목록에서 제거합니다.\n예: /목록제거 아이템:금괴' },
             { name: '/도움말', value: '이 도움말을 표시합니다.' }
           );
@@ -261,7 +263,7 @@ client.on('interactionCreate', async (interaction) => {
       else if (commandName === '목록추가') {
         const itemName = interaction.options.getString('아이템');
         const initialQuantity = interaction.options.getInteger('초기수량');
-        const requiredQuantity = interaction.options.getInteger('필요요구량');
+        const requiredQuantity = interaction.options.getInteger('충족수량');
 
         const inventory = await loadInventory();
         
@@ -279,7 +281,7 @@ client.on('interactionCreate', async (interaction) => {
         const icon = getItemIcon(itemName);
         const successEmbed = new EmbedBuilder()
           .setColor(0x57F287)
-          .setDescription(`### ✅ 목록 추가 완료\n${icon} **${itemName}**이(가) 재고 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**필요 요구량:** ${requiredQuantity}개`);
+          .setDescription(`### ✅ 목록 추가 완료\n${icon} **${itemName}**이(가) 재고 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**충족 수량:** ${requiredQuantity}개`);
         
         const embed = createInventoryEmbed(inventory);
         await interaction.reply({ embeds: [successEmbed, embed] });
