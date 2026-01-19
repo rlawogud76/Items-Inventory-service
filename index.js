@@ -83,10 +83,16 @@ function createInventoryEmbed(inventory, categoryName = null) {
       const progressBar = createProgressBar(data.quantity, data.required);
       const percentage = Math.round((data.quantity / data.required) * 100);
       
+      // 수집 중인 사람 확인
+      const collectingInfo = inventory.collecting?.[categoryName]?.[itemName];
+      const collectingText = collectingInfo 
+        ? `\n👤 **수집중:** ${collectingInfo.userName}` 
+        : '';
+      
       const fieldValue = [
         `**현재 수량:** ${data.quantity}개`,
         `**충족 수량:** ${data.required}개 (${percentage}%)`,
-        `${progressBar} ${status}`
+        `${progressBar} ${status}${collectingText}`
       ].join('\n');
 
       embed.addFields({
@@ -110,7 +116,12 @@ function createInventoryEmbed(inventory, categoryName = null) {
         const status = getStatusEmoji(data.quantity, data.required);
         const icon = getItemIcon(itemName);
         const percentage = Math.round((data.quantity / data.required) * 100);
-        categoryText += `${icon} ${itemName}: ${data.quantity}/${data.required} (${percentage}%) ${status}\n`;
+        
+        // 수집 중인 사람 확인
+        const collectingInfo = inventory.collecting?.[catName]?.[itemName];
+        const collectingText = collectingInfo ? ` 👤 ${collectingInfo.userName}` : '';
+        
+        categoryText += `${icon} ${itemName}: ${data.quantity}/${data.required} (${percentage}%) ${status}${collectingText}\n`;
       }
       
       embed.addFields({
@@ -126,13 +137,19 @@ function createInventoryEmbed(inventory, categoryName = null) {
 
 // 버튼 생성
 function createButtons(categoryName = null) {
-  const customId = categoryName ? `refresh_${categoryName}` : 'refresh';
+  const refreshId = categoryName ? `refresh_${categoryName}` : 'refresh';
+  const collectingId = categoryName ? `collecting_${categoryName}` : 'collecting';
+  
   return new ActionRowBuilder()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId(customId)
+        .setCustomId(refreshId)
         .setLabel('🔄 새로고침')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(collectingId)
+        .setLabel('📦 수집중')
+        .setStyle(ButtonStyle.Success)
     );
 }
 
@@ -418,6 +435,136 @@ client.on('interactionCreate', async (interaction) => {
       } catch (error) {
         console.error('❌ 새로고침 에러:', error);
         await interaction.reply({ content: '새로고침 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('collecting')) {
+      try {
+        const category = interaction.customId === 'collecting' ? null : interaction.customId.replace('collecting_', '');
+        console.log('📦 수집중 버튼 클릭');
+        console.log('  - 사용자:', interaction.user.tag);
+        console.log('  - 카테고리:', category || '전체');
+        
+        const inventory = await loadInventory();
+        
+        if (!category) {
+          return await interaction.reply({ 
+            content: '❌ 특정 카테고리를 선택한 후 수집중 버튼을 사용해주세요.\n`/재고 카테고리:해양` 처럼 카테고리를 지정해주세요.', 
+            ephemeral: true 
+          });
+        }
+        
+        if (!inventory.categories[category]) {
+          return await interaction.reply({ 
+            content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, 
+            ephemeral: true 
+          });
+        }
+        
+        // 수집 중인 사람 정보 초기화
+        if (!inventory.collecting) {
+          inventory.collecting = {};
+        }
+        if (!inventory.collecting[category]) {
+          inventory.collecting[category] = {};
+        }
+        
+        // 현재 카테고리의 아이템 목록 생성
+        const items = Object.keys(inventory.categories[category]);
+        const itemOptions = items.map(item => ({
+          label: item,
+          value: item,
+          emoji: getItemIcon(item)
+        }));
+        
+        // 선택 메뉴 생성
+        const { StringSelectMenuBuilder } = await import('discord.js');
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId(`select_item_${category}`)
+          .setPlaceholder('수집할 아이템을 선택하세요')
+          .addOptions(itemOptions);
+        
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+        
+        await interaction.reply({
+          content: `📦 **${category}** 카테고리에서 수집할 아이템을 선택하세요:`,
+          components: [row],
+          ephemeral: true
+        });
+        
+      } catch (error) {
+        console.error('❌ 수집중 버튼 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('stop_collecting_')) {
+      try {
+        const [category, itemName] = interaction.customId.replace('stop_collecting_', '').split('_');
+        const inventory = await loadInventory();
+        
+        if (inventory.collecting?.[category]?.[itemName]) {
+          delete inventory.collecting[category][itemName];
+          await saveInventory(inventory);
+          
+          await interaction.update({
+            content: `✅ **${itemName}** 수집을 중단했습니다.`,
+            components: []
+          });
+        }
+      } catch (error) {
+        console.error('❌ 수집 중단 에러:', error);
+      }
+    }
+  }
+  
+  // 선택 메뉴 인터랙션 처리
+  if (interaction.isStringSelectMenu()) {
+    if (interaction.customId.startsWith('select_item_')) {
+      try {
+        const category = interaction.customId.replace('select_item_', '');
+        const selectedItem = interaction.values[0];
+        const userId = interaction.user.id;
+        const userName = interaction.user.displayName || interaction.user.username;
+        
+        const inventory = await loadInventory();
+        
+        if (!inventory.collecting) {
+          inventory.collecting = {};
+        }
+        if (!inventory.collecting[category]) {
+          inventory.collecting[category] = {};
+        }
+        
+        // 수집 중인 사람 추가
+        inventory.collecting[category][selectedItem] = {
+          userId: userId,
+          userName: userName,
+          startTime: new Date().toISOString()
+        };
+        
+        await saveInventory(inventory);
+        
+        const icon = getItemIcon(selectedItem);
+        
+        // 수집 중단 버튼 생성
+        const stopButton = new ButtonBuilder()
+          .setCustomId(`stop_collecting_${category}_${selectedItem}`)
+          .setLabel('수집 중단')
+          .setStyle(ButtonStyle.Danger);
+        
+        const row = new ActionRowBuilder().addComponents(stopButton);
+        
+        await interaction.update({
+          content: `✅ ${icon} **${selectedItem}** 수집을 시작했습니다!\n다른 사람들이 재고를 확인할 때 당신이 수집 중임을 볼 수 있습니다.`,
+          components: [row]
+        });
+        
+        console.log(`📦 ${userName}님이 ${category} - ${selectedItem} 수집 시작`);
+        
+      } catch (error) {
+        console.error('❌ 아이템 선택 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
       }
     }
   }
