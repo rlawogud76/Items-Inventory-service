@@ -176,9 +176,64 @@ client.on('interactionCreate', async (interaction) => {
             { name: '/재고', value: '현재 재고 현황을 확인합니다.' },
             { name: '/추가 [아이템] [수량]', value: '재고를 추가합니다.\n예: /추가 아이템:다이아몬드 수량:10' },
             { name: '/제거 [아이템] [수량]', value: '재고를 제거합니다.\n예: /제거 아이템:철괴 수량:5' },
+            { name: '/목록추가 [아이템] [초기수량] [최소수량] [최대수량]', value: '새로운 아이템을 목록에 추가합니다.\n예: /목록추가 아이템:금괴 초기수량:20 최소수량:10 최대수량:64' },
+            { name: '/목록제거 [아이템]', value: '아이템을 목록에서 제거합니다.\n예: /목록제거 아이템:금괴' },
             { name: '/도움말', value: '이 도움말을 표시합니다.' }
           );
         await interaction.reply({ embeds: [helpEmbed] });
+      }
+
+      else if (commandName === '목록추가') {
+        const itemName = interaction.options.getString('아이템');
+        const initialQuantity = interaction.options.getInteger('초기수량');
+        const minQuantity = interaction.options.getInteger('최소수량');
+        const maxQuantity = interaction.options.getInteger('최대수량');
+
+        const inventory = await loadInventory();
+        
+        if (inventory.items[itemName]) {
+          return interaction.reply({ content: `❌ "${itemName}" 아이템이 이미 존재합니다.`, ephemeral: true });
+        }
+
+        if (minQuantity > maxQuantity) {
+          return interaction.reply({ content: `❌ 최소수량이 최대수량보다 클 수 없습니다.`, ephemeral: true });
+        }
+
+        inventory.items[itemName] = {
+          quantity: initialQuantity,
+          min: minQuantity,
+          max: maxQuantity
+        };
+        
+        await saveInventory(inventory);
+
+        const icon = getItemIcon(itemName);
+        const successEmbed = new EmbedBuilder()
+          .setColor(0x57F287)
+          .setDescription(`### ✅ 목록 추가 완료\n${icon} **${itemName}**이(가) 재고 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**최소 요구량:** ${minQuantity}개\n**최대 수량:** ${maxQuantity}개`);
+        
+        const embed = createInventoryEmbed(inventory);
+        await interaction.reply({ embeds: [successEmbed, embed] });
+      }
+
+      else if (commandName === '목록제거') {
+        const itemName = interaction.options.getString('아이템');
+
+        const inventory = await loadInventory();
+        
+        if (!inventory.items[itemName]) {
+          return interaction.reply({ content: `❌ "${itemName}" 아이템을 찾을 수 없습니다.`, ephemeral: true });
+        }
+
+        delete inventory.items[itemName];
+        await saveInventory(inventory);
+
+        const successEmbed = new EmbedBuilder()
+          .setColor(0xED4245)
+          .setDescription(`### ✅ 목록 제거 완료\n**${itemName}**이(가) 재고 목록에서 제거되었습니다.`);
+        
+        const embed = createInventoryEmbed(inventory);
+        await interaction.reply({ embeds: [successEmbed, embed] });
       }
     } catch (error) {
       console.error('커맨드 실행 에러:', error);

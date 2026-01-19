@@ -31,7 +31,33 @@ const commands = [
         .setRequired(true)),
   new SlashCommandBuilder()
     .setName('도움말')
-    .setDescription('재고 관리 봇 사용법을 확인합니다')
+    .setDescription('재고 관리 봇 사용법을 확인합니다'),
+  new SlashCommandBuilder()
+    .setName('목록추가')
+    .setDescription('새로운 아이템을 재고 목록에 추가합니다')
+    .addStringOption(option =>
+      option.setName('아이템')
+        .setDescription('추가할 아이템 이름')
+        .setRequired(true))
+    .addIntegerOption(option =>
+      option.setName('초기수량')
+        .setDescription('초기 수량')
+        .setRequired(true))
+    .addIntegerOption(option =>
+      option.setName('최소수량')
+        .setDescription('최소 요구량')
+        .setRequired(true))
+    .addIntegerOption(option =>
+      option.setName('최대수량')
+        .setDescription('최대 수량')
+        .setRequired(true)),
+  new SlashCommandBuilder()
+    .setName('목록제거')
+    .setDescription('재고 목록에서 아이템을 제거합니다')
+    .addStringOption(option =>
+      option.setName('아이템')
+        .setDescription('제거할 아이템 이름')
+        .setRequired(true))
 ].map(command => command.toJSON());
 
 const token = process.env.DISCORD_TOKEN;
