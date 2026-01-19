@@ -138,6 +138,21 @@ function createInventoryEmbed(inventory, categoryName = null) {
 // 자동 새로고침 타이머 저장
 const autoRefreshTimers = new Map();
 
+// 봇 종료 시 모든 타이머 정리
+process.on('SIGINT', () => {
+  console.log('봇 종료 중... 타이머 정리');
+  autoRefreshTimers.forEach(timer => clearInterval(timer));
+  autoRefreshTimers.clear();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('봇 종료 중... 타이머 정리');
+  autoRefreshTimers.forEach(timer => clearInterval(timer));
+  autoRefreshTimers.clear();
+  process.exit(0);
+});
+
 // 버튼 생성
 function createButtons(categoryName = null, autoRefresh = false) {
   const refreshId = categoryName ? `refresh_${categoryName}` : 'refresh';
@@ -480,6 +495,15 @@ client.on('interactionCreate', async (interaction) => {
           // 5초마다 자동 새로고침
           const timer = setInterval(async () => {
             try {
+              // 메시지가 여전히 존재하는지 확인
+              const message = await interaction.message.fetch().catch(() => null);
+              if (!message) {
+                console.log('⚠️ 메시지가 삭제됨. 자동 새로고침 중지:', messageId);
+                clearInterval(timer);
+                autoRefreshTimers.delete(messageId);
+                return;
+              }
+              
               const inv = await loadInventory();
               const emb = createInventoryEmbed(inv, category);
               const btns = createButtons(category, true);
@@ -495,6 +519,15 @@ client.on('interactionCreate', async (interaction) => {
           }, 5000); // 5초
           
           autoRefreshTimers.set(messageId, timer);
+          
+          // 10분 후 자동 중지 (안전장치)
+          setTimeout(() => {
+            if (autoRefreshTimers.has(messageId)) {
+              console.log('⏰ 10분 경과. 자동 새로고침 자동 중지:', messageId);
+              clearInterval(timer);
+              autoRefreshTimers.delete(messageId);
+            }
+          }, 600000); // 10분
         }
       } catch (error) {
         console.error('❌ 자동 새로고침 토글 에러:', error);
