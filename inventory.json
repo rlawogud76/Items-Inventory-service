@@ -1,24 +1,34 @@
 {
-  "items": {
-    "다이아몬드": {
-      "quantity": 35,
-      "required": 100
+  "categories": {
+    "해양": {
+      "다이아몬드": {
+        "quantity": 35,
+        "required": 100
+      },
+      "산호": {
+        "quantity": 20,
+        "required": 50
+      }
     },
-    "철괴": {
-      "quantity": 45,
-      "required": 128
+    "채광": {
+      "철괴": {
+        "quantity": 45,
+        "required": 128
+      },
+      "레드스톤": {
+        "quantity": 15,
+        "required": 128
+      }
     },
-    "나무": {
-      "quantity": 200,
-      "required": 320
-    },
-    "음식": {
-      "quantity": 80,
-      "required": 256
-    },
-    "레드스톤": {
-      "quantity": 15,
-      "required": 128
+    "요리": {
+      "음식": {
+        "quantity": 80,
+        "required": 256
+      },
+      "나무": {
+        "quantity": 200,
+        "required": 320
+      }
     }
   }
 }
