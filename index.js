@@ -215,12 +215,11 @@ client.on('interactionCreate', async (interaction) => {
         await saveInventory(inventory);
 
         const icon = getItemIcon(itemName);
-        const embed = createInventoryEmbed(inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x5865F2)
           .setDescription(`### ✅ 현재 수량 변경 완료\n${icon} **${itemName}**\n${oldQuantity}개 → ${newQuantity}개`);
         
-        await interaction.reply({ embeds: [successEmbed, embed] });
+        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
       }
 
       else if (commandName === '충족수량변경') {
@@ -237,12 +236,11 @@ client.on('interactionCreate', async (interaction) => {
         await saveInventory(inventory);
 
         const icon = getItemIcon(itemName);
-        const embed = createInventoryEmbed(inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x5865F2)
           .setDescription(`### ✅ 충족 수량 변경 완료\n${icon} **${itemName}**\n${oldRequired}개 → ${newRequired}개`);
         
-        await interaction.reply({ embeds: [successEmbed, embed] });
+        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
       }
 
       else if (commandName === '도움말') {
@@ -257,7 +255,7 @@ client.on('interactionCreate', async (interaction) => {
             { name: '/목록제거 [아이템]', value: '아이템을 목록에서 제거합니다.\n예: /목록제거 아이템:금괴' },
             { name: '/도움말', value: '이 도움말을 표시합니다.' }
           );
-        await interaction.reply({ embeds: [helpEmbed] });
+        await interaction.reply({ embeds: [helpEmbed], ephemeral: true });
       }
 
       else if (commandName === '목록추가') {
@@ -283,8 +281,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0x57F287)
           .setDescription(`### ✅ 목록 추가 완료\n${icon} **${itemName}**이(가) 재고 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**충족 수량:** ${requiredQuantity}개`);
         
-        const embed = createInventoryEmbed(inventory);
-        await interaction.reply({ embeds: [successEmbed, embed] });
+        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
       }
 
       else if (commandName === '목록제거') {
@@ -303,8 +300,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0xED4245)
           .setDescription(`### ✅ 목록 제거 완료\n**${itemName}**이(가) 재고 목록에서 제거되었습니다.`);
         
-        const embed = createInventoryEmbed(inventory);
-        await interaction.reply({ embeds: [successEmbed, embed] });
+        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
       }
     } catch (error) {
       console.error('커맨드 실행 에러:', error);
