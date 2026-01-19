@@ -68,6 +68,12 @@ function createInventoryEmbed(inventory) {
     .setTimestamp()
     .setFooter({ text: '마지막 업데이트' });
 
+  // 아이템이 없는 경우
+  if (!inventory.items || Object.keys(inventory.items).length === 0) {
+    embed.setDescription('⚠️ 등록된 아이템이 없습니다.');
+    return embed;
+  }
+
   // 각 아이템을 필드로 추가
   for (const [itemName, data] of Object.entries(inventory.items)) {
     const status = getStatusEmoji(data.quantity, data.min, data.max);
@@ -76,17 +82,15 @@ function createInventoryEmbed(inventory) {
     const percentage = Math.round((data.quantity / data.max) * 100);
     
     const fieldValue = [
-      `\`\`\``,
-      `수량: ${data.quantity}개 / ${data.max}개 (${percentage}%)`,
-      `\`\`\``,
+      `**수량:** ${data.quantity}개 / ${data.max}개 (${percentage}%)`,
       `${progressBar} ${status}`,
-      `최소 요구량: ${data.min}개`
+      `**최소 요구량:** ${data.min}개`
     ].join('\n');
 
     embed.addFields({
       name: `${icon} ${itemName}`,
       value: fieldValue,
-      inline: true
+      inline: false
     });
   }
 
