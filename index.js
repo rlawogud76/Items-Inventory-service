@@ -90,9 +90,8 @@ function createInventoryEmbed(inventory, categoryName = null) {
         : '';
       
       const fieldValue = [
-        `# ${data.quantity} / ${data.required}`,
-        `### ${percentage}% 충족 ${status}`,
-        `\`\`\`${progressBar}\`\`\`${collectingText}`
+        `**${data.quantity}** / **${data.required}**`,
+        `${progressBar} ${percentage}% ${status}${collectingText}`
       ].join('\n');
 
       embed.addFields({
