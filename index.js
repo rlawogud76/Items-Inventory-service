@@ -125,11 +125,12 @@ function createInventoryEmbed(inventory, categoryName = null) {
 }
 
 // 버튼 생성
-function createButtons() {
+function createButtons(categoryName = null) {
+  const customId = categoryName ? `refresh_${categoryName}` : 'refresh';
   return new ActionRowBuilder()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('refresh')
+        .setCustomId(customId)
         .setLabel('🔄 새로고침')
         .setStyle(ButtonStyle.Primary)
     );
@@ -261,6 +262,8 @@ client.on('ready', async () => {
 
 // 슬래시 커맨드 처리
 client.on('interactionCreate', async (interaction) => {
+  console.log('인터랙션 수신:', interaction.type, '/ customId:', interaction.customId || 'N/A');
+  
   if (interaction.isCommand()) {
     const { commandName } = interaction;
 
@@ -269,7 +272,7 @@ client.on('interactionCreate', async (interaction) => {
         const category = interaction.options.getString('카테고리');
         const inventory = await loadInventory();
         const embed = createInventoryEmbed(inventory, category);
-        const buttons = createButtons();
+        const buttons = createButtons(category);
         await interaction.reply({ embeds: [embed], components: [buttons] });
       }
 
@@ -396,12 +399,26 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // 버튼 인터랙션 처리
-  else if (interaction.isButton()) {
-    if (interaction.customId === 'refresh') {
-      const inventory = await loadInventory();
-      const embed = createInventoryEmbed(inventory, null);
-      const buttons = createButtons();
-      await interaction.update({ embeds: [embed], components: [buttons] });
+  if (interaction.isButton()) {
+    console.log('버튼 클릭 감지! customId:', interaction.customId);
+    
+    if (interaction.customId.startsWith('refresh')) {
+      try {
+        const category = interaction.customId === 'refresh' ? null : interaction.customId.replace('refresh_', '');
+        console.log('🔄 새로고침 버튼 클릭');
+        console.log('  - customId:', interaction.customId);
+        console.log('  - 추출된 카테고리:', category || '전체');
+        
+        const inventory = await loadInventory();
+        const embed = createInventoryEmbed(inventory, category);
+        const buttons = createButtons(category);
+        
+        await interaction.update({ embeds: [embed], components: [buttons] });
+        console.log('✅ 새로고침 완료');
+      } catch (error) {
+        console.error('❌ 새로고침 에러:', error);
+        await interaction.reply({ content: '새로고침 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
     }
   }
 });
