@@ -2,28 +2,23 @@
   "items": {
     "다이아몬드": {
       "quantity": 35,
-      "min": 10,
-      "max": 64
+      "required": 100
     },
     "철괴": {
       "quantity": 45,
-      "min": 32,
-      "max": 128
+      "required": 128
     },
     "나무": {
       "quantity": 200,
-      "min": 64,
-      "max": 320
+      "required": 320
     },
     "음식": {
       "quantity": 80,
-      "min": 64,
-      "max": 256
+      "required": 256
     },
     "레드스톤": {
       "quantity": 15,
-      "min": 32,
-      "max": 128
+      "required": 128
     }
   }
 }

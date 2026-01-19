@@ -30,10 +30,11 @@ async function saveInventory(data) {
 }
 
 // 재고 상태 이모지 반환
-function getStatusEmoji(quantity, min, max) {
-  if (quantity < min) return '🔴';
-  if (quantity >= max) return '🟢';
-  return '🟡';
+function getStatusEmoji(quantity, required) {
+  const percentage = (quantity / required) * 100;
+  if (percentage <= 25) return '🔴'; // 25% 이하
+  if (percentage < 90) return '🟡'; // 25% 초과 ~ 90% 미만
+  return '🟢'; // 90% 이상
 }
 
 // 아이템 아이콘 반환
@@ -49,8 +50,8 @@ function getItemIcon(itemName) {
 }
 
 // 프로그레스 바 생성
-function createProgressBar(current, min, max, length = 10) {
-  const percentage = Math.min(Math.max((current - min) / (max - min), 0), 1);
+function createProgressBar(current, required, length = 10) {
+  const percentage = Math.min(current / required, 1);
   const filled = Math.round(percentage * length);
   const empty = length - filled;
   
@@ -76,15 +77,15 @@ function createInventoryEmbed(inventory) {
 
   // 각 아이템을 필드로 추가
   for (const [itemName, data] of Object.entries(inventory.items)) {
-    const status = getStatusEmoji(data.quantity, data.min, data.max);
+    const status = getStatusEmoji(data.quantity, data.required);
     const icon = getItemIcon(itemName);
-    const progressBar = createProgressBar(data.quantity, data.min, data.max);
-    const percentage = Math.round((data.quantity / data.max) * 100);
+    const progressBar = createProgressBar(data.quantity, data.required);
+    const percentage = Math.round((data.quantity / data.required) * 100);
     
     const fieldValue = [
-      `**수량:** ${data.quantity}개 / ${data.max}개 (${percentage}%)`,
-      `${progressBar} ${status}`,
-      `**최소 요구량:** ${data.min}개`
+      `**현재 수량:** ${data.quantity}개`,
+      `**필요 요구량:** ${data.required}개 (${percentage}%)`,
+      `${progressBar} ${status}`
     ].join('\n');
 
     embed.addFields({
@@ -158,12 +159,8 @@ client.on('ready', async () => {
             .setDescription('초기 수량')
             .setRequired(true))
         .addIntegerOption(option =>
-          option.setName('최소수량')
-            .setDescription('최소 요구량')
-            .setRequired(true))
-        .addIntegerOption(option =>
-          option.setName('최대수량')
-            .setDescription('최대 수량')
+          option.setName('필요요구량')
+            .setDescription('필요 요구량 (목표치)')
             .setRequired(true)),
       new SlashCommandBuilder()
         .setName('목록제거')
@@ -254,7 +251,7 @@ client.on('interactionCreate', async (interaction) => {
             { name: '/재고', value: '현재 재고 현황을 확인합니다.' },
             { name: '/추가 [아이템] [수량]', value: '재고를 추가합니다.\n예: /추가 아이템:다이아몬드 수량:10' },
             { name: '/제거 [아이템] [수량]', value: '재고를 제거합니다.\n예: /제거 아이템:철괴 수량:5' },
-            { name: '/목록추가 [아이템] [초기수량] [최소수량] [최대수량]', value: '새로운 아이템을 목록에 추가합니다.\n예: /목록추가 아이템:금괴 초기수량:20 최소수량:10 최대수량:64' },
+            { name: '/목록추가 [아이템] [초기수량] [필요요구량]', value: '새로운 아이템을 목록에 추가합니다.\n예: /목록추가 아이템:금괴 초기수량:20 필요요구량:100' },
             { name: '/목록제거 [아이템]', value: '아이템을 목록에서 제거합니다.\n예: /목록제거 아이템:금괴' },
             { name: '/도움말', value: '이 도움말을 표시합니다.' }
           );
@@ -264,8 +261,7 @@ client.on('interactionCreate', async (interaction) => {
       else if (commandName === '목록추가') {
         const itemName = interaction.options.getString('아이템');
         const initialQuantity = interaction.options.getInteger('초기수량');
-        const minQuantity = interaction.options.getInteger('최소수량');
-        const maxQuantity = interaction.options.getInteger('최대수량');
+        const requiredQuantity = interaction.options.getInteger('필요요구량');
 
         const inventory = await loadInventory();
         
@@ -273,14 +269,9 @@ client.on('interactionCreate', async (interaction) => {
           return interaction.reply({ content: `❌ "${itemName}" 아이템이 이미 존재합니다.`, ephemeral: true });
         }
 
-        if (minQuantity > maxQuantity) {
-          return interaction.reply({ content: `❌ 최소수량이 최대수량보다 클 수 없습니다.`, ephemeral: true });
-        }
-
         inventory.items[itemName] = {
           quantity: initialQuantity,
-          min: minQuantity,
-          max: maxQuantity
+          required: requiredQuantity
         };
         
         await saveInventory(inventory);
@@ -288,7 +279,7 @@ client.on('interactionCreate', async (interaction) => {
         const icon = getItemIcon(itemName);
         const successEmbed = new EmbedBuilder()
           .setColor(0x57F287)
-          .setDescription(`### ✅ 목록 추가 완료\n${icon} **${itemName}**이(가) 재고 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**최소 요구량:** ${minQuantity}개\n**최대 수량:** ${maxQuantity}개`);
+          .setDescription(`### ✅ 목록 추가 완료\n${icon} **${itemName}**이(가) 재고 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**필요 요구량:** ${requiredQuantity}개`);
         
         const embed = createInventoryEmbed(inventory);
         await interaction.reply({ embeds: [successEmbed, embed] });
