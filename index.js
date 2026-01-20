@@ -2535,11 +2535,15 @@ client.on('interactionCreate', async (interaction) => {
     
     else if (interaction.customId.startsWith('modal_add_') || interaction.customId.startsWith('modal_edit_') || interaction.customId.startsWith('modal_subtract_')) {
       try {
-        const parts = interaction.customId.split('_');
+        // modal_add_inventory_해양_산호 형식 파싱
+        // 마지막 _를 기준으로 아이템명 분리
+        const lastUnderscoreIndex = interaction.customId.lastIndexOf('_');
+        const itemName = interaction.customId.substring(lastUnderscoreIndex + 1);
+        const prefix = interaction.customId.substring(0, lastUnderscoreIndex);
+        const parts = prefix.split('_');
         const action = parts[1]; // 'add', 'edit', or 'subtract'
         const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts[3];
-        const itemName = parts.slice(4).join('_');
+        const category = parts.slice(3).join('_');
         
         console.log('📝 모달 제출 - 수량 관리');
         console.log('  - customId:', interaction.customId);
@@ -2560,7 +2564,7 @@ client.on('interactionCreate', async (interaction) => {
           console.error(`❌ 카테고리 "${category}"를 찾을 수 없습니다.`);
           console.error('  - 사용 가능한 카테고리:', Object.keys(targetData.categories || {}));
           return await interaction.reply({ 
-            content: `❌ "${type}${category}" 카테고리를 찾을 수 없습니다.\n사용 가능한 카테고리: ${Object.keys(targetData.categories || {}).join(', ')}`, 
+            content: `❌ "${category}" 카테고리를 찾을 수 없습니다. (타입: ${type})\n사용 가능한 카테고리: ${Object.keys(targetData.categories || {}).join(', ')}`, 
             ephemeral: true 
           });
         }
