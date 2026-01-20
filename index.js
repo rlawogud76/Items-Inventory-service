@@ -366,7 +366,9 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   const autoRefreshId = categoryName ? `auto_refresh_${type}_${categoryName}` : `auto_refresh_${type}`;
   const uiModeId = categoryName ? `ui_mode_${type}_${categoryName}` : `ui_mode_${type}`;
   const barSizeId = categoryName ? `bar_size_${type}_${categoryName}` : `bar_size_${type}`;
+  const addId = categoryName ? `add_${type}_${categoryName}` : `add_${type}`;
   const editId = categoryName ? `edit_${type}_${categoryName}` : `edit_${type}`;
+  const subtractId = categoryName ? `subtract_${type}_${categoryName}` : `subtract_${type}`;
   
   // UI 모드 버튼 라벨
   let uiModeLabel = '📏 일반';
@@ -384,17 +386,25 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
         .setLabel(type === 'inventory' ? '📦 수집중' : '🔨 제작중')
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
+        .setCustomId(addId)
+        .setLabel('➕ 추가')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
         .setCustomId(editId)
         .setLabel('✏️ 수정')
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
-        .setCustomId(autoRefreshId)
-        .setLabel(autoRefresh ? '⏸️ 자동새로고침 중지' : '▶️ 자동새로고침')
-        .setStyle(autoRefresh ? ButtonStyle.Danger : ButtonStyle.Secondary)
+        .setCustomId(subtractId)
+        .setLabel('➖ 차감')
+        .setStyle(ButtonStyle.Danger)
     );
   
   const row2 = new ActionRowBuilder()
     .addComponents(
+      new ButtonBuilder()
+        .setCustomId(autoRefreshId)
+        .setLabel(autoRefresh ? '⏸️ 자동새로고침 중지' : '▶️ 자동새로고침')
+        .setStyle(autoRefresh ? ButtonStyle.Danger : ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(uiModeId)
         .setLabel(uiModeLabel)
@@ -1130,13 +1140,20 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('edit')) {
+    else if (interaction.customId.startsWith('add') || interaction.customId.startsWith('edit') || interaction.customId.startsWith('subtract')) {
       try {
         const parts = interaction.customId.split('_');
+        const action = parts[0]; // 'add', 'edit', or 'subtract'
         const type = parts[1]; // 'inventory' or 'crafting'
         const category = parts.length > 2 ? parts.slice(2).join('_') : null;
         
-        console.log('✏️ 수정 버튼 클릭');
+        const actionLabels = {
+          'add': '➕ 추가',
+          'edit': '✏️ 수정',
+          'subtract': '➖ 차감'
+        };
+        
+        console.log(`${actionLabels[action]} 버튼 클릭`);
         console.log('  - 타입:', type);
         console.log('  - 카테고리:', category || '전체');
         
@@ -1144,7 +1161,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (!category) {
           return await interaction.reply({ 
-            content: `❌ 특정 카테고리를 선택한 후 수정 버튼을 사용해주세요.\n\`/${type === 'inventory' ? '재고' : '제작'} 카테고리:해양\` 처럼 카테고리를 지정해주세요.`, 
+            content: `❌ 특정 카테고리를 선택한 후 ${actionLabels[action]} 버튼을 사용해주세요.\n\`/${type === 'inventory' ? '재고' : '제작'} 카테고리:해양\` 처럼 카테고리를 지정해주세요.`, 
             ephemeral: true 
           });
         }
@@ -1171,31 +1188,33 @@ client.on('interactionCreate', async (interaction) => {
         const itemOptions = items.map(item => {
           const itemData = targetData.categories[category][item];
           const customEmoji = itemData?.emoji;
+          const sets = Math.floor(itemData.quantity / 64);
+          const remainder = itemData.quantity % 64;
           return {
             label: item,
             value: item,
             emoji: customEmoji || getItemIcon(item, inventory),
-            description: `현재: ${itemData.quantity}개 / 목표: ${itemData.required}개`
+            description: `현재: ${sets}세트+${remainder}개 (${itemData.quantity}개) / 목표: ${itemData.required}개`
           };
         });
         
         // 선택 메뉴 생성
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_edit_${type}_${category}`)
-          .setPlaceholder('수정할 아이템을 선택하세요')
+          .setCustomId(`select_${action}_${type}_${category}`)
+          .setPlaceholder(`${actionLabels[action]}할 아이템을 선택하세요`)
           .addOptions(itemOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
         await interaction.reply({
-          content: `✏️ **${category}** 카테고리에서 수정할 아이템을 선택하세요:`,
+          content: `${actionLabels[action]} **${category}** 카테고리에서 ${actionLabels[action]}할 아이템을 선택하세요:`,
           components: [row],
           ephemeral: true
         });
         
       } catch (error) {
-        console.error('❌ 수정 버튼 에러:', error);
+        console.error('❌ 버튼 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
@@ -1544,11 +1563,12 @@ client.on('interactionCreate', async (interaction) => {
   
   // 선택 메뉴 인터랙션 처리
   if (interaction.isStringSelectMenu()) {
-    if (interaction.customId.startsWith('select_edit_')) {
+    if (interaction.customId.startsWith('select_add_') || interaction.customId.startsWith('select_edit_') || interaction.customId.startsWith('select_subtract_')) {
       try {
-        const parts = interaction.customId.replace('select_edit_', '').split('_');
-        const type = parts[0]; // 'inventory' or 'crafting'
-        const category = parts.slice(1).join('_');
+        const parts = interaction.customId.split('_');
+        const action = parts[1]; // 'add', 'edit', or 'subtract'
+        const type = parts[2]; // 'inventory' or 'crafting'
+        const category = parts.slice(3).join('_');
         const selectedItem = interaction.values[0];
         
         const inventory = await loadInventory();
@@ -1560,23 +1580,42 @@ client.on('interactionCreate', async (interaction) => {
         // 모달 생성
         const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
         
+        let modalTitle, inputLabel, inputPlaceholder, defaultValue;
+        
+        if (action === 'add') {
+          modalTitle = `${selectedItem} 추가`;
+          inputLabel = '추가할 세트 수 (1세트 = 64개)';
+          inputPlaceholder = '예: 2 (2세트 = 128개 추가)';
+          defaultValue = '1';
+        } else if (action === 'subtract') {
+          modalTitle = `${selectedItem} 차감`;
+          inputLabel = '차감할 세트 수 (1세트 = 64개)';
+          inputPlaceholder = '예: 1 (1세트 = 64개 차감)';
+          defaultValue = '1';
+        } else {
+          modalTitle = `${selectedItem} 수정`;
+          inputLabel = '설정할 세트 수 (1세트 = 64개)';
+          inputPlaceholder = '예: 5 (5세트 = 320개로 설정)';
+          defaultValue = currentSets.toString();
+        }
+        
         const modal = new ModalBuilder()
-          .setCustomId(`modal_edit_${type}_${category}_${selectedItem}`)
-          .setTitle(`${selectedItem} 수정`);
+          .setCustomId(`modal_${action}_${type}_${category}_${selectedItem}`)
+          .setTitle(modalTitle);
         
         const quantityInput = new TextInputBuilder()
           .setCustomId('quantity_change')
-          .setLabel(`세트 추가/감소 (1세트 = 64개)`)
+          .setLabel(inputLabel)
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('+2 (2세트 추가), -1 (1세트 감소), 5 (5세트로 설정)')
-          .setValue('0')
+          .setPlaceholder(inputPlaceholder)
+          .setValue(defaultValue)
           .setRequired(true);
         
         const infoInput = new TextInputBuilder()
           .setCustomId('info')
-          .setLabel('참고: 작은 상자 9세트 / 큰 상자 54세트')
+          .setLabel('(한 줄 9세트, 한 상자 54세트)')
           .setStyle(TextInputStyle.Short)
-          .setValue(`현재: ${currentSets}세트 + ${remainder}개 (총 ${itemData.quantity}개)`)
+          .setValue(`현재: ${currentSets}세트+${remainder}개 (총 ${itemData.quantity}개)`)
           .setRequired(false);
         
         const row1 = new ActionRowBuilder().addComponents(quantityInput);
@@ -1586,7 +1625,7 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.showModal(modal);
         
       } catch (error) {
-        console.error('❌ 수정 선택 에러:', error);
+        console.error('❌ 선택 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
       }
     }
@@ -1660,14 +1699,15 @@ client.on('interactionCreate', async (interaction) => {
   
   // 모달 제출 처리
   if (interaction.isModalSubmit()) {
-    if (interaction.customId.startsWith('modal_edit_')) {
+    if (interaction.customId.startsWith('modal_add_') || interaction.customId.startsWith('modal_edit_') || interaction.customId.startsWith('modal_subtract_')) {
       try {
-        const parts = interaction.customId.replace('modal_edit_', '').split('_');
-        const type = parts[0]; // 'inventory' or 'crafting'
-        const category = parts[1];
-        const itemName = parts.slice(2).join('_');
+        const parts = interaction.customId.split('_');
+        const action = parts[1]; // 'add', 'edit', or 'subtract'
+        const type = parts[2]; // 'inventory' or 'crafting'
+        const category = parts[3];
+        const itemName = parts.slice(4).join('_');
         
-        const quantityChange = interaction.fields.getTextInputValue('quantity_change').trim();
+        const quantityInput = interaction.fields.getTextInputValue('quantity_change').trim();
         
         const inventory = await loadInventory();
         const targetData = type === 'inventory' ? inventory : inventory.crafting;
@@ -1685,37 +1725,24 @@ client.on('interactionCreate', async (interaction) => {
         const oldRemainder = oldQuantity % 64;
         let newQuantity;
         
+        const sets = parseFloat(quantityInput);
+        if (isNaN(sets) || sets < 0) {
+          return await interaction.reply({ 
+            content: `❌ 올바른 숫자를 입력해주세요. (0 이상의 숫자)`, 
+            ephemeral: true 
+          });
+        }
+        
         // 세트 단위로 수량 계산 (1세트 = 64개)
-        if (quantityChange.startsWith('+')) {
-          // 세트 추가
-          const addSets = parseFloat(quantityChange.substring(1));
-          if (isNaN(addSets)) {
-            return await interaction.reply({ 
-              content: `❌ 올바른 숫자를 입력해주세요. (예: +2)`, 
-              ephemeral: true 
-            });
-          }
-          newQuantity = oldQuantity + Math.round(addSets * 64);
-        } else if (quantityChange.startsWith('-')) {
-          // 세트 감소
-          const subSets = parseFloat(quantityChange.substring(1));
-          if (isNaN(subSets)) {
-            return await interaction.reply({ 
-              content: `❌ 올바른 숫자를 입력해주세요. (예: -1)`, 
-              ephemeral: true 
-            });
-          }
-          newQuantity = Math.max(0, oldQuantity - Math.round(subSets * 64));
+        if (action === 'add') {
+          // 추가
+          newQuantity = oldQuantity + Math.round(sets * 64);
+        } else if (action === 'subtract') {
+          // 차감 (자연수 입력해도 자동으로 빼기)
+          newQuantity = Math.max(0, oldQuantity - Math.round(sets * 64));
         } else {
-          // 세트로 직접 설정
-          const setSets = parseFloat(quantityChange);
-          if (isNaN(setSets)) {
-            return await interaction.reply({ 
-              content: `❌ 올바른 숫자를 입력해주세요. (예: 5, +2, -1)`, 
-              ephemeral: true 
-            });
-          }
-          newQuantity = Math.max(0, Math.round(setSets * 64));
+          // 수정 (직접 설정)
+          newQuantity = Math.max(0, Math.round(sets * 64));
         }
         
         itemData.quantity = newQuantity;
@@ -1724,21 +1751,31 @@ client.on('interactionCreate', async (interaction) => {
         const newRemainder = newQuantity % 64;
         
         // 수정 내역 추가
+        const actionLabels = {
+          'add': '추가',
+          'edit': '수정',
+          'subtract': '차감'
+        };
         const changeDetail = `${oldSets}세트+${oldRemainder}개 (${oldQuantity}개) → ${newSets}세트+${newRemainder}개 (${newQuantity}개)`;
         addHistory(inventory, type, category, itemName, 'update_quantity', 
-          changeDetail, 
+          `[${actionLabels[action]}] ${changeDetail}`, 
           interaction.user.displayName || interaction.user.username);
         
         await saveInventory(inventory);
         
         const icon = getItemIcon(itemName, inventory);
+        const actionEmojis = {
+          'add': '➕',
+          'edit': '✏️',
+          'subtract': '➖'
+        };
         const successEmbed = new EmbedBuilder()
-          .setColor(0x5865F2)
-          .setDescription(`### ✅ 수량 변경 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldSets}세트 + ${oldRemainder}개 (${oldQuantity}개)\n↓\n${newSets}세트 + ${newRemainder}개 (${newQuantity}개)`);
+          .setColor(action === 'add' ? 0x57F287 : action === 'subtract' ? 0xED4245 : 0x5865F2)
+          .setDescription(`### ${actionEmojis[action]} ${actionLabels[action]} 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldSets}세트+${oldRemainder}개 (${oldQuantity}개)\n↓\n${newSets}세트+${newRemainder}개 (${newQuantity}개)`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
         
-        console.log(`✏️ ${interaction.user.displayName}님이 ${category} - ${itemName} 수량 변경: ${oldQuantity} -> ${newQuantity}`);
+        console.log(`${actionEmojis[action]} ${interaction.user.displayName}님이 ${category} - ${itemName} ${actionLabels[action]}: ${oldQuantity} -> ${newQuantity}`);
         
       } catch (error) {
         console.error('❌ 모달 제출 에러:', error);
