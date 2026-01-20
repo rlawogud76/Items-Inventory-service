@@ -493,8 +493,9 @@ client.on('ready', async () => {
             .setRequired(true))
         .addIntegerOption(option =>
           option.setName('초기수량')
-            .setDescription('초기 수량 (기본값: 0)')
-            .setRequired(false))
+            .setDescription('초기 수량')
+            .setRequired(true)
+            .setMinValue(0))
         .addStringOption(option =>
           option.setName('이모지')
             .setDescription('아이템 이모지 (선택사항)')
@@ -549,8 +550,9 @@ client.on('ready', async () => {
             .setRequired(true))
         .addIntegerOption(option =>
           option.setName('초기수량')
-            .setDescription('초기 수량 (기본값: 0)')
-            .setRequired(false))
+            .setDescription('초기 수량')
+            .setRequired(true)
+            .setMinValue(0))
         .addStringOption(option =>
           option.setName('이모지')
             .setDescription('제작품 이모지 (선택사항)')
@@ -743,7 +745,7 @@ client.on('interactionCreate', async (interaction) => {
         const category = interaction.options.getString('카테고리');
         const itemName = interaction.options.getString('아이템');
         const requiredQuantity = interaction.options.getInteger('충족수량');
-        const initialQuantity = interaction.options.getInteger('초기수량') || 0;
+        const initialQuantity = interaction.options.getInteger('초기수량');
         const emoji = interaction.options.getString('이모지');
 
         const inventory = await loadInventory();
@@ -870,7 +872,7 @@ client.on('interactionCreate', async (interaction) => {
         const category = interaction.options.getString('카테고리');
         const itemName = interaction.options.getString('제작품');
         const requiredQuantity = interaction.options.getInteger('충족수량');
-        const initialQuantity = interaction.options.getInteger('초기수량') || 0;
+        const initialQuantity = interaction.options.getInteger('초기수량');
         const emoji = interaction.options.getString('이모지');
 
         const inventory = await loadInventory();
