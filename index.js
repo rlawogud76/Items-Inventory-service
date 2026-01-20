@@ -696,8 +696,27 @@ client.on('interactionCreate', async (interaction) => {
         const uiMode = inventory.settings?.uiMode || 'normal';
         const barLength = inventory.settings?.barLength || 15;
         const embed = createInventoryEmbed(inventory, category, uiMode, barLength);
-        const buttons = createButtons(category, false, 'inventory', uiMode, barLength);
-        await interaction.reply({ embeds: [embed], components: buttons });
+        const buttons = createButtons(category, true, 'inventory', uiMode, barLength); // 항상 true로 설정
+        const reply = await interaction.reply({ embeds: [embed], components: buttons, fetchReply: true });
+        
+        // 자동 새로고침 시작 (5초마다)
+        const messageId = reply.id;
+        const refreshInterval = setInterval(async () => {
+          try {
+            const updatedInventory = await loadInventory();
+            const updatedEmbed = createInventoryEmbed(updatedInventory, category, uiMode, barLength);
+            const updatedButtons = createButtons(category, true, 'inventory', uiMode, barLength);
+            await interaction.editReply({ embeds: [updatedEmbed], components: updatedButtons });
+          } catch (error) {
+            // 메시지가 삭제되었거나 에러 발생 시 타이머 정리
+            console.log('새로고침 중단:', error.message);
+            clearInterval(refreshInterval);
+            autoRefreshTimers.delete(messageId);
+          }
+        }, 5000);
+        
+        autoRefreshTimers.set(messageId, refreshInterval);
+        console.log(`▶️ 자동 새로고침 시작: ${messageId} (재고 - ${category})`);
       }
 
       else if (commandName === '도움말') {
@@ -918,8 +937,28 @@ client.on('interactionCreate', async (interaction) => {
         const uiMode = inventory.settings?.uiMode || 'normal';
         const barLength = inventory.settings?.barLength || 15;
         const embed = createCraftingEmbed(crafting, category, uiMode, barLength);
-        const buttons = createButtons(category, false, 'crafting', uiMode, barLength);
-        await interaction.reply({ embeds: [embed], components: buttons });
+        const buttons = createButtons(category, true, 'crafting', uiMode, barLength); // 항상 true로 설정
+        const reply = await interaction.reply({ embeds: [embed], components: buttons, fetchReply: true });
+        
+        // 자동 새로고침 시작 (5초마다)
+        const messageId = reply.id;
+        const refreshInterval = setInterval(async () => {
+          try {
+            const updatedInventory = await loadInventory();
+            const updatedCrafting = updatedInventory.crafting || { categories: {}, crafting: {} };
+            const updatedEmbed = createCraftingEmbed(updatedCrafting, category, uiMode, barLength);
+            const updatedButtons = createButtons(category, true, 'crafting', uiMode, barLength);
+            await interaction.editReply({ embeds: [updatedEmbed], components: updatedButtons });
+          } catch (error) {
+            // 메시지가 삭제되었거나 에러 발생 시 타이머 정리
+            console.log('새로고침 중단:', error.message);
+            clearInterval(refreshInterval);
+            autoRefreshTimers.delete(messageId);
+          }
+        }, 5000);
+        
+        autoRefreshTimers.set(messageId, refreshInterval);
+        console.log(`▶️ 자동 새로고침 시작: ${messageId} (제작 - ${category})`);
       }
 
       else if (commandName === '제작품목추가') {
