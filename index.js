@@ -488,13 +488,13 @@ client.on('ready', async () => {
             .setDescription('추가할 아이템 이름')
             .setRequired(true))
         .addIntegerOption(option =>
-          option.setName('초기수량')
-            .setDescription('초기 수량')
-            .setRequired(true))
-        .addIntegerOption(option =>
           option.setName('충족수량')
             .setDescription('충족 수량 (목표치)')
             .setRequired(true))
+        .addIntegerOption(option =>
+          option.setName('초기수량')
+            .setDescription('초기 수량 (기본값: 0)')
+            .setRequired(false))
         .addStringOption(option =>
           option.setName('이모지')
             .setDescription('아이템 이모지 (선택사항)')
@@ -544,13 +544,13 @@ client.on('ready', async () => {
             .setDescription('추가할 제작품 이름')
             .setRequired(true))
         .addIntegerOption(option =>
-          option.setName('초기수량')
-            .setDescription('초기 수량')
-            .setRequired(true))
-        .addIntegerOption(option =>
           option.setName('충족수량')
             .setDescription('충족 수량 (목표치)')
             .setRequired(true))
+        .addIntegerOption(option =>
+          option.setName('초기수량')
+            .setDescription('초기 수량 (기본값: 0)')
+            .setRequired(false))
         .addStringOption(option =>
           option.setName('이모지')
             .setDescription('제작품 이모지 (선택사항)')
@@ -742,8 +742,8 @@ client.on('interactionCreate', async (interaction) => {
       else if (commandName === '목록추가') {
         const category = interaction.options.getString('카테고리');
         const itemName = interaction.options.getString('아이템');
-        const initialQuantity = interaction.options.getInteger('초기수량');
         const requiredQuantity = interaction.options.getInteger('충족수량');
+        const initialQuantity = interaction.options.getInteger('초기수량') || 0;
         const emoji = interaction.options.getString('이모지');
 
         const inventory = await loadInventory();
@@ -869,8 +869,8 @@ client.on('interactionCreate', async (interaction) => {
       else if (commandName === '제작목록추가') {
         const category = interaction.options.getString('카테고리');
         const itemName = interaction.options.getString('제작품');
-        const initialQuantity = interaction.options.getInteger('초기수량');
         const requiredQuantity = interaction.options.getInteger('충족수량');
+        const initialQuantity = interaction.options.getInteger('초기수량') || 0;
         const emoji = interaction.options.getString('이모지');
 
         const inventory = await loadInventory();
