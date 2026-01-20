@@ -1159,9 +1159,15 @@ client.on('interactionCreate', async (interaction) => {
     else if (interaction.customId.startsWith('stop_collecting_') || interaction.customId.startsWith('stop_crafting_')) {
       try {
         const isCrafting = interaction.customId.startsWith('stop_crafting_');
-        const parts = interaction.customId.replace(isCrafting ? 'stop_crafting_' : 'stop_collecting_', '').split('_');
+        const prefix = isCrafting ? 'stop_crafting_' : 'stop_collecting_';
+        const parts = interaction.customId.replace(prefix, '').split('_');
         const category = parts[0];
         const itemName = parts.slice(1).join('_');
+        
+        console.log(`${isCrafting ? '🔨' : '📦'} 중단 버튼 클릭`);
+        console.log('  - 카테고리:', category);
+        console.log('  - 아이템:', itemName);
+        
         const inventory = await loadInventory();
         
         if (isCrafting) {
@@ -1173,6 +1179,13 @@ client.on('interactionCreate', async (interaction) => {
               content: `✅ **${itemName}** 제작을 중단했습니다.`,
               components: []
             });
+            console.log(`✅ ${itemName} 제작 중단 완료`);
+          } else {
+            await interaction.update({
+              content: `⚠️ **${itemName}** 제작 정보를 찾을 수 없습니다.`,
+              components: []
+            });
+            console.log(`⚠️ ${itemName} 제작 정보 없음`);
           }
         } else {
           if (inventory.collecting?.[category]?.[itemName]) {
@@ -1183,10 +1196,21 @@ client.on('interactionCreate', async (interaction) => {
               content: `✅ **${itemName}** 수집을 중단했습니다.`,
               components: []
             });
+            console.log(`✅ ${itemName} 수집 중단 완료`);
+          } else {
+            await interaction.update({
+              content: `⚠️ **${itemName}** 수집 정보를 찾을 수 없습니다.`,
+              components: []
+            });
+            console.log(`⚠️ ${itemName} 수집 정보 없음`);
           }
         }
       } catch (error) {
         console.error('❌ 중단 에러:', error);
+        await interaction.reply({ 
+          content: `❌ 오류가 발생했습니다: ${error.message}`, 
+          ephemeral: true 
+        }).catch(() => {});
       }
     }
   }
