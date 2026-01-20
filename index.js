@@ -893,12 +893,14 @@ client.on('interactionCreate', async (interaction) => {
         
         for (const history of histories) {
           const date = new Date(history.timestamp);
-          const timeStr = date.toLocaleString('ko-KR', { 
-            month: '2-digit', 
-            day: '2-digit', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
+          
+          // 한국 시간대(UTC+9)로 변환
+          const kstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+          const month = String(kstDate.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(kstDate.getUTCDate()).padStart(2, '0');
+          const hour = String(kstDate.getUTCHours()).padStart(2, '0');
+          const minute = String(kstDate.getUTCMinutes()).padStart(2, '0');
+          const timeStr = `${month}/${day} ${hour}:${minute}`;
           
           const typeEmoji = history.type === 'inventory' ? '📦' : '🔨';
           const actionText = {
