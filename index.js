@@ -1574,33 +1574,42 @@ client.on('interactionCreate', async (interaction) => {
           .setPlaceholder('예: 다이아몬드')
           .setRequired(true);
         
-        const initialQtyInput = new TextInputBuilder()
-          .setCustomId('initial_quantity')
-          .setLabel('초기 수량')
+        const initialSetsInput = new TextInputBuilder()
+          .setCustomId('initial_sets')
+          .setLabel('초기 수량 - 세트 (1세트 = 64개)')
           .setStyle(TextInputStyle.Short)
           .setPlaceholder('예: 0')
           .setValue('0')
-          .setRequired(true);
+          .setRequired(false);
         
-        const requiredQtyInput = new TextInputBuilder()
-          .setCustomId('required_quantity')
-          .setLabel('충족 수량 (목표치)')
+        const initialItemsInput = new TextInputBuilder()
+          .setCustomId('initial_items')
+          .setLabel('초기 수량 - 낱개')
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('예: 100')
-          .setRequired(true);
+          .setPlaceholder('예: 0')
+          .setValue('0')
+          .setRequired(false);
         
-        const emojiInput = new TextInputBuilder()
-          .setCustomId('item_emoji')
-          .setLabel('이모지 (선택사항)')
+        const requiredSetsInput = new TextInputBuilder()
+          .setCustomId('required_sets')
+          .setLabel('충족 수량 - 세트 (1세트 = 64개)')
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('예: 💎')
+          .setPlaceholder('예: 10')
+          .setRequired(false);
+        
+        const requiredItemsInput = new TextInputBuilder()
+          .setCustomId('required_items')
+          .setLabel('충족 수량 - 낱개')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('예: 32')
           .setRequired(false);
         
         modal.addComponents(
           new ActionRowBuilder().addComponents(nameInput),
-          new ActionRowBuilder().addComponents(initialQtyInput),
-          new ActionRowBuilder().addComponents(requiredQtyInput),
-          new ActionRowBuilder().addComponents(emojiInput)
+          new ActionRowBuilder().addComponents(initialSetsInput),
+          new ActionRowBuilder().addComponents(initialItemsInput),
+          new ActionRowBuilder().addComponents(requiredSetsInput),
+          new ActionRowBuilder().addComponents(requiredItemsInput)
         );
         
         await interaction.showModal(modal);
@@ -2327,13 +2336,29 @@ client.on('interactionCreate', async (interaction) => {
         const category = parts.slice(4).join('_');
         
         const itemName = interaction.fields.getTextInputValue('item_name').trim();
-        const initialQty = parseInt(interaction.fields.getTextInputValue('initial_quantity').trim());
-        const requiredQty = parseInt(interaction.fields.getTextInputValue('required_quantity').trim());
-        const emoji = interaction.fields.getTextInputValue('item_emoji')?.trim() || null;
+        const initialSets = interaction.fields.getTextInputValue('initial_sets')?.trim() || '0';
+        const initialItems = interaction.fields.getTextInputValue('initial_items')?.trim() || '0';
+        const requiredSets = interaction.fields.getTextInputValue('required_sets')?.trim() || '0';
+        const requiredItems = interaction.fields.getTextInputValue('required_items')?.trim() || '0';
         
-        if (!itemName || isNaN(initialQty) || isNaN(requiredQty)) {
+        const initialSetsNum = parseInt(initialSets);
+        const initialItemsNum = parseInt(initialItems);
+        const requiredSetsNum = parseInt(requiredSets);
+        const requiredItemsNum = parseInt(requiredItems);
+        
+        if (!itemName || isNaN(initialSetsNum) || isNaN(initialItemsNum) || isNaN(requiredSetsNum) || isNaN(requiredItemsNum)) {
           return await interaction.reply({ 
-            content: '❌ 모든 필수 항목을 올바르게 입력해주세요.', 
+            content: '❌ 모든 항목을 올바르게 입력해주세요. (숫자만 입력)', 
+            ephemeral: true 
+          });
+        }
+        
+        const initialQty = (initialSetsNum * 64) + initialItemsNum;
+        const requiredQty = (requiredSetsNum * 64) + requiredItemsNum;
+        
+        if (requiredQty === 0) {
+          return await interaction.reply({ 
+            content: '❌ 충족 수량은 0보다 커야 합니다.', 
             ephemeral: true 
           });
         }
@@ -2356,10 +2381,6 @@ client.on('interactionCreate', async (interaction) => {
             quantity: initialQty,
             required: requiredQty
           };
-          
-          if (emoji) {
-            inventory.categories[category][itemName].emoji = emoji;
-          }
           
           addHistory(inventory, 'inventory', category, itemName, 'add', 
             `초기: ${initialQty}개, 목표: ${requiredQty}개`, 
@@ -2385,10 +2406,6 @@ client.on('interactionCreate', async (interaction) => {
             required: requiredQty
           };
           
-          if (emoji) {
-            inventory.crafting.categories[category][itemName].emoji = emoji;
-          }
-          
           addHistory(inventory, 'crafting', category, itemName, 'add', 
             `초기: ${initialQty}개, 목표: ${requiredQty}개`, 
             interaction.user.displayName || interaction.user.username);
@@ -2396,11 +2413,16 @@ client.on('interactionCreate', async (interaction) => {
         
         await saveInventory(inventory);
         
-        const icon = emoji || getItemIcon(itemName, inventory);
+        const icon = getItemIcon(itemName, inventory);
+        const initialSetsDisplay = Math.floor(initialQty / 64);
+        const initialRemainderDisplay = initialQty % 64;
+        const requiredSetsDisplay = Math.floor(requiredQty / 64);
+        const requiredRemainderDisplay = requiredQty % 64;
+        
         const successEmbed = new EmbedBuilder()
           .setColor(0x57F287)
           .setTitle('✅ 추가 완료')
-          .setDescription(`**카테고리:** ${category}\n${icon} **${itemName}**이(가) 추가되었습니다!\n\n**초기 수량:** ${initialQty}개\n**충족 수량:** ${requiredQty}개`);
+          .setDescription(`**카테고리:** ${category}\n${icon} **${itemName}**이(가) 추가되었습니다!\n\n**초기 수량:** ${initialQty}개 (${initialSetsDisplay}세트 + ${initialRemainderDisplay}개)\n**충족 수량:** ${requiredQty}개 (${requiredSetsDisplay}세트 + ${requiredRemainderDisplay}개)`);
         
         await interaction.reply({ embeds: [successEmbed], ephemeral: true });
         
