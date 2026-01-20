@@ -1058,12 +1058,31 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('collecting') || interaction.customId.startsWith('crafting_')) {
+    else if (interaction.customId.startsWith('collecting') || interaction.customId.startsWith('crafting')) {
       try {
-        const isCrafting = interaction.customId.startsWith('crafting_');
-        const category = isCrafting 
-          ? interaction.customId.replace('crafting_', '') 
-          : (interaction.customId === 'collecting' ? null : interaction.customId.replace('collecting_', ''));
+        // crafting_가 아니라 crafting으로 시작하는지 확인 (단, crafting_stop은 제외)
+        const isCrafting = interaction.customId.startsWith('crafting') && !interaction.customId.startsWith('crafting_stop');
+        const isCollecting = interaction.customId.startsWith('collecting');
+        
+        // 둘 다 아니면 무시
+        if (!isCrafting && !isCollecting) return;
+        
+        let category;
+        if (isCrafting) {
+          // crafting 또는 crafting_카테고리
+          if (interaction.customId === 'crafting') {
+            category = null;
+          } else {
+            category = interaction.customId.replace('crafting_', '');
+          }
+        } else {
+          // collecting 또는 collecting_카테고리
+          if (interaction.customId === 'collecting') {
+            category = null;
+          } else {
+            category = interaction.customId.replace('collecting_', '');
+          }
+        }
         
         console.log(isCrafting ? '🔨 제작중 버튼 클릭' : '📦 수집중 버튼 클릭');
         console.log('  - 사용자:', interaction.user.tag);
@@ -1073,7 +1092,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (!category) {
           return await interaction.reply({ 
-            content: `❌ 특정 카테고리를 선택한 후 ${isCrafting ? '제작중' : '수집중'} 버튼을 사용해주세요.\n\`/${isCrafting ? '제작' : '재고'} 카테고리:${isCrafting ? '건축' : '해양'}\` 처럼 카테고리를 지정해주세요.`, 
+            content: `❌ 특정 카테고리를 선택한 후 ${isCrafting ? '제작중' : '수집중'} 버튼을 사용해주세요.\n\`/${isCrafting ? '제작' : '재고'} 카테고리:${isCrafting ? '해양' : '해양'}\` 처럼 카테고리를 지정해주세요.`, 
             ephemeral: true 
           });
         }
