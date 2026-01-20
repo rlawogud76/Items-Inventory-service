@@ -1551,6 +1551,12 @@ client.on('interactionCreate', async (interaction) => {
         const category = parts.slice(1).join('_');
         const selectedItem = interaction.values[0];
         
+        const inventory = await loadInventory();
+        const targetData = type === 'inventory' ? inventory : inventory.crafting;
+        const itemData = targetData.categories[category][selectedItem];
+        const currentSets = Math.floor(itemData.quantity / 64);
+        const remainder = itemData.quantity % 64;
+        
         // 모달 생성
         const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
         
@@ -1560,13 +1566,22 @@ client.on('interactionCreate', async (interaction) => {
         
         const quantityInput = new TextInputBuilder()
           .setCustomId('quantity_change')
-          .setLabel('추가/감소할 수량 (예: +10, -5, 20)')
+          .setLabel(`세트 추가/감소 (1세트 = 64개)`)
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('+10 (10개 추가), -5 (5개 감소), 20 (20개로 설정)')
+          .setPlaceholder('+2 (2세트 추가), -1 (1세트 감소), 5 (5세트로 설정)')
+          .setValue('0')
           .setRequired(true);
         
-        const row = new ActionRowBuilder().addComponents(quantityInput);
-        modal.addComponents(row);
+        const infoInput = new TextInputBuilder()
+          .setCustomId('info')
+          .setLabel('참고: 작은 상자 9세트 / 큰 상자 54세트')
+          .setStyle(TextInputStyle.Short)
+          .setValue(`현재: ${currentSets}세트 + ${remainder}개 (총 ${itemData.quantity}개)`)
+          .setRequired(false);
+        
+        const row1 = new ActionRowBuilder().addComponents(quantityInput);
+        const row2 = new ActionRowBuilder().addComponents(infoInput);
+        modal.addComponents(row1, row2);
         
         await interaction.showModal(modal);
         
@@ -1666,46 +1681,52 @@ client.on('interactionCreate', async (interaction) => {
         
         const itemData = targetData.categories[category][itemName];
         const oldQuantity = itemData.quantity;
+        const oldSets = Math.floor(oldQuantity / 64);
+        const oldRemainder = oldQuantity % 64;
         let newQuantity;
         
-        // 수량 계산
+        // 세트 단위로 수량 계산 (1세트 = 64개)
         if (quantityChange.startsWith('+')) {
-          // 추가
-          const addAmount = parseInt(quantityChange.substring(1));
-          if (isNaN(addAmount)) {
+          // 세트 추가
+          const addSets = parseFloat(quantityChange.substring(1));
+          if (isNaN(addSets)) {
             return await interaction.reply({ 
-              content: `❌ 올바른 숫자를 입력해주세요. (예: +10)`, 
+              content: `❌ 올바른 숫자를 입력해주세요. (예: +2)`, 
               ephemeral: true 
             });
           }
-          newQuantity = oldQuantity + addAmount;
+          newQuantity = oldQuantity + Math.round(addSets * 64);
         } else if (quantityChange.startsWith('-')) {
-          // 감소
-          const subAmount = parseInt(quantityChange.substring(1));
-          if (isNaN(subAmount)) {
+          // 세트 감소
+          const subSets = parseFloat(quantityChange.substring(1));
+          if (isNaN(subSets)) {
             return await interaction.reply({ 
-              content: `❌ 올바른 숫자를 입력해주세요. (예: -5)`, 
+              content: `❌ 올바른 숫자를 입력해주세요. (예: -1)`, 
               ephemeral: true 
             });
           }
-          newQuantity = Math.max(0, oldQuantity - subAmount);
+          newQuantity = Math.max(0, oldQuantity - Math.round(subSets * 64));
         } else {
-          // 직접 설정
-          newQuantity = parseInt(quantityChange);
-          if (isNaN(newQuantity)) {
+          // 세트로 직접 설정
+          const setSets = parseFloat(quantityChange);
+          if (isNaN(setSets)) {
             return await interaction.reply({ 
-              content: `❌ 올바른 숫자를 입력해주세요. (예: 20, +10, -5)`, 
+              content: `❌ 올바른 숫자를 입력해주세요. (예: 5, +2, -1)`, 
               ephemeral: true 
             });
           }
-          newQuantity = Math.max(0, newQuantity);
+          newQuantity = Math.max(0, Math.round(setSets * 64));
         }
         
         itemData.quantity = newQuantity;
         
+        const newSets = Math.floor(newQuantity / 64);
+        const newRemainder = newQuantity % 64;
+        
         // 수정 내역 추가
+        const changeDetail = `${oldSets}세트+${oldRemainder}개 (${oldQuantity}개) → ${newSets}세트+${newRemainder}개 (${newQuantity}개)`;
         addHistory(inventory, type, category, itemName, 'update_quantity', 
-          `${oldQuantity}개 → ${newQuantity}개`, 
+          changeDetail, 
           interaction.user.displayName || interaction.user.username);
         
         await saveInventory(inventory);
@@ -1713,7 +1734,7 @@ client.on('interactionCreate', async (interaction) => {
         const icon = getItemIcon(itemName, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x5865F2)
-          .setDescription(`### ✅ 수량 변경 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldQuantity}개 → ${newQuantity}개`);
+          .setDescription(`### ✅ 수량 변경 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldSets}세트 + ${oldRemainder}개 (${oldQuantity}개)\n↓\n${newSets}세트 + ${newRemainder}개 (${newQuantity}개)`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
         
