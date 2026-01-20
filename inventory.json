@@ -35,5 +35,9 @@
       }
     }
   },
-  "collecting": {}
+  "collecting": {},
+  "crafting": {
+    "categories": {},
+    "crafting": {}
+  }
 }
