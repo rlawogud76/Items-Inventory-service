@@ -724,7 +724,39 @@ client.on('ready', async () => {
         .addStringOption(option =>
           option.setName('제작품')
             .setDescription('레시피를 삭제할 제작품 이름')
-            .setRequired(true))
+            .setRequired(true)),
+      new SlashCommandBuilder()
+        .setName('재고초기화')
+        .setDescription('재고 아이템의 현재 수량을 0으로 초기화합니다')
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('카테고리 선택')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            ))
+        .addStringOption(option =>
+          option.setName('아이템')
+            .setDescription('초기화할 아이템 (선택 안하면 카테고리 전체)')
+            .setRequired(false)),
+      new SlashCommandBuilder()
+        .setName('제작초기화개별')
+        .setDescription('제작품의 현재 수량을 0으로 초기화합니다')
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('카테고리 선택')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            ))
+        .addStringOption(option =>
+          option.setName('제작품')
+            .setDescription('초기화할 제작품 (선택 안하면 카테고리 전체)')
+            .setRequired(false))
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);
@@ -1233,50 +1265,34 @@ client.on('interactionCreate', async (interaction) => {
           return sendTemporaryReply(interaction, `❌ "${craftItem}" 제작품을 찾을 수 없습니다.`);
         }
 
-        // 재료가 재고에 존재하는지 확인
+        // 같은 카테고리의 재료만 사용 가능
+        if (!inventory.categories[category]) {
+          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리에 재료가 없습니다.`);
+        }
+
+        // 재료가 같은 카테고리에 존재하는지 확인
         const materials = [];
         
         // 재료1 확인
-        let found = false;
-        for (const cat of Object.keys(inventory.categories || {})) {
-          if (inventory.categories[cat][material1]) {
-            materials.push({ name: material1, quantity: material1Qty, category: cat });
-            found = true;
-            break;
-          }
+        if (!inventory.categories[category][material1]) {
+          return sendTemporaryReply(interaction, `❌ "${material1}" 재료를 "${category}" 카테고리에서 찾을 수 없습니다.`);
         }
-        if (!found) {
-          return sendTemporaryReply(interaction, `❌ "${material1}" 재료를 재고에서 찾을 수 없습니다.`);
-        }
+        materials.push({ name: material1, quantity: material1Qty, category: category });
 
         // 재료2 확인 (선택사항)
         if (material2 && material2Qty) {
-          found = false;
-          for (const cat of Object.keys(inventory.categories || {})) {
-            if (inventory.categories[cat][material2]) {
-              materials.push({ name: material2, quantity: material2Qty, category: cat });
-              found = true;
-              break;
-            }
+          if (!inventory.categories[category][material2]) {
+            return sendTemporaryReply(interaction, `❌ "${material2}" 재료를 "${category}" 카테고리에서 찾을 수 없습니다.`);
           }
-          if (!found) {
-            return sendTemporaryReply(interaction, `❌ "${material2}" 재료를 재고에서 찾을 수 없습니다.`);
-          }
+          materials.push({ name: material2, quantity: material2Qty, category: category });
         }
 
         // 재료3 확인 (선택사항)
         if (material3 && material3Qty) {
-          found = false;
-          for (const cat of Object.keys(inventory.categories || {})) {
-            if (inventory.categories[cat][material3]) {
-              materials.push({ name: material3, quantity: material3Qty, category: cat });
-              found = true;
-              break;
-            }
+          if (!inventory.categories[category][material3]) {
+            return sendTemporaryReply(interaction, `❌ "${material3}" 재료를 "${category}" 카테고리에서 찾을 수 없습니다.`);
           }
-          if (!found) {
-            return sendTemporaryReply(interaction, `❌ "${material3}" 재료를 재고에서 찾을 수 없습니다.`);
-          }
+          materials.push({ name: material3, quantity: material3Qty, category: category });
         }
 
         // 레시피 저장
@@ -1352,6 +1368,130 @@ client.on('interactionCreate', async (interaction) => {
         const successEmbed = new EmbedBuilder()
           .setColor(0xED4245)
           .setDescription(`### ✅ 레시피 삭제 완료\n**카테고리:** ${category}\n${icon} **${craftItem}**의 레시피가 삭제되었습니다.`);
+        
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
+      }
+
+      else if (commandName === '재고초기화') {
+        const category = interaction.options.getString('카테고리');
+        const itemName = interaction.options.getString('아이템');
+
+        const inventory = await loadInventory();
+        
+        if (!inventory.categories[category]) {
+          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
+        }
+
+        let resetCount = 0;
+        let resetItems = [];
+
+        if (itemName) {
+          // 특정 아이템만 초기화
+          if (!inventory.categories[category][itemName]) {
+            return sendTemporaryReply(interaction, `❌ "${itemName}" 아이템을 찾을 수 없습니다.`);
+          }
+
+          const oldQuantity = inventory.categories[category][itemName].quantity;
+          if (oldQuantity > 0) {
+            inventory.categories[category][itemName].quantity = 0;
+            resetCount = 1;
+            resetItems.push(`${getItemIcon(itemName, inventory)} ${itemName} (${oldQuantity}개)`);
+            
+            addHistory(inventory, 'inventory', category, itemName, 'reset', 
+              `${oldQuantity}개 → 0개`, 
+              interaction.user.displayName || interaction.user.username);
+          }
+        } else {
+          // 카테고리 전체 초기화
+          for (const [item, data] of Object.entries(inventory.categories[category])) {
+            if (data.quantity > 0) {
+              const oldQuantity = data.quantity;
+              data.quantity = 0;
+              resetCount++;
+              resetItems.push(`${getItemIcon(item, inventory)} ${item} (${oldQuantity}개)`);
+              
+              addHistory(inventory, 'inventory', category, item, 'reset', 
+                `${oldQuantity}개 → 0개`, 
+                interaction.user.displayName || interaction.user.username);
+            }
+          }
+        }
+
+        if (resetCount === 0) {
+          return sendTemporaryReply(interaction, '⚠️ 초기화할 아이템이 없습니다. (이미 0개입니다)');
+        }
+
+        await saveInventory(inventory);
+
+        const itemList = resetItems.slice(0, 10).join('\n');
+        const moreText = resetItems.length > 10 ? `\n... 외 ${resetItems.length - 10}개` : '';
+
+        const successEmbed = new EmbedBuilder()
+          .setColor(0xFFA500)
+          .setTitle('🔄 재고 초기화 완료')
+          .setDescription(`**${category}** 카테고리의 ${itemName ? `**${itemName}**` : `아이템 **${resetCount}개**`}가 초기화되었습니다.\n\n${itemList}${moreText}`);
+        
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
+      }
+
+      else if (commandName === '제작초기화개별') {
+        const category = interaction.options.getString('카테고리');
+        const craftItem = interaction.options.getString('제작품');
+
+        const inventory = await loadInventory();
+        
+        if (!inventory.crafting?.categories[category]) {
+          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
+        }
+
+        let resetCount = 0;
+        let resetItems = [];
+
+        if (craftItem) {
+          // 특정 제작품만 초기화
+          if (!inventory.crafting.categories[category][craftItem]) {
+            return sendTemporaryReply(interaction, `❌ "${craftItem}" 제작품을 찾을 수 없습니다.`);
+          }
+
+          const oldQuantity = inventory.crafting.categories[category][craftItem].quantity;
+          if (oldQuantity > 0) {
+            inventory.crafting.categories[category][craftItem].quantity = 0;
+            resetCount = 1;
+            resetItems.push(`${getItemIcon(craftItem, inventory)} ${craftItem} (${oldQuantity}개)`);
+            
+            addHistory(inventory, 'crafting', category, craftItem, 'reset', 
+              `${oldQuantity}개 → 0개`, 
+              interaction.user.displayName || interaction.user.username);
+          }
+        } else {
+          // 카테고리 전체 초기화
+          for (const [item, data] of Object.entries(inventory.crafting.categories[category])) {
+            if (data.quantity > 0) {
+              const oldQuantity = data.quantity;
+              data.quantity = 0;
+              resetCount++;
+              resetItems.push(`${getItemIcon(item, inventory)} ${item} (${oldQuantity}개)`);
+              
+              addHistory(inventory, 'crafting', category, item, 'reset', 
+                `${oldQuantity}개 → 0개`, 
+                interaction.user.displayName || interaction.user.username);
+            }
+          }
+        }
+
+        if (resetCount === 0) {
+          return sendTemporaryReply(interaction, '⚠️ 초기화할 제작품이 없습니다. (이미 0개입니다)');
+        }
+
+        await saveInventory(inventory);
+
+        const itemList = resetItems.slice(0, 10).join('\n');
+        const moreText = resetItems.length > 10 ? `\n... 외 ${resetItems.length - 10}개` : '';
+
+        const successEmbed = new EmbedBuilder()
+          .setColor(0xFFA500)
+          .setTitle('🔄 제작 초기화 완료')
+          .setDescription(`**${category}** 카테고리의 ${craftItem ? `**${craftItem}**` : `제작품 **${resetCount}개**`}가 초기화되었습니다.\n\n${itemList}${moreText}`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
