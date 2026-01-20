@@ -38,7 +38,24 @@ function getStatusEmoji(quantity, required) {
 }
 
 // 아이템 아이콘 반환
-function getItemIcon(itemName) {
+function getItemIcon(itemName, inventory = null) {
+  // 먼저 inventory에서 커스텀 이모지 확인
+  if (inventory) {
+    // 재고 카테고리 확인
+    for (const category of Object.values(inventory.categories || {})) {
+      if (category[itemName]?.emoji) {
+        return category[itemName].emoji;
+      }
+    }
+    // 제작 카테고리 확인
+    for (const category of Object.values(inventory.crafting?.categories || {})) {
+      if (category[itemName]?.emoji) {
+        return category[itemName].emoji;
+      }
+    }
+  }
+  
+  // 기본 아이콘
   const icons = {
     '다이아몬드': '💎',
     '철괴': '⚙️',
@@ -77,9 +94,12 @@ function createCraftingEmbed(crafting, categoryName = null) {
       return embed;
     }
 
+    // inventory 전체를 전달하기 위해 crafting을 포함한 객체 생성
+    const fullInventory = { crafting: crafting };
+
     for (const [itemName, data] of Object.entries(crafting.categories[categoryName])) {
       const status = getStatusEmoji(data.quantity, data.required);
-      const icon = getItemIcon(itemName);
+      const icon = getItemIcon(itemName, fullInventory);
       const progressBar = createProgressBar(data.quantity, data.required);
       const percentage = Math.round((data.quantity / data.required) * 100);
       
@@ -109,11 +129,13 @@ function createCraftingEmbed(crafting, categoryName = null) {
       return embed;
     }
 
+    const fullInventory = { crafting: crafting };
+
     for (const [catName, items] of Object.entries(crafting.categories)) {
       let categoryText = '';
       for (const [itemName, data] of Object.entries(items)) {
         const status = getStatusEmoji(data.quantity, data.required);
-        const icon = getItemIcon(itemName);
+        const icon = getItemIcon(itemName, fullInventory);
         const percentage = Math.round((data.quantity / data.required) * 100);
         
         // 제작 중인 사람 확인
@@ -152,7 +174,7 @@ function createInventoryEmbed(inventory, categoryName = null) {
 
     for (const [itemName, data] of Object.entries(inventory.categories[categoryName])) {
       const status = getStatusEmoji(data.quantity, data.required);
-      const icon = getItemIcon(itemName);
+      const icon = getItemIcon(itemName, inventory);
       const progressBar = createProgressBar(data.quantity, data.required);
       const percentage = Math.round((data.quantity / data.required) * 100);
       
@@ -186,7 +208,7 @@ function createInventoryEmbed(inventory, categoryName = null) {
       let categoryText = '';
       for (const [itemName, data] of Object.entries(items)) {
         const status = getStatusEmoji(data.quantity, data.required);
-        const icon = getItemIcon(itemName);
+        const icon = getItemIcon(itemName, inventory);
         const percentage = Math.round((data.quantity / data.required) * 100);
         
         // 수집 중인 사람 확인
@@ -339,7 +361,11 @@ client.on('ready', async () => {
         .addIntegerOption(option =>
           option.setName('충족수량')
             .setDescription('충족 수량 (목표치)')
-            .setRequired(true)),
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('이모지')
+            .setDescription('아이템 이모지 (선택사항)')
+            .setRequired(false)),
       new SlashCommandBuilder()
         .setName('목록제거')
         .setDescription('재고 목록에서 아이템을 제거합니다')
@@ -391,7 +417,11 @@ client.on('ready', async () => {
         .addIntegerOption(option =>
           option.setName('충족수량')
             .setDescription('충족 수량 (목표치)')
-            .setRequired(true)),
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('이모지')
+            .setDescription('제작품 이모지 (선택사항)')
+            .setRequired(false)),
       new SlashCommandBuilder()
         .setName('제작목록제거')
         .setDescription('제작 목록에서 제작품을 제거합니다')
@@ -560,6 +590,7 @@ client.on('interactionCreate', async (interaction) => {
         const itemName = interaction.options.getString('아이템');
         const initialQuantity = interaction.options.getInteger('초기수량');
         const requiredQuantity = interaction.options.getInteger('충족수량');
+        const emoji = interaction.options.getString('이모지');
 
         const inventory = await loadInventory();
         
@@ -576,9 +607,13 @@ client.on('interactionCreate', async (interaction) => {
           required: requiredQuantity
         };
         
+        if (emoji) {
+          inventory.categories[category][itemName].emoji = emoji;
+        }
+        
         await saveInventory(inventory);
 
-        const icon = getItemIcon(itemName);
+        const icon = emoji || getItemIcon(itemName, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x57F287)
           .setDescription(`### ✅ 목록 추가 완료\n**카테고리:** ${category}\n${icon} **${itemName}**이(가) 재고 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**충족 수량:** ${requiredQuantity}개`);
@@ -620,6 +655,7 @@ client.on('interactionCreate', async (interaction) => {
         const itemName = interaction.options.getString('제작품');
         const initialQuantity = interaction.options.getInteger('초기수량');
         const requiredQuantity = interaction.options.getInteger('충족수량');
+        const emoji = interaction.options.getString('이모지');
 
         const inventory = await loadInventory();
         
@@ -639,9 +675,13 @@ client.on('interactionCreate', async (interaction) => {
           required: requiredQuantity
         };
         
+        if (emoji) {
+          inventory.crafting.categories[category][itemName].emoji = emoji;
+        }
+        
         await saveInventory(inventory);
 
-        const icon = getItemIcon(itemName);
+        const icon = emoji || getItemIcon(itemName, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x57F287)
           .setDescription(`### ✅ 제작 목록 추가 완료\n**카테고리:** ${category}\n${icon} **${itemName}**이(가) 제작 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**충족 수량:** ${requiredQuantity}개`);
@@ -906,11 +946,15 @@ client.on('interactionCreate', async (interaction) => {
         
         // 현재 카테고리의 아이템 목록 생성
         const items = Object.keys(targetData.categories[category]);
-        const itemOptions = items.map(item => ({
-          label: item,
-          value: item,
-          emoji: getItemIcon(item)
-        }));
+        const itemOptions = items.map(item => {
+          const itemData = targetData.categories[category][item];
+          const customEmoji = itemData?.emoji;
+          return {
+            label: item,
+            value: item,
+            emoji: customEmoji || getItemIcon(item, inventory)
+          };
+        });
         
         // 선택 메뉴 생성
         const { StringSelectMenuBuilder } = await import('discord.js');
