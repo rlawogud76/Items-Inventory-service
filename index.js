@@ -366,6 +366,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   const autoRefreshId = categoryName ? `auto_refresh_${type}_${categoryName}` : `auto_refresh_${type}`;
   const uiModeId = categoryName ? `ui_mode_${type}_${categoryName}` : `ui_mode_${type}`;
   const barSizeId = categoryName ? `bar_size_${type}_${categoryName}` : `bar_size_${type}`;
+  const editId = categoryName ? `edit_${type}_${categoryName}` : `edit_${type}`;
   
   // UI 모드 버튼 라벨
   let uiModeLabel = '📏 일반';
@@ -382,6 +383,10 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
         .setCustomId(actionId)
         .setLabel(type === 'inventory' ? '📦 수집중' : '🔨 제작중')
         .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(editId)
+        .setLabel('✏️ 수정')
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(autoRefreshId)
         .setLabel(autoRefresh ? '⏸️ 자동새로고침 중지' : '▶️ 자동새로고침')
@@ -1125,6 +1130,76 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
+    else if (interaction.customId.startsWith('edit')) {
+      try {
+        const parts = interaction.customId.split('_');
+        const type = parts[1]; // 'inventory' or 'crafting'
+        const category = parts.length > 2 ? parts.slice(2).join('_') : null;
+        
+        console.log('✏️ 수정 버튼 클릭');
+        console.log('  - 타입:', type);
+        console.log('  - 카테고리:', category || '전체');
+        
+        const inventory = await loadInventory();
+        
+        if (!category) {
+          return await interaction.reply({ 
+            content: `❌ 특정 카테고리를 선택한 후 수정 버튼을 사용해주세요.\n\`/${type === 'inventory' ? '재고' : '제작'} 카테고리:해양\` 처럼 카테고리를 지정해주세요.`, 
+            ephemeral: true 
+          });
+        }
+        
+        const targetData = type === 'inventory' ? inventory : inventory.crafting;
+        
+        if (!targetData.categories[category]) {
+          return await interaction.reply({ 
+            content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, 
+            ephemeral: true 
+          });
+        }
+        
+        // 현재 카테고리의 아이템 목록 생성
+        const items = Object.keys(targetData.categories[category]);
+        
+        if (items.length === 0) {
+          return await interaction.reply({ 
+            content: `❌ "${category}" 카테고리에 아이템이 없습니다.`, 
+            ephemeral: true 
+          });
+        }
+        
+        const itemOptions = items.map(item => {
+          const itemData = targetData.categories[category][item];
+          const customEmoji = itemData?.emoji;
+          return {
+            label: item,
+            value: item,
+            emoji: customEmoji || getItemIcon(item, inventory),
+            description: `현재: ${itemData.quantity}개 / 목표: ${itemData.required}개`
+          };
+        });
+        
+        // 선택 메뉴 생성
+        const { StringSelectMenuBuilder } = await import('discord.js');
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId(`select_edit_${type}_${category}`)
+          .setPlaceholder('수정할 아이템을 선택하세요')
+          .addOptions(itemOptions);
+        
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+        
+        await interaction.reply({
+          content: `✏️ **${category}** 카테고리에서 수정할 아이템을 선택하세요:`,
+          components: [row],
+          ephemeral: true
+        });
+        
+      } catch (error) {
+        console.error('❌ 수정 버튼 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
+    
     else if (interaction.customId.startsWith('bar_size')) {
       try {
         const parts = interaction.customId.split('_');
@@ -1469,7 +1544,39 @@ client.on('interactionCreate', async (interaction) => {
   
   // 선택 메뉴 인터랙션 처리
   if (interaction.isStringSelectMenu()) {
-    if (interaction.customId.startsWith('select_item_')) {
+    if (interaction.customId.startsWith('select_edit_')) {
+      try {
+        const parts = interaction.customId.replace('select_edit_', '').split('_');
+        const type = parts[0]; // 'inventory' or 'crafting'
+        const category = parts.slice(1).join('_');
+        const selectedItem = interaction.values[0];
+        
+        // 모달 생성
+        const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
+        
+        const modal = new ModalBuilder()
+          .setCustomId(`modal_edit_${type}_${category}_${selectedItem}`)
+          .setTitle(`${selectedItem} 수정`);
+        
+        const quantityInput = new TextInputBuilder()
+          .setCustomId('quantity_change')
+          .setLabel('추가/감소할 수량 (예: +10, -5, 20)')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('+10 (10개 추가), -5 (5개 감소), 20 (20개로 설정)')
+          .setRequired(true);
+        
+        const row = new ActionRowBuilder().addComponents(quantityInput);
+        modal.addComponents(row);
+        
+        await interaction.showModal(modal);
+        
+      } catch (error) {
+        console.error('❌ 수정 선택 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('select_item_')) {
       try {
         const parts = interaction.customId.replace('select_item_', '').split('_');
         const isCrafting = parts[0] === 'crafting';
@@ -1532,6 +1639,89 @@ client.on('interactionCreate', async (interaction) => {
       } catch (error) {
         console.error('❌ 아이템 선택 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+  }
+  
+  // 모달 제출 처리
+  if (interaction.isModalSubmit()) {
+    if (interaction.customId.startsWith('modal_edit_')) {
+      try {
+        const parts = interaction.customId.replace('modal_edit_', '').split('_');
+        const type = parts[0]; // 'inventory' or 'crafting'
+        const category = parts[1];
+        const itemName = parts.slice(2).join('_');
+        
+        const quantityChange = interaction.fields.getTextInputValue('quantity_change').trim();
+        
+        const inventory = await loadInventory();
+        const targetData = type === 'inventory' ? inventory : inventory.crafting;
+        
+        if (!targetData.categories[category] || !targetData.categories[category][itemName]) {
+          return await interaction.reply({ 
+            content: `❌ "${itemName}" 아이템을 찾을 수 없습니다.`, 
+            ephemeral: true 
+          });
+        }
+        
+        const itemData = targetData.categories[category][itemName];
+        const oldQuantity = itemData.quantity;
+        let newQuantity;
+        
+        // 수량 계산
+        if (quantityChange.startsWith('+')) {
+          // 추가
+          const addAmount = parseInt(quantityChange.substring(1));
+          if (isNaN(addAmount)) {
+            return await interaction.reply({ 
+              content: `❌ 올바른 숫자를 입력해주세요. (예: +10)`, 
+              ephemeral: true 
+            });
+          }
+          newQuantity = oldQuantity + addAmount;
+        } else if (quantityChange.startsWith('-')) {
+          // 감소
+          const subAmount = parseInt(quantityChange.substring(1));
+          if (isNaN(subAmount)) {
+            return await interaction.reply({ 
+              content: `❌ 올바른 숫자를 입력해주세요. (예: -5)`, 
+              ephemeral: true 
+            });
+          }
+          newQuantity = Math.max(0, oldQuantity - subAmount);
+        } else {
+          // 직접 설정
+          newQuantity = parseInt(quantityChange);
+          if (isNaN(newQuantity)) {
+            return await interaction.reply({ 
+              content: `❌ 올바른 숫자를 입력해주세요. (예: 20, +10, -5)`, 
+              ephemeral: true 
+            });
+          }
+          newQuantity = Math.max(0, newQuantity);
+        }
+        
+        itemData.quantity = newQuantity;
+        
+        // 수정 내역 추가
+        addHistory(inventory, type, category, itemName, 'update_quantity', 
+          `${oldQuantity}개 → ${newQuantity}개`, 
+          interaction.user.displayName || interaction.user.username);
+        
+        await saveInventory(inventory);
+        
+        const icon = getItemIcon(itemName, inventory);
+        const successEmbed = new EmbedBuilder()
+          .setColor(0x5865F2)
+          .setDescription(`### ✅ 수량 변경 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldQuantity}개 → ${newQuantity}개`);
+        
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
+        
+        console.log(`✏️ ${interaction.user.displayName}님이 ${category} - ${itemName} 수량 변경: ${oldQuantity} -> ${newQuantity}`);
+        
+      } catch (error) {
+        console.error('❌ 모달 제출 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
   }
