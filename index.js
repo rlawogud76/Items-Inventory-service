@@ -1507,8 +1507,14 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('manage')) {
+    else if (interaction.customId.startsWith('manage') && !interaction.customId.startsWith('manage_add') && !interaction.customId.startsWith('manage_remove')) {
       try {
+        // 이미 응답했는지 확인
+        if (interaction.replied || interaction.deferred) {
+          console.log('⚠️ 이미 응답한 인터랙션, 무시');
+          return;
+        }
+        
         const parts = interaction.customId.split('_');
         const type = parts[1]; // 'inventory' or 'crafting'
         const category = parts.length > 2 ? parts.slice(2).join('_') : null;
@@ -1537,12 +1543,20 @@ client.on('interactionCreate', async (interaction) => {
         
       } catch (error) {
         console.error('❌ 관리 버튼 에러:', error);
-        await sendTemporaryReply(interaction, '오류가 발생했습니다.').catch(() => {});
+        if (!interaction.replied && !interaction.deferred) {
+          await sendTemporaryReply(interaction, '오류가 발생했습니다.').catch(() => {});
+        }
       }
     }
     
     else if (interaction.customId.startsWith('manage_add')) {
       try {
+        // 이미 응답했는지 확인
+        if (interaction.replied || interaction.deferred) {
+          console.log('⚠️ 이미 응답한 인터랙션, 무시');
+          return;
+        }
+        
         const parts = interaction.customId.split('_');
         const type = parts[2]; // 'inventory' or 'crafting'
         const category = parts.slice(3).join('_');
@@ -1593,12 +1607,20 @@ client.on('interactionCreate', async (interaction) => {
         
       } catch (error) {
         console.error('❌ 추가 모달 에러:', error);
-        await sendTemporaryReply(interaction, '오류가 발생했습니다.').catch(() => {});
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+        }
       }
     }
     
     else if (interaction.customId.startsWith('manage_remove')) {
       try {
+        // 이미 응답했는지 확인
+        if (interaction.replied || interaction.deferred) {
+          console.log('⚠️ 이미 응답한 인터랙션, 무시');
+          return;
+        }
+        
         const parts = interaction.customId.split('_');
         const type = parts[2]; // 'inventory' or 'crafting'
         const category = parts.slice(3).join('_');
@@ -1635,7 +1657,9 @@ client.on('interactionCreate', async (interaction) => {
         
       } catch (error) {
         console.error('❌ 삭제 선택 에러:', error);
-        await sendTemporaryReply(interaction, '오류가 발생했습니다.').catch(() => {});
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+        }
       }
     }
     
