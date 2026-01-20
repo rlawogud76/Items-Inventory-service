@@ -1469,6 +1469,13 @@ client.on('interactionCreate', async (interaction) => {
             components: []
           });
           
+          // 15초 후 자동 삭제
+          setTimeout(async () => {
+            try {
+              await interaction.deleteReply();
+            } catch (error) {}
+          }, 15000);
+          
         } else {
           // 개별 초기화 - 아이템 선택 메뉴 표시
           const items = Object.keys(targetData.categories[category]);
@@ -2368,6 +2375,13 @@ client.on('interactionCreate', async (interaction) => {
           components: []
         });
         
+        // 15초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 15000);
+        
       } catch (error) {
         console.error('❌ 삭제 선택 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
@@ -2461,6 +2475,13 @@ client.on('interactionCreate', async (interaction) => {
           embeds: [successEmbed],
           components: []
         });
+        
+        // 15초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 15000);
         
         console.log(`🔄 ${interaction.user.displayName}님이 ${category} - ${selectedItem} 초기화: ${oldQuantity} -> 0`);
         
