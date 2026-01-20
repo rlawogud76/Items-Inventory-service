@@ -2148,6 +2148,9 @@ client.on('interactionCreate', async (interaction) => {
     
     else if (interaction.customId.startsWith('quantity_add_') || interaction.customId.startsWith('quantity_edit_') || interaction.customId.startsWith('quantity_subtract_')) {
       try {
+        console.log('🔘 수량 추가/수정/차감 버튼 클릭');
+        console.log('  - customId:', interaction.customId);
+        
         // quantity_add_inventory_해양_산호 형식 파싱
         // 마지막 _를 기준으로 아이템명 분리
         const lastUnderscoreIndex = interaction.customId.lastIndexOf('_');
@@ -2158,11 +2161,38 @@ client.on('interactionCreate', async (interaction) => {
         const type = parts[2]; // 'inventory' or 'crafting'
         const category = parts.slice(3).join('_');
         
+        console.log('  - action:', action);
+        console.log('  - type:', type);
+        console.log('  - category:', category);
+        console.log('  - selectedItem:', selectedItem);
+        
         const inventory = await loadInventory();
         const targetData = type === 'inventory' ? inventory : inventory.crafting;
+        
+        console.log('  - targetData.categories:', Object.keys(targetData.categories || {}));
+        
+        if (!targetData.categories[category]) {
+          console.error('❌ 카테고리를 찾을 수 없습니다:', category);
+          return await interaction.reply({ 
+            content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, 
+            ephemeral: true 
+          });
+        }
+        
+        if (!targetData.categories[category][selectedItem]) {
+          console.error('❌ 아이템을 찾을 수 없습니다:', selectedItem);
+          return await interaction.reply({ 
+            content: `❌ "${selectedItem}" 아이템을 "${category}" 카테고리에서 찾을 수 없습니다.`, 
+            ephemeral: true 
+          });
+        }
+        
         const itemData = targetData.categories[category][selectedItem];
         const currentSets = Math.floor(itemData.quantity / 64);
         const remainder = itemData.quantity % 64;
+        
+        console.log('  - itemData:', itemData);
+        console.log('✅ 모달 생성 시작');
         
         // 모달 생성
         const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
@@ -2219,11 +2249,14 @@ client.on('interactionCreate', async (interaction) => {
         const row2 = new ActionRowBuilder().addComponents(itemsInput);
         modal.addComponents(row1, row2);
         
+        console.log('✅ 모달 표시 시도');
         await interaction.showModal(modal);
+        console.log('✅ 모달 표시 완료');
         
       } catch (error) {
         console.error('❌ 수량관리 액션 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+        console.error('❌ 에러 스택:', error.stack);
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
     
