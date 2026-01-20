@@ -393,12 +393,12 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
         .setLabel('📊 수량관리')
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
-        .setCustomId(resetId)
-        .setLabel('🔄 초기화')
+        .setCustomId(manageId)
+        .setLabel(type === 'inventory' ? '� 물품관리' : '📝 품목관리')
         .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
-        .setCustomId(manageId)
-        .setLabel(type === 'inventory' ? '📝 물품관리' : '📝 품목관리')
+        .setCustomId(resetId)
+        .setLabel('� 초기화')
         .setStyle(ButtonStyle.Secondary)
     );
   
@@ -407,7 +407,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
       new ButtonBuilder()
         .setCustomId(autoRefreshId)
         .setLabel(autoRefresh ? '⏸️ 자동새로고침 중지' : '▶️ 자동새로고침')
-        .setStyle(autoRefresh ? ButtonStyle.Danger : ButtonStyle.Secondary),
+        .setStyle(autoRefresh ? ButtonStyle.Danger : ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId(uiModeId)
         .setLabel(uiModeLabel)
