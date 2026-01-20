@@ -146,6 +146,10 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
       const progressBar = createProgressBar(data.quantity, data.required, barLength);
       const percentage = Math.round((data.quantity / data.required) * 100);
       
+      // 세트 계산
+      const currentSets = Math.floor(data.quantity / 64);
+      const requiredSets = Math.floor(data.required / 64);
+      
       // 제작 중인 사람 확인
       const craftingInfo = crafting.crafting?.[categoryName]?.[itemName];
       const craftingText = craftingInfo 
@@ -156,19 +160,19 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
       
       if (uiMode === 'compact') {
         // 컴팩트 모드: 한 줄로 표시
-        fieldValue = `${data.quantity}/${data.required} ${progressBar} ${percentage}% ${status}${craftingInfo ? ` 🔨 ${craftingInfo.userName}` : ''}`;
+        fieldValue = `${data.quantity}(${currentSets}세트)/${data.required}(${requiredSets}세트) ${progressBar} ${percentage}% ${status}${craftingInfo ? ` 🔨 ${craftingInfo.userName}` : ''}`;
       } else if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
-          `**현재 수량:** ${data.quantity}개`,
-          `**충족 수량:** ${data.required}개`,
+          `**현재 수량:** ${data.quantity}개 (${currentSets}세트)`,
+          `**충족 수량:** ${data.required}개 (${requiredSets}세트)`,
           `**진행률:** ${percentage}% ${status}`,
           `${progressBar}${craftingText}`
         ].join('\n');
       } else {
         // 일반 모드
         fieldValue = [
-          `**현재 수량:** ${data.quantity} / **충족 수량:** ${data.required}`,
+          `**현재 수량:** ${data.quantity}(${currentSets}세트) / **충족 수량:** ${data.required}(${requiredSets}세트)`,
           `${progressBar} ${percentage}% ${status}${craftingText}`
         ].join('\n');
       }
@@ -256,6 +260,10 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
       const progressBar = createProgressBar(data.quantity, data.required, barLength);
       const percentage = Math.round((data.quantity / data.required) * 100);
       
+      // 세트 계산
+      const currentSets = Math.floor(data.quantity / 64);
+      const requiredSets = Math.floor(data.required / 64);
+      
       // 수집 중인 사람 확인
       const collectingInfo = inventory.collecting?.[categoryName]?.[itemName];
       const collectingText = collectingInfo 
@@ -266,19 +274,19 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
       
       if (uiMode === 'compact') {
         // 컴팩트 모드: 한 줄로 표시
-        fieldValue = `${data.quantity}/${data.required} ${progressBar} ${percentage}% ${status}${collectingInfo ? ` 👤 ${collectingInfo.userName}` : ''}`;
+        fieldValue = `${data.quantity}(${currentSets}세트)/${data.required}(${requiredSets}세트) ${progressBar} ${percentage}% ${status}${collectingInfo ? ` 👤 ${collectingInfo.userName}` : ''}`;
       } else if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
-          `**현재 수량:** ${data.quantity}개`,
-          `**충족 수량:** ${data.required}개`,
+          `**현재 수량:** ${data.quantity}개 (${currentSets}세트)`,
+          `**충족 수량:** ${data.required}개 (${requiredSets}세트)`,
           `**진행률:** ${percentage}% ${status}`,
           `${progressBar}${collectingText}`
         ].join('\n');
       } else {
         // 일반 모드
         fieldValue = [
-          `**현재 수량:** ${data.quantity} / **충족 수량:** ${data.required}`,
+          `**현재 수량:** ${data.quantity}(${currentSets}세트) / **충족 수량:** ${data.required}(${requiredSets}세트)`,
           `${progressBar} ${percentage}% ${status}${collectingText}`
         ].join('\n');
       }
@@ -678,7 +686,7 @@ client.on('interactionCreate', async (interaction) => {
         const category = interaction.options.getString('카테고리');
         const inventory = await loadInventory();
         const uiMode = inventory.settings?.uiMode || 'normal';
-        const barLength = inventory.settings?.barLength || 10;
+        const barLength = inventory.settings?.barLength || 15;
         const embed = createInventoryEmbed(inventory, category, uiMode, barLength);
         const buttons = createButtons(category, false, 'inventory', uiMode, barLength);
         await interaction.reply({ embeds: [embed], components: buttons });
@@ -956,7 +964,7 @@ client.on('interactionCreate', async (interaction) => {
         const inventory = await loadInventory();
         const crafting = inventory.crafting || { categories: {}, crafting: {} };
         const uiMode = inventory.settings?.uiMode || 'normal';
-        const barLength = inventory.settings?.barLength || 10;
+        const barLength = inventory.settings?.barLength || 15;
         const embed = createCraftingEmbed(crafting, category, uiMode, barLength);
         const buttons = createButtons(category, false, 'crafting', uiMode, barLength);
         await interaction.reply({ embeds: [embed], components: buttons });
@@ -1117,7 +1125,7 @@ client.on('interactionCreate', async (interaction) => {
         
         const inventory = await loadInventory();
         const uiMode = inventory.settings?.uiMode || 'normal';
-        const barLength = inventory.settings?.barLength || 10;
+        const barLength = inventory.settings?.barLength || 15;
         let embed, buttons;
         
         if (type === 'crafting') {
@@ -1238,7 +1246,7 @@ client.on('interactionCreate', async (interaction) => {
         const inventory = await loadInventory();
         
         // 바 크기 순환: 5 -> 10 -> 15 -> 20 -> 5
-        let currentLength = inventory.settings?.barLength || 10;
+        let currentLength = inventory.settings?.barLength || 15;
         let newLength;
         if (currentLength === 5) newLength = 10;
         else if (currentLength === 10) newLength = 15;
@@ -1291,7 +1299,7 @@ client.on('interactionCreate', async (interaction) => {
         inventory.settings.uiMode = newMode;
         await saveInventory(inventory);
         
-        const barLength = inventory.settings?.barLength || 10;
+        const barLength = inventory.settings?.barLength || 15;
         let embed;
         if (type === 'crafting') {
           const crafting = inventory.crafting || { categories: {}, crafting: {} };
@@ -1337,7 +1345,7 @@ client.on('interactionCreate', async (interaction) => {
           }
           
           const uiMode = inventory.settings?.uiMode || 'normal';
-          const barLength = inventory.settings?.barLength || 10;
+          const barLength = inventory.settings?.barLength || 15;
           const buttons = createButtons(category, false, type || 'inventory', uiMode, barLength);
           
           await interaction.update({ embeds: [embed], components: [buttons] });
@@ -1356,7 +1364,7 @@ client.on('interactionCreate', async (interaction) => {
           }
           
           const uiMode = inventory.settings?.uiMode || 'normal';
-          const barLength = inventory.settings?.barLength || 10;
+          const barLength = inventory.settings?.barLength || 15;
           const buttons = createButtons(category, true, type || 'inventory', uiMode, barLength);
           
           await interaction.update({ embeds: [embed], components: [buttons] });
@@ -1384,7 +1392,7 @@ client.on('interactionCreate', async (interaction) => {
               }
               
               const uiMode = inv.settings?.uiMode || 'normal';
-              const barLength = inv.settings?.barLength || 10;
+              const barLength = inv.settings?.barLength || 15;
               const btns = createButtons(category, true, type || 'inventory', uiMode, barLength);
               
               await interaction.message.edit({ embeds: [emb], components: [btns] });
@@ -1600,39 +1608,57 @@ client.on('interactionCreate', async (interaction) => {
         // 모달 생성
         const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
         
-        let modalTitle, inputLabel, inputPlaceholder, defaultValue;
+        let modalTitle, setsLabel, setsPlaceholder, setsDefault, itemsLabel, itemsPlaceholder, itemsDefault;
         
         if (action === 'add') {
           modalTitle = `${selectedItem} 추가`;
-          inputLabel = '추가할 세트 수 (1세트 = 64개)';
-          inputPlaceholder = '예: 2 (2세트 = 128개 추가)';
-          defaultValue = '1';
+          setsLabel = '추가할 세트 수 (1세트 = 64개)';
+          setsPlaceholder = '예: 2';
+          setsDefault = '';
+          itemsLabel = '추가할 낱개 수';
+          itemsPlaceholder = '예: 32';
+          itemsDefault = '';
         } else if (action === 'subtract') {
           modalTitle = `${selectedItem} 차감`;
-          inputLabel = '차감할 세트 수 (1세트 = 64개)';
-          inputPlaceholder = '예: 1 (1세트 = 64개 차감)';
-          defaultValue = '1';
+          setsLabel = '차감할 세트 수 (1세트 = 64개)';
+          setsPlaceholder = '예: 1';
+          setsDefault = '';
+          itemsLabel = '차감할 낱개 수';
+          itemsPlaceholder = '예: 32';
+          itemsDefault = '';
         } else {
-          modalTitle = `${selectedItem} 수정`;
-          inputLabel = '설정할 세트 수 (1세트 = 64개)';
-          inputPlaceholder = '예: 5 (5세트 = 320개로 설정)';
-          defaultValue = currentSets.toString();
+          modalTitle = `${selectedItem} 수정 (현재: ${currentSets}세트 + ${remainder}개)`;
+          setsLabel = '설정할 세트 수 (1세트 = 64개)';
+          setsPlaceholder = '예: 5';
+          setsDefault = currentSets.toString();
+          itemsLabel = '설정할 낱개 수';
+          itemsPlaceholder = '예: 32';
+          itemsDefault = remainder.toString();
         }
         
         const modal = new ModalBuilder()
           .setCustomId(`modal_${action}_${type}_${category}_${selectedItem}`)
           .setTitle(modalTitle);
         
-        const quantityInput = new TextInputBuilder()
-          .setCustomId('quantity_change')
-          .setLabel(inputLabel)
+        const setsInput = new TextInputBuilder()
+          .setCustomId('sets_change')
+          .setLabel(setsLabel)
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder(inputPlaceholder)
-          .setValue(defaultValue)
-          .setRequired(true);
+          .setPlaceholder(setsPlaceholder)
+          .setValue(setsDefault)
+          .setRequired(false);
         
-        const row1 = new ActionRowBuilder().addComponents(quantityInput);
-        modal.addComponents(row1);
+        const itemsInput = new TextInputBuilder()
+          .setCustomId('items_change')
+          .setLabel(itemsLabel)
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder(itemsPlaceholder)
+          .setValue(itemsDefault)
+          .setRequired(false);
+        
+        const row1 = new ActionRowBuilder().addComponents(setsInput);
+        const row2 = new ActionRowBuilder().addComponents(itemsInput);
+        modal.addComponents(row1, row2);
         
         await interaction.showModal(modal);
         
@@ -1719,7 +1745,8 @@ client.on('interactionCreate', async (interaction) => {
         const category = parts[3];
         const itemName = parts.slice(4).join('_');
         
-        const quantityInput = interaction.fields.getTextInputValue('quantity_change').trim();
+        const setsInput = interaction.fields.getTextInputValue('sets_change').trim();
+        const itemsInput = interaction.fields.getTextInputValue('items_change').trim();
         
         const inventory = await loadInventory();
         const targetData = type === 'inventory' ? inventory : inventory.crafting;
@@ -1737,24 +1764,29 @@ client.on('interactionCreate', async (interaction) => {
         const oldRemainder = oldQuantity % 64;
         let newQuantity;
         
-        const sets = parseFloat(quantityInput);
-        if (isNaN(sets) || sets < 0) {
+        // 입력값 처리 (빈 값은 0으로)
+        const sets = setsInput === '' ? 0 : parseFloat(setsInput);
+        const items = itemsInput === '' ? 0 : parseFloat(itemsInput);
+        
+        if (isNaN(sets) || sets < 0 || isNaN(items) || items < 0) {
           return await interaction.reply({ 
             content: `❌ 올바른 숫자를 입력해주세요. (0 이상의 숫자)`, 
             ephemeral: true 
           });
         }
         
-        // 세트 단위로 수량 계산 (1세트 = 64개)
+        // 세트와 낱개를 합쳐서 총 개수 계산
+        const totalChange = Math.round(sets * 64) + Math.round(items);
+        
         if (action === 'add') {
           // 추가
-          newQuantity = oldQuantity + Math.round(sets * 64);
+          newQuantity = oldQuantity + totalChange;
         } else if (action === 'subtract') {
-          // 차감 (자연수 입력해도 자동으로 빼기)
-          newQuantity = Math.max(0, oldQuantity - Math.round(sets * 64));
+          // 차감
+          newQuantity = Math.max(0, oldQuantity - totalChange);
         } else {
           // 수정 (직접 설정)
-          newQuantity = Math.max(0, Math.round(sets * 64));
+          newQuantity = Math.max(0, totalChange);
         }
         
         itemData.quantity = newQuantity;
