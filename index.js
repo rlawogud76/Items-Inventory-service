@@ -369,7 +369,6 @@ process.on('SIGTERM', () => {
 
 // 버튼 생성
 function createButtons(categoryName = null, autoRefresh = false, type = 'inventory', uiMode = 'normal', barLength = 10) {
-  const refreshId = categoryName ? `refresh_${type}_${categoryName}` : `refresh_${type}`;
   const actionId = categoryName ? `${type === 'inventory' ? 'collecting' : 'crafting'}_${categoryName}` : (type === 'inventory' ? 'collecting' : 'crafting');
   const autoRefreshId = categoryName ? `auto_refresh_${type}_${categoryName}` : `auto_refresh_${type}`;
   const uiModeId = categoryName ? `ui_mode_${type}_${categoryName}` : `ui_mode_${type}`;
@@ -386,12 +385,8 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   const row1 = new ActionRowBuilder()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId(refreshId)
-        .setLabel('🔄 새로고침')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
         .setCustomId(actionId)
-        .setLabel(type === 'inventory' ? '📦 수집중' : '🔨 제작중')
+        .setLabel(type === 'inventory' ? '📦 수집중' : '� 제작중')
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId(addId)
