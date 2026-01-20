@@ -429,8 +429,8 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
 client.on('ready', async () => {
   console.log(`✅ ${client.user.tag} 봇이 준비되었습니다!`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📦 재고 관리: /재고, /재고목록추가, /재고목록제거, /재고수량변경, /재고충족수량변경');
-  console.log('🔨 제작 관리: /제작, /제작목록추가, /제작목록제거, /제작수량변경, /제작충족수량변경');
+  console.log('📦 재고 관리: /재고, /재고목록추가, /재고목록제거');
+  console.log('🔨 제작 관리: /제작, /제작목록추가, /제작목록제거');
   console.log('📋 레시피 관리: /레시피확인, /레시피수정, /레시피삭제');
   console.log('🔧 기타: /도움말, /수정내역');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -453,46 +453,6 @@ client.on('ready', async () => {
               { name: '채광', value: '채광' },
               { name: '요리', value: '요리' }
             )),
-      new SlashCommandBuilder()
-        .setName('재고수량변경')
-        .setDescription('아이템의 현재 수량을 변경합니다')
-        .addStringOption(option =>
-          option.setName('카테고리')
-            .setDescription('카테고리 선택')
-            .setRequired(true)
-            .addChoices(
-              { name: '해양', value: '해양' },
-              { name: '채광', value: '채광' },
-              { name: '요리', value: '요리' }
-            ))
-        .addStringOption(option =>
-          option.setName('아이템')
-            .setDescription('변경할 아이템 이름')
-            .setRequired(true))
-        .addIntegerOption(option =>
-          option.setName('수량')
-            .setDescription('새로운 현재 수량')
-            .setRequired(true)),
-      new SlashCommandBuilder()
-        .setName('재고충족수량변경')
-        .setDescription('아이템의 충족 수량을 변경합니다')
-        .addStringOption(option =>
-          option.setName('카테고리')
-            .setDescription('카테고리 선택')
-            .setRequired(true)
-            .addChoices(
-              { name: '해양', value: '해양' },
-              { name: '채광', value: '채광' },
-              { name: '요리', value: '요리' }
-            ))
-        .addStringOption(option =>
-          option.setName('아이템')
-            .setDescription('변경할 아이템 이름')
-            .setRequired(true))
-        .addIntegerOption(option =>
-          option.setName('수량')
-            .setDescription('새로운 충족 수량')
-            .setRequired(true)),
       new SlashCommandBuilder()
         .setName('도움말')
         .setDescription('재고 관리 봇 사용법을 확인합니다'),
@@ -626,46 +586,6 @@ client.on('ready', async () => {
             .setDescription('제거할 제작품 이름')
             .setRequired(true)),
       new SlashCommandBuilder()
-        .setName('제작수량변경')
-        .setDescription('제작품의 현재 수량을 변경합니다')
-        .addStringOption(option =>
-          option.setName('카테고리')
-            .setDescription('카테고리 선택')
-            .setRequired(true)
-            .addChoices(
-              { name: '해양', value: '해양' },
-              { name: '채광', value: '채광' },
-              { name: '요리', value: '요리' }
-            ))
-        .addStringOption(option =>
-          option.setName('제작품')
-            .setDescription('변경할 제작품 이름')
-            .setRequired(true))
-        .addIntegerOption(option =>
-          option.setName('수량')
-            .setDescription('새로운 현재 수량')
-            .setRequired(true)),
-      new SlashCommandBuilder()
-        .setName('제작충족수량변경')
-        .setDescription('제작품의 충족 수량을 변경합니다')
-        .addStringOption(option =>
-          option.setName('카테고리')
-            .setDescription('카테고리 선택')
-            .setRequired(true)
-            .addChoices(
-              { name: '해양', value: '해양' },
-              { name: '채광', value: '채광' },
-              { name: '요리', value: '요리' }
-            ))
-        .addStringOption(option =>
-          option.setName('제작품')
-            .setDescription('변경할 제작품 이름')
-            .setRequired(true))
-        .addIntegerOption(option =>
-          option.setName('수량')
-            .setDescription('새로운 충족 수량')
-            .setRequired(true)),
-      new SlashCommandBuilder()
         .setName('수정내역')
         .setDescription('재고 및 제작 수정 내역을 확인합니다')
         .addIntegerOption(option =>
@@ -784,68 +704,6 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.reply({ embeds: [embed], components: buttons });
       }
 
-      else if (commandName === '재고수량변경') {
-        const category = interaction.options.getString('카테고리');
-        const itemName = interaction.options.getString('아이템');
-        const newQuantity = interaction.options.getInteger('수량');
-
-        const inventory = await loadInventory();
-        if (!inventory.categories[category]) {
-          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
-        }
-        if (!inventory.categories[category][itemName]) {
-          return sendTemporaryReply(interaction, `❌ "${itemName}" 아이템을 찾을 수 없습니다.`);
-        }
-
-        const oldQuantity = inventory.categories[category][itemName].quantity;
-        inventory.categories[category][itemName].quantity = newQuantity;
-        
-        // 수정 내역 추가
-        addHistory(inventory, 'inventory', category, itemName, 'update_quantity', 
-          `${oldQuantity}개 → ${newQuantity}개`, 
-          interaction.user.displayName || interaction.user.username);
-        
-        await saveInventory(inventory);
-
-        const icon = getItemIcon(itemName, inventory);
-        const successEmbed = new EmbedBuilder()
-          .setColor(0x5865F2)
-          .setDescription(`### ✅ 현재 수량 변경 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldQuantity}개 → ${newQuantity}개`);
-        
-        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
-      }
-
-      else if (commandName === '재고충족수량변경') {
-        const category = interaction.options.getString('카테고리');
-        const itemName = interaction.options.getString('아이템');
-        const newRequired = interaction.options.getInteger('수량');
-
-        const inventory = await loadInventory();
-        if (!inventory.categories[category]) {
-          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
-        }
-        if (!inventory.categories[category][itemName]) {
-          return sendTemporaryReply(interaction, `❌ "${itemName}" 아이템을 찾을 수 없습니다.`);
-        }
-
-        const oldRequired = inventory.categories[category][itemName].required;
-        inventory.categories[category][itemName].required = newRequired;
-        
-        // 수정 내역 추가
-        addHistory(inventory, 'inventory', category, itemName, 'update_required', 
-          `${oldRequired}개 → ${newRequired}개`, 
-          interaction.user.displayName || interaction.user.username);
-        
-        await saveInventory(inventory);
-
-        const icon = getItemIcon(itemName, inventory);
-        const successEmbed = new EmbedBuilder()
-          .setColor(0x5865F2)
-          .setDescription(`### ✅ 충족 수량 변경 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldRequired}개 → ${newRequired}개`);
-        
-        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
-      }
-
       else if (commandName === '도움말') {
         const helpEmbed = new EmbedBuilder()
           .setTitle('📖 재고 관리 봇 사용법')
@@ -865,15 +723,7 @@ client.on('interactionCreate', async (interaction) => {
                 '',
                 '**`/재고목록제거`**',
                 '아이템을 제거합니다.',
-                '> 예: `/재고목록제거 카테고리:해양 아이템:금괴`',
-                '',
-                '**`/재고수량변경`**',
-                '아이템의 현재 수량을 변경합니다.',
-                '> 예: `/재고수량변경 카테고리:해양 아이템:다이아몬드 수량:50`',
-                '',
-                '**`/재고충족수량변경`**',
-                '아이템의 충족 수량을 변경합니다.',
-                '> 예: `/재고충족수량변경 카테고리:채광 아이템:철괴 수량:200`'
+                '> 예: `/재고목록제거 카테고리:해양 아이템:금괴`'
               ].join('\n'),
               inline: false
             },
@@ -895,15 +745,7 @@ client.on('interactionCreate', async (interaction) => {
                 '',
                 '**`/제작목록제거`**',
                 '제작품을 제거합니다.',
-                '> 예: `/제작목록제거 카테고리:채광 제작품:곡괭이`',
-                '',
-                '**`/제작수량변경`**',
-                '제작품의 현재 수량을 변경합니다.',
-                '> 예: `/제작수량변경 카테고리:채광 제작품:곡괭이 수량:5`',
-                '',
-                '**`/제작충족수량변경`**',
-                '제작품의 충족 수량을 변경합니다.',
-                '> 예: `/제작충족수량변경 카테고리:요리 제작품:빵 수량:10`'
+                '> 예: `/제작목록제거 카테고리:채광 제작품:곡괭이`'
               ].join('\n'),
               inline: false
             },
@@ -1205,68 +1047,6 @@ client.on('interactionCreate', async (interaction) => {
         const successEmbed = new EmbedBuilder()
           .setColor(0xED4245)
           .setDescription(`### ✅ 제작 목록 제거 완료\n**카테고리:** ${category}\n**${itemName}**이(가) 제작 목록에서 제거되었습니다.`);
-        
-        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
-      }
-
-      else if (commandName === '제작수량변경') {
-        const category = interaction.options.getString('카테고리');
-        const itemName = interaction.options.getString('제작품');
-        const newQuantity = interaction.options.getInteger('수량');
-
-        const inventory = await loadInventory();
-        if (!inventory.crafting?.categories[category]) {
-          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
-        }
-        if (!inventory.crafting.categories[category][itemName]) {
-          return sendTemporaryReply(interaction, `❌ "${itemName}" 제작품을 찾을 수 없습니다.`);
-        }
-
-        const oldQuantity = inventory.crafting.categories[category][itemName].quantity;
-        inventory.crafting.categories[category][itemName].quantity = newQuantity;
-        
-        // 수정 내역 추가
-        addHistory(inventory, 'crafting', category, itemName, 'update_quantity', 
-          `${oldQuantity}개 → ${newQuantity}개`, 
-          interaction.user.displayName || interaction.user.username);
-        
-        await saveInventory(inventory);
-
-        const icon = getItemIcon(itemName, inventory);
-        const successEmbed = new EmbedBuilder()
-          .setColor(0x5865F2)
-          .setDescription(`### ✅ 제작 수량 변경 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldQuantity}개 → ${newQuantity}개`);
-        
-        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
-      }
-
-      else if (commandName === '제작충족수량변경') {
-        const category = interaction.options.getString('카테고리');
-        const itemName = interaction.options.getString('제작품');
-        const newRequired = interaction.options.getInteger('수량');
-
-        const inventory = await loadInventory();
-        if (!inventory.crafting?.categories[category]) {
-          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
-        }
-        if (!inventory.crafting.categories[category][itemName]) {
-          return sendTemporaryReply(interaction, `❌ "${itemName}" 제작품을 찾을 수 없습니다.`);
-        }
-
-        const oldRequired = inventory.crafting.categories[category][itemName].required;
-        inventory.crafting.categories[category][itemName].required = newRequired;
-        
-        // 수정 내역 추가
-        addHistory(inventory, 'crafting', category, itemName, 'update_required', 
-          `${oldRequired}개 → ${newRequired}개`, 
-          interaction.user.displayName || interaction.user.username);
-        
-        await saveInventory(inventory);
-
-        const icon = getItemIcon(itemName, inventory);
-        const successEmbed = new EmbedBuilder()
-          .setColor(0x5865F2)
-          .setDescription(`### ✅ 제작 충족 수량 변경 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldRequired}개 → ${newRequired}개`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
