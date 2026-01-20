@@ -39,5 +39,8 @@
   "crafting": {
     "categories": {},
     "crafting": {}
+  },
+  "settings": {
+    "uiMode": "normal"
   }
 }
