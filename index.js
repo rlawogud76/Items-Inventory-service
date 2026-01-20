@@ -2697,8 +2697,6 @@ client.on('interactionCreate', async (interaction) => {
             }
           }, 15000);
         }
-          }
-        }, 15000);
         
       } catch (error) {
         console.error('❌ 아이템 추가 모달 제출 에러:', error);
