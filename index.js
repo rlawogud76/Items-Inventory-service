@@ -594,20 +594,16 @@ client.on('ready', async () => {
             .setRequired(false)),
       new SlashCommandBuilder()
         .setName('레시피조회')
-        .setDescription('제작품의 레시피를 확인합니다')
+        .setDescription('카테고리의 모든 레시피를 확인합니다')
         .addStringOption(option =>
           option.setName('카테고리')
-            .setDescription('제작품 카테고리')
+            .setDescription('조회할 카테고리')
             .setRequired(true)
             .addChoices(
               { name: '해양', value: '해양' },
               { name: '채광', value: '채광' },
               { name: '요리', value: '요리' }
-            ))
-        .addStringOption(option =>
-          option.setName('제작품')
-            .setDescription('레시피를 확인할 제작품 이름')
-            .setRequired(true)),
+            )),
       new SlashCommandBuilder()
         .setName('레시피수정')
         .setDescription('제작품의 레시피를 수정합니다')
@@ -758,8 +754,8 @@ client.on('interactionCreate', async (interaction) => {
               name: '📋 레시피 관리', 
               value: [
                 '**`/레시피조회`**',
-                '제작품의 레시피를 확인합니다.',
-                '> 예: `/레시피조회 카테고리:해양 제작품:낚싯대`',
+                '카테고리의 모든 레시피를 확인합니다.',
+                '> 예: `/레시피조회 카테고리:해양`',
                 '',
                 '**`/레시피수정`**',
                 '제작품의 레시피를 수정합니다.',
@@ -1126,30 +1122,38 @@ client.on('interactionCreate', async (interaction) => {
 
       else if (commandName === '레시피조회') {
         const category = interaction.options.getString('카테고리');
-        const craftItem = interaction.options.getString('제작품');
 
         const inventory = await loadInventory();
         
-        const recipe = inventory.crafting?.recipes?.[category]?.[craftItem];
+        const recipes = inventory.crafting?.recipes?.[category];
         
-        if (!recipe) {
-          return sendTemporaryReply(interaction, `❌ "${craftItem}"의 레시피가 등록되지 않았습니다.`);
+        if (!recipes || Object.keys(recipes).length === 0) {
+          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리에 등록된 레시피가 없습니다.`);
         }
 
-        const recipeText = recipe.map(m => {
-          const icon = getItemIcon(m.name, inventory);
-          const materialData = inventory.categories[m.category]?.[m.name];
-          const currentQty = materialData?.quantity || 0;
-          const canCraft = currentQty >= m.quantity ? '✅' : '❌';
-          return `${icon} **${m.name}** x${m.quantity}개 (보유: ${currentQty}개) ${canCraft}`;
-        }).join('\n');
-
-        const icon = getItemIcon(craftItem, inventory);
         const embed = new EmbedBuilder()
           .setColor(0x5865F2)
-          .setTitle(`📋 ${craftItem} 레시피`)
-          .setDescription(`**카테고리:** ${category}\n${icon} **${craftItem}** 1개 제작 시\n\n**필요 재료:**\n${recipeText}`)
+          .setTitle(`📋 ${category} 카테고리 레시피 목록`)
+          .setDescription(`**총 ${Object.keys(recipes).length}개의 레시피**\n\n━━━━━━━━━━━━━━━━━━━━`)
           .setFooter({ text: '✅ = 재료 충분 | ❌ = 재료 부족' });
+
+        for (const [craftItem, recipe] of Object.entries(recipes)) {
+          const icon = getItemIcon(craftItem, inventory);
+          
+          const recipeText = recipe.map(m => {
+            const matIcon = getItemIcon(m.name, inventory);
+            const materialData = inventory.categories[m.category]?.[m.name];
+            const currentQty = materialData?.quantity || 0;
+            const canCraft = currentQty >= m.quantity ? '✅' : '❌';
+            return `${matIcon} ${m.name} x${m.quantity}개 (보유: ${currentQty}개) ${canCraft}`;
+          }).join('\n');
+
+          embed.addFields({
+            name: `${icon} ${craftItem}`,
+            value: recipeText || '재료 없음',
+            inline: false
+          });
+        }
         
         await interaction.reply({ embeds: [embed], ephemeral: true });
       }
