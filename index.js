@@ -791,7 +791,7 @@ client.on('interactionCreate', async (interaction) => {
               inline: false
             }
           );
-        await interaction.reply({ embeds: [helpEmbed], ephemeral: true });
+        await sendTemporaryReply(interaction, { embeds: [helpEmbed] }, 30000);
       }
 
       else if (commandName === '재고물품추가') {
