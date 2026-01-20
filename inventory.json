@@ -41,6 +41,7 @@
     "crafting": {}
   },
   "settings": {
-    "uiMode": "normal"
+    "uiMode": "normal",
+    "barLength": 10
   }
 }

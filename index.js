@@ -79,7 +79,7 @@ function createProgressBar(current, required, length = 10) {
 }
 
 // 제작 임베드 생성
-function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal') {
+function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', barLength = 10) {
   const embed = new EmbedBuilder()
     .setColor(0xFFA500)
     .setTimestamp()
@@ -100,7 +100,7 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal') {
     for (const [itemName, data] of Object.entries(crafting.categories[categoryName])) {
       const status = getStatusEmoji(data.quantity, data.required);
       const icon = getItemIcon(itemName, fullInventory);
-      const progressBar = createProgressBar(data.quantity, data.required);
+      const progressBar = createProgressBar(data.quantity, data.required, barLength);
       const percentage = Math.round((data.quantity / data.required) * 100);
       
       // 제작 중인 사람 확인
@@ -179,7 +179,7 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal') {
 }
 
 // 재고 임베드 생성
-function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal') {
+function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal', barLength = 10) {
   const embed = new EmbedBuilder()
     .setColor(0x5865F2)
     .setTimestamp()
@@ -197,7 +197,7 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal')
     for (const [itemName, data] of Object.entries(inventory.categories[categoryName])) {
       const status = getStatusEmoji(data.quantity, data.required);
       const icon = getItemIcon(itemName, inventory);
-      const progressBar = createProgressBar(data.quantity, data.required);
+      const progressBar = createProgressBar(data.quantity, data.required, barLength);
       const percentage = Math.round((data.quantity / data.required) * 100);
       
       // 수집 중인 사람 확인
@@ -292,11 +292,12 @@ process.on('SIGTERM', () => {
 });
 
 // 버튼 생성
-function createButtons(categoryName = null, autoRefresh = false, type = 'inventory', uiMode = 'normal') {
+function createButtons(categoryName = null, autoRefresh = false, type = 'inventory', uiMode = 'normal', barLength = 10) {
   const refreshId = categoryName ? `refresh_${type}_${categoryName}` : `refresh_${type}`;
   const actionId = categoryName ? `${type === 'inventory' ? 'collecting' : 'crafting'}_${categoryName}` : (type === 'inventory' ? 'collecting' : 'crafting');
   const autoRefreshId = categoryName ? `auto_refresh_${type}_${categoryName}` : `auto_refresh_${type}`;
   const uiModeId = categoryName ? `ui_mode_${type}_${categoryName}` : `ui_mode_${type}`;
+  const barSizeId = categoryName ? `bar_size_${type}_${categoryName}` : `bar_size_${type}`;
   
   // UI 모드 버튼 라벨
   let uiModeLabel = '📏 일반';
@@ -324,6 +325,10 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
       new ButtonBuilder()
         .setCustomId(uiModeId)
         .setLabel(uiModeLabel)
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(barSizeId)
+        .setLabel(`📊 바 크기: ${Math.round(barLength * 10)}%`)
         .setStyle(ButtonStyle.Secondary)
     );
   
@@ -569,8 +574,9 @@ client.on('interactionCreate', async (interaction) => {
         const category = interaction.options.getString('카테고리');
         const inventory = await loadInventory();
         const uiMode = inventory.settings?.uiMode || 'normal';
-        const embed = createInventoryEmbed(inventory, category, uiMode);
-        const buttons = createButtons(category, false, 'inventory', uiMode);
+        const barLength = inventory.settings?.barLength || 10;
+        const embed = createInventoryEmbed(inventory, category, uiMode, barLength);
+        const buttons = createButtons(category, false, 'inventory', uiMode, barLength);
         await interaction.reply({ embeds: [embed], components: buttons });
       }
 
@@ -707,8 +713,9 @@ client.on('interactionCreate', async (interaction) => {
         const inventory = await loadInventory();
         const crafting = inventory.crafting || { categories: {}, crafting: {} };
         const uiMode = inventory.settings?.uiMode || 'normal';
-        const embed = createCraftingEmbed(crafting, category, uiMode);
-        const buttons = createButtons(category, false, 'crafting', uiMode);
+        const barLength = inventory.settings?.barLength || 10;
+        const embed = createCraftingEmbed(crafting, category, uiMode, barLength);
+        const buttons = createButtons(category, false, 'crafting', uiMode, barLength);
         await interaction.reply({ embeds: [embed], components: buttons });
       }
 
@@ -843,25 +850,68 @@ client.on('interactionCreate', async (interaction) => {
         
         const inventory = await loadInventory();
         const uiMode = inventory.settings?.uiMode || 'normal';
+        const barLength = inventory.settings?.barLength || 10;
         let embed, buttons;
         
         if (type === 'crafting') {
           const crafting = inventory.crafting || { categories: {}, crafting: {} };
-          embed = createCraftingEmbed(crafting, category, uiMode);
+          embed = createCraftingEmbed(crafting, category, uiMode, barLength);
         } else {
-          embed = createInventoryEmbed(inventory, category, uiMode);
+          embed = createInventoryEmbed(inventory, category, uiMode, barLength);
         }
         
         // 현재 자동 새로고침 상태 확인
         const messageId = interaction.message.id;
         const isAutoRefreshing = autoRefreshTimers.has(messageId);
-        buttons = createButtons(category, isAutoRefreshing, type || 'inventory', uiMode);
+        buttons = createButtons(category, isAutoRefreshing, type || 'inventory', uiMode, barLength);
         
         await interaction.update({ embeds: [embed], components: buttons });
         console.log('✅ 새로고침 완료');
       } catch (error) {
         console.error('❌ 새로고침 에러:', error);
         await interaction.reply({ content: '새로고침 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('bar_size')) {
+      try {
+        const parts = interaction.customId.split('_');
+        const type = parts[2]; // 'inventory' or 'crafting'
+        const category = parts.length > 3 ? parts.slice(3).join('_') : null;
+        
+        const inventory = await loadInventory();
+        
+        // 바 크기 순환: 5 -> 10 -> 15 -> 20 -> 5
+        let currentLength = inventory.settings?.barLength || 10;
+        let newLength;
+        if (currentLength === 5) newLength = 10;
+        else if (currentLength === 10) newLength = 15;
+        else if (currentLength === 15) newLength = 20;
+        else newLength = 5;
+        
+        // 설정 저장
+        if (!inventory.settings) inventory.settings = {};
+        inventory.settings.barLength = newLength;
+        await saveInventory(inventory);
+        
+        const uiMode = inventory.settings?.uiMode || 'normal';
+        let embed;
+        if (type === 'crafting') {
+          const crafting = inventory.crafting || { categories: {}, crafting: {} };
+          embed = createCraftingEmbed(crafting, category, uiMode, newLength);
+        } else {
+          embed = createInventoryEmbed(inventory, category, uiMode, newLength);
+        }
+        
+        const messageId = interaction.message.id;
+        const isAutoRefreshing = autoRefreshTimers.has(messageId);
+        const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', uiMode, newLength);
+        
+        await interaction.update({ embeds: [embed], components: buttons });
+        console.log(`📊 바 크기 변경: ${currentLength} -> ${newLength} (${Math.round(newLength * 10)}%)`);
+      } catch (error) {
+        console.error('❌ 바 크기 변경 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
       }
     }
     
@@ -885,17 +935,18 @@ client.on('interactionCreate', async (interaction) => {
         inventory.settings.uiMode = newMode;
         await saveInventory(inventory);
         
+        const barLength = inventory.settings?.barLength || 10;
         let embed;
         if (type === 'crafting') {
           const crafting = inventory.crafting || { categories: {}, crafting: {} };
-          embed = createCraftingEmbed(crafting, category, newMode);
+          embed = createCraftingEmbed(crafting, category, newMode, barLength);
         } else {
-          embed = createInventoryEmbed(inventory, category, newMode);
+          embed = createInventoryEmbed(inventory, category, newMode, barLength);
         }
         
         const messageId = interaction.message.id;
         const isAutoRefreshing = autoRefreshTimers.has(messageId);
-        const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', newMode);
+        const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', newMode, barLength);
         
         await interaction.update({ embeds: [embed], components: buttons });
         console.log(`📏 UI 모드 변경: ${currentMode} -> ${newMode}`);
@@ -929,7 +980,9 @@ client.on('interactionCreate', async (interaction) => {
             embed = createInventoryEmbed(inventory, category);
           }
           
-          const buttons = createButtons(category, false, type || 'inventory', inventory.settings?.uiMode || 'normal');
+          const uiMode = inventory.settings?.uiMode || 'normal';
+          const barLength = inventory.settings?.barLength || 10;
+          const buttons = createButtons(category, false, type || 'inventory', uiMode, barLength);
           
           await interaction.update({ embeds: [embed], components: [buttons] });
         } else {
@@ -946,7 +999,9 @@ client.on('interactionCreate', async (interaction) => {
             embed = createInventoryEmbed(inventory, category);
           }
           
-          const buttons = createButtons(category, true, type || 'inventory', inventory.settings?.uiMode || 'normal');
+          const uiMode = inventory.settings?.uiMode || 'normal';
+          const barLength = inventory.settings?.barLength || 10;
+          const buttons = createButtons(category, true, type || 'inventory', uiMode, barLength);
           
           await interaction.update({ embeds: [embed], components: [buttons] });
           
@@ -972,7 +1027,9 @@ client.on('interactionCreate', async (interaction) => {
                 emb = createInventoryEmbed(inv, category);
               }
               
-              const btns = createButtons(category, true, type || 'inventory', inv.settings?.uiMode || 'normal');
+              const uiMode = inv.settings?.uiMode || 'normal';
+              const barLength = inv.settings?.barLength || 10;
+              const btns = createButtons(category, true, type || 'inventory', uiMode, barLength);
               
               await interaction.message.edit({ embeds: [emb], components: [btns] });
               console.log('🔄 자동 새로고침 실행:', new Date().toLocaleTimeString());
