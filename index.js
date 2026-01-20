@@ -553,7 +553,7 @@ client.on('ready', async () => {
             )),
       new SlashCommandBuilder()
         .setName('제작목록추가')
-        .setDescription('새로운 제작품을 추가합니다')
+        .setDescription('새로운 제작품을 추가합니다 (레시피 포함)')
         .addStringOption(option =>
           option.setName('카테고리')
             .setDescription('카테고리 선택')
@@ -576,6 +576,33 @@ client.on('ready', async () => {
             .setDescription('초기 수량')
             .setRequired(true)
             .setMinValue(0))
+        .addStringOption(option =>
+          option.setName('재료1')
+            .setDescription('필요한 재료 이름')
+            .setRequired(true))
+        .addIntegerOption(option =>
+          option.setName('재료1수량')
+            .setDescription('재료1의 필요 수량')
+            .setRequired(true)
+            .setMinValue(1))
+        .addStringOption(option =>
+          option.setName('재료2')
+            .setDescription('필요한 재료 이름 (선택)')
+            .setRequired(false))
+        .addIntegerOption(option =>
+          option.setName('재료2수량')
+            .setDescription('재료2의 필요 수량')
+            .setRequired(false)
+            .setMinValue(1))
+        .addStringOption(option =>
+          option.setName('재료3')
+            .setDescription('필요한 재료 이름 (선택)')
+            .setRequired(false))
+        .addIntegerOption(option =>
+          option.setName('재료3수량')
+            .setDescription('재료3의 필요 수량')
+            .setRequired(false)
+            .setMinValue(1))
         .addStringOption(option =>
           option.setName('이모지')
             .setDescription('제작품 이모지 (선택사항)')
@@ -913,8 +940,8 @@ client.on('interactionCreate', async (interaction) => {
                 '> 예: `/제작충족수량변경 카테고리:요리 제작품:빵 수량:10`',
                 '',
                 '**`/제작목록추가`**',
-                '새로운 제작품을 추가합니다.',
-                '> 예: `/제작목록추가 카테고리:해양 제작품:낚싯대 초기수량:3 충족수량:10`',
+                '새로운 제작품을 추가합니다 (레시피 포함).',
+                '> 예: `/제작목록추가 카테고리:해양 제작품:낚싯대 초기수량:3 충족수량:10 재료1:나무 재료1수량:5 재료2:실 재료2수량:2`',
                 '',
                 '**`/제작목록제거`**',
                 '제작품을 제거합니다.',
@@ -1126,20 +1153,64 @@ client.on('interactionCreate', async (interaction) => {
         const requiredQuantity = interaction.options.getInteger('충족수량');
         const initialQuantity = interaction.options.getInteger('초기수량');
         const emoji = interaction.options.getString('이모지');
+        
+        // 레시피 정보
+        const material1 = interaction.options.getString('재료1');
+        const material1Qty = interaction.options.getInteger('재료1수량');
+        const material2 = interaction.options.getString('재료2');
+        const material2Qty = interaction.options.getInteger('재료2수량');
+        const material3 = interaction.options.getString('재료3');
+        const material3Qty = interaction.options.getInteger('재료3수량');
 
         const inventory = await loadInventory();
         
         if (!inventory.crafting) {
-          inventory.crafting = { categories: {}, crafting: {} };
+          inventory.crafting = { categories: {}, crafting: {}, recipes: {} };
         }
         if (!inventory.crafting.categories[category]) {
           inventory.crafting.categories[category] = {};
+        }
+        if (!inventory.crafting.recipes) {
+          inventory.crafting.recipes = {};
+        }
+        if (!inventory.crafting.recipes[category]) {
+          inventory.crafting.recipes[category] = {};
         }
         
         if (inventory.crafting.categories[category][itemName]) {
           return sendTemporaryReply(interaction, `❌ "${itemName}" 제작품이 이미 존재합니다.`);
         }
 
+        // 재료가 같은 카테고리에 존재하는지 확인
+        if (!inventory.categories[category]) {
+          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리에 재료가 없습니다. 먼저 재고 목록에 재료를 추가해주세요.`);
+        }
+
+        const materials = [];
+        
+        // 재료1 확인
+        if (!inventory.categories[category][material1]) {
+          return sendTemporaryReply(interaction, `❌ "${material1}" 재료를 "${category}" 카테고리에서 찾을 수 없습니다. 먼저 재고 목록에 추가해주세요.`);
+        }
+        materials.push({ name: material1, quantity: material1Qty, category: category });
+
+        // 재료2 확인 (선택사항)
+        if (material2 && material2Qty) {
+          if (!inventory.categories[category][material2]) {
+            return sendTemporaryReply(interaction, `❌ "${material2}" 재료를 "${category}" 카테고리에서 찾을 수 없습니다. 먼저 재고 목록에 추가해주세요.`);
+          }
+          materials.push({ name: material2, quantity: material2Qty, category: category });
+        }
+
+        // 재료3 확인 (선택사항)
+        if (material3 && material3Qty) {
+          if (!inventory.categories[category][material3]) {
+            return sendTemporaryReply(interaction, `❌ "${material3}" 재료를 "${category}" 카테고리에서 찾을 수 없습니다. 먼저 재고 목록에 추가해주세요.`);
+          }
+          materials.push({ name: material3, quantity: material3Qty, category: category });
+        }
+
+        // 제작품 추가
         inventory.crafting.categories[category][itemName] = {
           quantity: initialQuantity,
           required: requiredQuantity
@@ -1149,17 +1220,27 @@ client.on('interactionCreate', async (interaction) => {
           inventory.crafting.categories[category][itemName].emoji = emoji;
         }
         
+        // 레시피 저장
+        inventory.crafting.recipes[category][itemName] = materials;
+        
         // 수정 내역 추가
         addHistory(inventory, 'crafting', category, itemName, 'add', 
-          `초기: ${initialQuantity}개, 목표: ${requiredQuantity}개`, 
+          `초기: ${initialQuantity}개, 목표: ${requiredQuantity}개, 레시피: ${materials.map(m => `${m.name} x${m.quantity}`).join(', ')}`, 
           interaction.user.displayName || interaction.user.username);
         
         await saveInventory(inventory);
 
+        // 레시피 표시
+        const recipeText = materials.map(m => {
+          const icon = getItemIcon(m.name, inventory);
+          return `${icon} **${m.name}** x${m.quantity}개`;
+        }).join('\n');
+
         const icon = emoji || getItemIcon(itemName, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x57F287)
-          .setDescription(`### ✅ 제작 목록 추가 완료\n**카테고리:** ${category}\n${icon} **${itemName}**이(가) 제작 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**충족 수량:** ${requiredQuantity}개`);
+          .setTitle('✅ 제작 목록 추가 완료')
+          .setDescription(`**카테고리:** ${category}\n${icon} **${itemName}**이(가) 제작 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**충족 수량:** ${requiredQuantity}개\n\n**레시피 (1개 제작 시):**\n${recipeText}`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
