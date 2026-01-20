@@ -1582,6 +1582,15 @@ client.on('interactionCreate', async (interaction) => {
               components: []
             });
             console.log(`✅ ${itemName} 제작 중단 완료`);
+            
+            // 15초 후 메시지 삭제
+            setTimeout(async () => {
+              try {
+                await interaction.deleteReply();
+              } catch (error) {
+                // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+              }
+            }, 15000);
           } else {
             await interaction.update({
               content: `⚠️ **${itemName}** 제작 정보를 찾을 수 없습니다.`,
@@ -1599,6 +1608,15 @@ client.on('interactionCreate', async (interaction) => {
               components: []
             });
             console.log(`✅ ${itemName} 수집 중단 완료`);
+            
+            // 15초 후 메시지 삭제
+            setTimeout(async () => {
+              try {
+                await interaction.deleteReply();
+              } catch (error) {
+                // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+              }
+            }, 15000);
           } else {
             await interaction.update({
               content: `⚠️ **${itemName}** 수집 정보를 찾을 수 없습니다.`,
