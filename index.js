@@ -1576,7 +1576,7 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('recipe') && !interaction.customId.startsWith('recipe_quantity_modal')) {
+    else if (interaction.customId.startsWith('recipe_crafting_') || interaction.customId.startsWith('recipe_inventory_')) {
       try {
         const parts = interaction.customId.split('_');
         const type = parts[1]; // 'crafting'
