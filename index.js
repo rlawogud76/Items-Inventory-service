@@ -1508,21 +1508,11 @@ client.on('interactionCreate', async (interaction) => {
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
-        const reply = await interaction.reply({
+        await interaction.reply({
           content: `${isCrafting ? '🔨' : '📦'} **${category}** 카테고리에서 ${isCrafting ? '제작' : '수집'}할 아이템을 선택하세요:`,
           components: [row],
-          ephemeral: true,
-          fetchReply: true
+          ephemeral: true
         });
-        
-        // 15초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {
-            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
-          }
-        }, 15000);
         
       } catch (error) {
         console.error('❌ 버튼 에러:', error);
