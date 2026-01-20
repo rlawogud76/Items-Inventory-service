@@ -2145,11 +2145,15 @@ client.on('interactionCreate', async (interaction) => {
     
     else if (interaction.customId.startsWith('quantity_add_') || interaction.customId.startsWith('quantity_edit_') || interaction.customId.startsWith('quantity_subtract_')) {
       try {
-        const parts = interaction.customId.split('_');
+        // quantity_add_inventory_해양_산호 형식 파싱
+        // 마지막 _를 기준으로 아이템명 분리
+        const lastUnderscoreIndex = interaction.customId.lastIndexOf('_');
+        const selectedItem = interaction.customId.substring(lastUnderscoreIndex + 1);
+        const prefix = interaction.customId.substring(0, lastUnderscoreIndex);
+        const parts = prefix.split('_');
         const action = parts[1]; // 'add', 'edit', or 'subtract'
         const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts[3];
-        const selectedItem = parts.slice(4).join('_');
+        const category = parts.slice(3).join('_');
         
         const inventory = await loadInventory();
         const targetData = type === 'inventory' ? inventory : inventory.crafting;
