@@ -2051,100 +2051,6 @@ client.on('interactionCreate', async (interaction) => {
         }).catch(() => {});
       }
     }
-  }
-  
-  // 선택 메뉴 인터랙션 처리
-  if (interaction.isStringSelectMenu()) {
-    if (interaction.customId.startsWith('select_remove_')) {
-      try {
-        const parts = interaction.customId.split('_');
-        const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.slice(3).join('_');
-        const selectedItem = interaction.values[0];
-        
-        const inventory = await loadInventory();
-        const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
-        
-        if (!targetData?.[category]?.[selectedItem]) {
-          return await interaction.update({
-            content: `❌ "${selectedItem}"을(를) 찾을 수 없습니다.`,
-            components: []
-          });
-        }
-        
-        const itemData = targetData[category][selectedItem];
-        delete targetData[category][selectedItem];
-        
-        addHistory(
-          inventory, 
-          type, 
-          category, 
-          selectedItem, 
-          'remove', 
-          `수량: ${itemData.quantity}/${itemData.required}`, 
-          interaction.user.displayName || interaction.user.username
-        );
-        
-        await saveInventory(inventory);
-        
-        const successEmbed = new EmbedBuilder()
-          .setColor(0xED4245)
-          .setTitle('✅ 삭제 완료')
-          .setDescription(`**카테고리:** ${category}\n**${selectedItem}**이(가) 삭제되었습니다.`);
-        
-        await interaction.update({
-          embeds: [successEmbed],
-          components: []
-        });
-        
-      } catch (error) {
-        console.error('❌ 삭제 선택 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
-      }
-    }
-    
-    else if (interaction.customId.startsWith('select_quantity_')) {
-      try {
-        const parts = interaction.customId.split('_');
-        const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.slice(3).join('_');
-        const selectedItem = interaction.values[0];
-        
-        // 추가/수정/차감 선택 버튼 생성
-        const addButton = new ButtonBuilder()
-          .setCustomId(`quantity_add_${type}_${category}_${selectedItem}`)
-          .setLabel('➕ 추가')
-          .setStyle(ButtonStyle.Success);
-        
-        const editButton = new ButtonBuilder()
-          .setCustomId(`quantity_edit_${type}_${category}_${selectedItem}`)
-          .setLabel('✏️ 수정')
-          .setStyle(ButtonStyle.Primary);
-        
-        const subtractButton = new ButtonBuilder()
-          .setCustomId(`quantity_subtract_${type}_${category}_${selectedItem}`)
-          .setLabel('➖ 차감')
-          .setStyle(ButtonStyle.Danger);
-        
-        const row = new ActionRowBuilder().addComponents(addButton, editButton, subtractButton);
-        
-        const inventory = await loadInventory();
-        const targetData = type === 'inventory' ? inventory : inventory.crafting;
-        const itemData = targetData.categories[category][selectedItem];
-        const sets = Math.floor(itemData.quantity / 64);
-        const remainder = itemData.quantity % 64;
-        const icon = getItemIcon(selectedItem, inventory);
-        
-        await interaction.update({
-          content: `📊 ${icon} **${selectedItem}** 수량관리\n\n**현재 수량:** ${sets}세트 + ${remainder}개 (총 ${itemData.quantity}개)\n**목표 수량:** ${itemData.required}개\n\n원하는 작업을 선택하세요:`,
-          components: [row]
-        });
-        
-      } catch (error) {
-        console.error('❌ 수량관리 선택 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-      }
-    }
     
     else if (interaction.customId.startsWith('quantity_add_') || interaction.customId.startsWith('quantity_edit_') || interaction.customId.startsWith('quantity_subtract_')) {
       try {
@@ -2257,6 +2163,100 @@ client.on('interactionCreate', async (interaction) => {
         console.error('❌ 수량관리 액션 에러:', error);
         console.error('❌ 에러 스택:', error.stack);
         await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
+  }
+  
+  // 선택 메뉴 인터랙션 처리
+  if (interaction.isStringSelectMenu()) {
+    if (interaction.customId.startsWith('select_remove_')) {
+      try {
+        const parts = interaction.customId.split('_');
+        const type = parts[2]; // 'inventory' or 'crafting'
+        const category = parts.slice(3).join('_');
+        const selectedItem = interaction.values[0];
+        
+        const inventory = await loadInventory();
+        const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+        
+        if (!targetData?.[category]?.[selectedItem]) {
+          return await interaction.update({
+            content: `❌ "${selectedItem}"을(를) 찾을 수 없습니다.`,
+            components: []
+          });
+        }
+        
+        const itemData = targetData[category][selectedItem];
+        delete targetData[category][selectedItem];
+        
+        addHistory(
+          inventory, 
+          type, 
+          category, 
+          selectedItem, 
+          'remove', 
+          `수량: ${itemData.quantity}/${itemData.required}`, 
+          interaction.user.displayName || interaction.user.username
+        );
+        
+        await saveInventory(inventory);
+        
+        const successEmbed = new EmbedBuilder()
+          .setColor(0xED4245)
+          .setTitle('✅ 삭제 완료')
+          .setDescription(`**카테고리:** ${category}\n**${selectedItem}**이(가) 삭제되었습니다.`);
+        
+        await interaction.update({
+          embeds: [successEmbed],
+          components: []
+        });
+        
+      } catch (error) {
+        console.error('❌ 삭제 선택 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('select_quantity_')) {
+      try {
+        const parts = interaction.customId.split('_');
+        const type = parts[2]; // 'inventory' or 'crafting'
+        const category = parts.slice(3).join('_');
+        const selectedItem = interaction.values[0];
+        
+        // 추가/수정/차감 선택 버튼 생성
+        const addButton = new ButtonBuilder()
+          .setCustomId(`quantity_add_${type}_${category}_${selectedItem}`)
+          .setLabel('➕ 추가')
+          .setStyle(ButtonStyle.Success);
+        
+        const editButton = new ButtonBuilder()
+          .setCustomId(`quantity_edit_${type}_${category}_${selectedItem}`)
+          .setLabel('✏️ 수정')
+          .setStyle(ButtonStyle.Primary);
+        
+        const subtractButton = new ButtonBuilder()
+          .setCustomId(`quantity_subtract_${type}_${category}_${selectedItem}`)
+          .setLabel('➖ 차감')
+          .setStyle(ButtonStyle.Danger);
+        
+        const row = new ActionRowBuilder().addComponents(addButton, editButton, subtractButton);
+        
+        const inventory = await loadInventory();
+        const targetData = type === 'inventory' ? inventory : inventory.crafting;
+        const itemData = targetData.categories[category][selectedItem];
+        const sets = Math.floor(itemData.quantity / 64);
+        const remainder = itemData.quantity % 64;
+        const icon = getItemIcon(selectedItem, inventory);
+        
+        await interaction.update({
+          content: `📊 ${icon} **${selectedItem}** 수량관리\n\n**현재 수량:** ${sets}세트 + ${remainder}개 (총 ${itemData.quantity}개)\n**목표 수량:** ${itemData.required}개\n\n원하는 작업을 선택하세요:`,
+          components: [row]
+        });
+        
+      } catch (error) {
+        console.error('❌ 수량관리 선택 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
       }
     }
     
