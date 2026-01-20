@@ -1207,11 +1207,21 @@ client.on('interactionCreate', async (interaction) => {
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
-        await interaction.reply({
+        const reply = await interaction.reply({
           content: `${actionLabels[action]} **${category}** 카테고리에서 ${actionLabels[action]}할 아이템을 선택하세요:`,
           components: [row],
-          ephemeral: true
+          ephemeral: true,
+          fetchReply: true
         });
+        
+        // 15초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {
+            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+          }
+        }, 15000);
         
       } catch (error) {
         console.error('❌ 버튼 에러:', error);
@@ -1490,11 +1500,21 @@ client.on('interactionCreate', async (interaction) => {
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
-        await interaction.reply({
+        const reply = await interaction.reply({
           content: `${isCrafting ? '🔨' : '📦'} **${category}** 카테고리에서 ${isCrafting ? '제작' : '수집'}할 아이템을 선택하세요:`,
           components: [row],
-          ephemeral: true
+          ephemeral: true,
+          fetchReply: true
         });
+        
+        // 15초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {
+            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+          }
+        }, 15000);
         
       } catch (error) {
         console.error('❌ 버튼 에러:', error);
@@ -1611,16 +1631,8 @@ client.on('interactionCreate', async (interaction) => {
           .setValue(defaultValue)
           .setRequired(true);
         
-        const infoInput = new TextInputBuilder()
-          .setCustomId('info')
-          .setLabel('(한 줄 9세트, 한 상자 54세트)')
-          .setStyle(TextInputStyle.Short)
-          .setValue(`현재: ${currentSets}세트+${remainder}개 (총 ${itemData.quantity}개)`)
-          .setRequired(false);
-        
         const row1 = new ActionRowBuilder().addComponents(quantityInput);
-        const row2 = new ActionRowBuilder().addComponents(infoInput);
-        modal.addComponents(row1, row2);
+        modal.addComponents(row1);
         
         await interaction.showModal(modal);
         

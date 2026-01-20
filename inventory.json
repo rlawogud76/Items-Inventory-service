@@ -8,10 +8,6 @@
       "산호": {
         "quantity": 20,
         "required": 50
-      },
-      "죽은 불 산호 블록": {
-        "quantity": 0,
-        "required": 3456
       }
     },
     "채광": {
