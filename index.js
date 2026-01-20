@@ -1635,8 +1635,14 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('reset')) {
+    else if (interaction.customId.startsWith('reset') && !interaction.customId.startsWith('reset_individual') && !interaction.customId.startsWith('reset_batch')) {
       try {
+        // 이미 응답했는지 확인
+        if (interaction.replied || interaction.deferred) {
+          console.log('⚠️ 이미 응답한 인터랙션, 무시');
+          return;
+        }
+        
         const parts = interaction.customId.split('_');
         const type = parts[1]; // 'inventory' or 'crafting'
         const category = parts.length > 2 ? parts.slice(2).join('_') : null;
@@ -1671,7 +1677,9 @@ client.on('interactionCreate', async (interaction) => {
         
       } catch (error) {
         console.error('❌ 초기화 버튼 에러:', error);
-        await sendTemporaryReply(interaction, '오류가 발생했습니다: ' + error.message).catch(() => {});
+        if (!interaction.replied && !interaction.deferred) {
+          await sendTemporaryReply(interaction, '오류가 발생했습니다: ' + error.message).catch(() => {});
+        }
       }
     }
     
@@ -1770,7 +1778,9 @@ client.on('interactionCreate', async (interaction) => {
         
       } catch (error) {
         console.error('❌ 초기화 타입 선택 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+        if (!interaction.replied && !interaction.deferred) {
+          await sendTemporaryReply(interaction, '오류가 발생했습니다: ' + error.message).catch(() => {});
+        }
       }
     }
     
