@@ -2537,15 +2537,35 @@ client.on('interactionCreate', async (interaction) => {
         const category = parts[3];
         const itemName = parts.slice(4).join('_');
         
+        console.log('📝 모달 제출 - 수량 관리');
+        console.log('  - customId:', interaction.customId);
+        console.log('  - action:', action);
+        console.log('  - type:', type);
+        console.log('  - category:', category);
+        console.log('  - itemName:', itemName);
+        
         const setsInput = interaction.fields.getTextInputValue('sets_change').trim();
         const itemsInput = interaction.fields.getTextInputValue('items_change').trim();
         
         const inventory = await loadInventory();
         const targetData = type === 'inventory' ? inventory : inventory.crafting;
         
-        if (!targetData.categories[category] || !targetData.categories[category][itemName]) {
+        console.log('  - targetData.categories:', Object.keys(targetData.categories || {}));
+        
+        if (!targetData.categories[category]) {
+          console.error(`❌ 카테고리 "${category}"를 찾을 수 없습니다.`);
+          console.error('  - 사용 가능한 카테고리:', Object.keys(targetData.categories || {}));
           return await interaction.reply({ 
-            content: `❌ "${itemName}" 아이템을 찾을 수 없습니다.`, 
+            content: `❌ "${type}${category}" 카테고리를 찾을 수 없습니다.\n사용 가능한 카테고리: ${Object.keys(targetData.categories || {}).join(', ')}`, 
+            ephemeral: true 
+          });
+        }
+        
+        if (!targetData.categories[category][itemName]) {
+          console.error(`❌ 아이템 "${itemName}"을 카테고리 "${category}"에서 찾을 수 없습니다.`);
+          console.error('  - 사용 가능한 아이템:', Object.keys(targetData.categories[category] || {}));
+          return await interaction.reply({ 
+            content: `❌ "${itemName}" 아이템을 "${category}" 카테고리에서 찾을 수 없습니다.\n사용 가능한 아이템: ${Object.keys(targetData.categories[category] || {}).join(', ')}`, 
             ephemeral: true 
           });
         }
