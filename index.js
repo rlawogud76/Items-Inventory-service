@@ -1386,7 +1386,7 @@ client.on('interactionCreate', async (interaction) => {
           const barLength = inventory.settings?.barLength || 15;
           const buttons = createButtons(category, false, type || 'inventory', uiMode, barLength);
           
-          await interaction.update({ embeds: [embed], components: [buttons] });
+          await interaction.update({ embeds: [embed], components: buttons });
         } else {
           // 시작
           console.log('▶️ 자동 새로고침 시작:', messageId, '/ 타입:', type, '/ 카테고리:', category || '전체');
@@ -1405,7 +1405,7 @@ client.on('interactionCreate', async (interaction) => {
           const barLength = inventory.settings?.barLength || 15;
           const buttons = createButtons(category, true, type || 'inventory', uiMode, barLength);
           
-          await interaction.update({ embeds: [embed], components: [buttons] });
+          await interaction.update({ embeds: [embed], components: buttons });
           
           // 5초마다 자동 새로고침
           const timer = setInterval(async () => {
@@ -1433,7 +1433,7 @@ client.on('interactionCreate', async (interaction) => {
               const barLength = inv.settings?.barLength || 15;
               const btns = createButtons(category, true, type || 'inventory', uiMode, barLength);
               
-              await interaction.message.edit({ embeds: [emb], components: [btns] });
+              await interaction.message.edit({ embeds: [emb], components: btns });
               console.log('🔄 자동 새로고침 실행:', new Date().toLocaleTimeString());
             } catch (error) {
               console.error('❌ 자동 새로고침 에러:', error);
