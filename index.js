@@ -1578,12 +1578,6 @@ client.on('interactionCreate', async (interaction) => {
     
     else if (interaction.customId.startsWith('recipe') && !interaction.customId.startsWith('recipe_quantity_modal')) {
       try {
-        // 이미 응답했는지 확인
-        if (interaction.replied || interaction.deferred) {
-          console.log('⚠️ 이미 응답한 인터랙션, 무시');
-          return;
-        }
-        
         const parts = interaction.customId.split('_');
         const type = parts[1]; // 'crafting'
         const category = parts.slice(2).join('_');
@@ -1606,15 +1600,16 @@ client.on('interactionCreate', async (interaction) => {
         
         const row = new ActionRowBuilder().addComponents(viewButton, editButton, deleteButton);
         
-        await sendTemporaryReply(interaction, {
+        await interaction.reply({
           content: `📋 **${category}** 카테고리 레시피 관리\n\n원하는 작업을 선택하세요:`,
-          components: [row]
-        }, 15000);
+          components: [row],
+          ephemeral: true
+        });
         
       } catch (error) {
         console.error('❌ 레시피 버튼 에러:', error);
         if (!interaction.replied && !interaction.deferred) {
-          await sendTemporaryReply(interaction, '오류가 발생했습니다.').catch(() => {});
+          await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
         }
       }
     }
