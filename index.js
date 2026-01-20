@@ -649,7 +649,82 @@ client.on('ready', async () => {
               { name: '해양', value: '해양' },
               { name: '채광', value: '채광' },
               { name: '요리', value: '요리' }
+            )),
+      new SlashCommandBuilder()
+        .setName('레시피등록')
+        .setDescription('제작품의 레시피를 등록합니다')
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('제작품 카테고리')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
             ))
+        .addStringOption(option =>
+          option.setName('제작품')
+            .setDescription('레시피를 등록할 제작품 이름')
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('재료1')
+            .setDescription('필요한 재료 이름')
+            .setRequired(true))
+        .addIntegerOption(option =>
+          option.setName('재료1수량')
+            .setDescription('재료1의 필요 수량')
+            .setRequired(true)
+            .setMinValue(1))
+        .addStringOption(option =>
+          option.setName('재료2')
+            .setDescription('필요한 재료 이름 (선택)')
+            .setRequired(false))
+        .addIntegerOption(option =>
+          option.setName('재료2수량')
+            .setDescription('재료2의 필요 수량')
+            .setRequired(false)
+            .setMinValue(1))
+        .addStringOption(option =>
+          option.setName('재료3')
+            .setDescription('필요한 재료 이름 (선택)')
+            .setRequired(false))
+        .addIntegerOption(option =>
+          option.setName('재료3수량')
+            .setDescription('재료3의 필요 수량')
+            .setRequired(false)
+            .setMinValue(1)),
+      new SlashCommandBuilder()
+        .setName('레시피확인')
+        .setDescription('제작품의 레시피를 확인합니다')
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('제작품 카테고리')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            ))
+        .addStringOption(option =>
+          option.setName('제작품')
+            .setDescription('레시피를 확인할 제작품 이름')
+            .setRequired(true)),
+      new SlashCommandBuilder()
+        .setName('레시피삭제')
+        .setDescription('제작품의 레시피를 삭제합니다')
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('제작품 카테고리')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            ))
+        .addStringOption(option =>
+          option.setName('제작품')
+            .setDescription('레시피를 삭제할 제작품 이름')
+            .setRequired(true))
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);
@@ -1140,6 +1215,146 @@ client.on('interactionCreate', async (interaction) => {
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
+
+      else if (commandName === '레시피등록') {
+        const category = interaction.options.getString('카테고리');
+        const craftItem = interaction.options.getString('제작품');
+        const material1 = interaction.options.getString('재료1');
+        const material1Qty = interaction.options.getInteger('재료1수량');
+        const material2 = interaction.options.getString('재료2');
+        const material2Qty = interaction.options.getInteger('재료2수량');
+        const material3 = interaction.options.getString('재료3');
+        const material3Qty = interaction.options.getInteger('재료3수량');
+
+        const inventory = await loadInventory();
+        
+        // 제작품 존재 확인
+        if (!inventory.crafting?.categories[category]?.[craftItem]) {
+          return sendTemporaryReply(interaction, `❌ "${craftItem}" 제작품을 찾을 수 없습니다.`);
+        }
+
+        // 재료가 재고에 존재하는지 확인
+        const materials = [];
+        
+        // 재료1 확인
+        let found = false;
+        for (const cat of Object.keys(inventory.categories || {})) {
+          if (inventory.categories[cat][material1]) {
+            materials.push({ name: material1, quantity: material1Qty, category: cat });
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          return sendTemporaryReply(interaction, `❌ "${material1}" 재료를 재고에서 찾을 수 없습니다.`);
+        }
+
+        // 재료2 확인 (선택사항)
+        if (material2 && material2Qty) {
+          found = false;
+          for (const cat of Object.keys(inventory.categories || {})) {
+            if (inventory.categories[cat][material2]) {
+              materials.push({ name: material2, quantity: material2Qty, category: cat });
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            return sendTemporaryReply(interaction, `❌ "${material2}" 재료를 재고에서 찾을 수 없습니다.`);
+          }
+        }
+
+        // 재료3 확인 (선택사항)
+        if (material3 && material3Qty) {
+          found = false;
+          for (const cat of Object.keys(inventory.categories || {})) {
+            if (inventory.categories[cat][material3]) {
+              materials.push({ name: material3, quantity: material3Qty, category: cat });
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            return sendTemporaryReply(interaction, `❌ "${material3}" 재료를 재고에서 찾을 수 없습니다.`);
+          }
+        }
+
+        // 레시피 저장
+        if (!inventory.crafting.recipes) {
+          inventory.crafting.recipes = {};
+        }
+        if (!inventory.crafting.recipes[category]) {
+          inventory.crafting.recipes[category] = {};
+        }
+
+        inventory.crafting.recipes[category][craftItem] = materials;
+        await saveInventory(inventory);
+
+        // 레시피 표시
+        const recipeText = materials.map(m => {
+          const icon = getItemIcon(m.name, inventory);
+          return `${icon} **${m.name}** x${m.quantity}개`;
+        }).join('\n');
+
+        const icon = getItemIcon(craftItem, inventory);
+        const successEmbed = new EmbedBuilder()
+          .setColor(0x57F287)
+          .setTitle('✅ 레시피 등록 완료')
+          .setDescription(`**카테고리:** ${category}\n${icon} **${craftItem}**\n\n**필요 재료:**\n${recipeText}`);
+        
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
+      }
+
+      else if (commandName === '레시피확인') {
+        const category = interaction.options.getString('카테고리');
+        const craftItem = interaction.options.getString('제작품');
+
+        const inventory = await loadInventory();
+        
+        const recipe = inventory.crafting?.recipes?.[category]?.[craftItem];
+        
+        if (!recipe) {
+          return sendTemporaryReply(interaction, `❌ "${craftItem}"의 레시피가 등록되지 않았습니다.`);
+        }
+
+        const recipeText = recipe.map(m => {
+          const icon = getItemIcon(m.name, inventory);
+          const materialData = inventory.categories[m.category]?.[m.name];
+          const currentQty = materialData?.quantity || 0;
+          const canCraft = currentQty >= m.quantity ? '✅' : '❌';
+          return `${icon} **${m.name}** x${m.quantity}개 (보유: ${currentQty}개) ${canCraft}`;
+        }).join('\n');
+
+        const icon = getItemIcon(craftItem, inventory);
+        const embed = new EmbedBuilder()
+          .setColor(0x5865F2)
+          .setTitle(`📋 ${craftItem} 레시피`)
+          .setDescription(`**카테고리:** ${category}\n${icon} **${craftItem}** 1개 제작 시\n\n**필요 재료:**\n${recipeText}`)
+          .setFooter({ text: '✅ = 재료 충분 | ❌ = 재료 부족' });
+        
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+      }
+
+      else if (commandName === '레시피삭제') {
+        const category = interaction.options.getString('카테고리');
+        const craftItem = interaction.options.getString('제작품');
+
+        const inventory = await loadInventory();
+        
+        if (!inventory.crafting?.recipes?.[category]?.[craftItem]) {
+          return sendTemporaryReply(interaction, `❌ "${craftItem}"의 레시피가 등록되지 않았습니다.`);
+        }
+
+        delete inventory.crafting.recipes[category][craftItem];
+        await saveInventory(inventory);
+
+        const icon = getItemIcon(craftItem, inventory);
+        const successEmbed = new EmbedBuilder()
+          .setColor(0xED4245)
+          .setDescription(`### ✅ 레시피 삭제 완료\n**카테고리:** ${category}\n${icon} **${craftItem}**의 레시피가 삭제되었습니다.`);
+        
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
+      }
     } catch (error) {
       console.error('커맨드 실행 에러:', error);
       await interaction.reply({ content: '❌ 에러가 발생했습니다: ' + error.message, ephemeral: true });
@@ -1525,10 +1740,32 @@ client.on('interactionCreate', async (interaction) => {
         const itemOptions = items.map(item => {
           const itemData = targetData.categories[category][item];
           const customEmoji = itemData?.emoji;
+          const percentage = (itemData.quantity / itemData.required) * 100;
+          
+          // 작업 중인 사람 확인
+          let workingUser = null;
+          if (isCrafting) {
+            workingUser = inventory.crafting?.crafting?.[category]?.[item];
+          } else {
+            workingUser = inventory.collecting?.[category]?.[item];
+          }
+          
+          let label = item;
+          let description = undefined;
+          
+          if (percentage >= 100) {
+            label = `${item} (완료됨 ${Math.round(percentage)}%)`;
+            description = `✅ 이미 목표 수량을 달성했습니다 (${Math.round(percentage)}%)`;
+          } else if (workingUser) {
+            label = `${item} (${workingUser.userName} 작업중)`;
+            description = `⚠️ ${workingUser.userName}님이 ${isCrafting ? '제작' : '수집'} 중입니다`;
+          }
+          
           return {
-            label: item,
+            label: label,
             value: item,
-            emoji: customEmoji || getItemIcon(item, inventory)
+            emoji: customEmoji || getItemIcon(item, inventory),
+            description: description
           };
         });
         
@@ -1720,6 +1957,37 @@ client.on('interactionCreate', async (interaction) => {
         
         const inventory = await loadInventory();
         
+        // 목표 수량 달성 여부 확인
+        const targetData = isCrafting ? inventory.crafting : inventory;
+        const itemData = targetData.categories[category][selectedItem];
+        const percentage = (itemData.quantity / itemData.required) * 100;
+        
+        if (percentage >= 100) {
+          // 이미 100% 이상 달성
+          const icon = getItemIcon(selectedItem, inventory);
+          return await interaction.update({
+            content: `✅ ${icon} **${selectedItem}**은(는) 이미 목표 수량을 달성했습니다! (${Math.round(percentage)}%)\n${isCrafting ? '제작' : '수집'}할 필요가 없습니다.`,
+            components: []
+          });
+        }
+        
+        // 이미 다른 사람이 작업 중인지 확인
+        let existingWorker = null;
+        if (isCrafting) {
+          existingWorker = inventory.crafting?.crafting?.[category]?.[selectedItem];
+        } else {
+          existingWorker = inventory.collecting?.[category]?.[selectedItem];
+        }
+        
+        if (existingWorker && existingWorker.userId !== userId) {
+          // 다른 사람이 이미 작업 중
+          const icon = getItemIcon(selectedItem, inventory);
+          return await interaction.update({
+            content: `❌ ${icon} **${selectedItem}**은(는) 이미 **${existingWorker.userName}**님이 ${isCrafting ? '제작' : '수집'} 중입니다.\n다른 아이템을 선택해주세요.`,
+            components: []
+          });
+        }
+        
         if (isCrafting) {
           if (!inventory.crafting.crafting) {
             inventory.crafting.crafting = {};
@@ -1752,7 +2020,7 @@ client.on('interactionCreate', async (interaction) => {
         
         await saveInventory(inventory);
         
-        const icon = getItemIcon(selectedItem);
+        const icon = getItemIcon(selectedItem, inventory);
         
         // 중단 버튼 생성
         const stopButton = new ButtonBuilder()
@@ -1866,6 +2134,61 @@ client.on('interactionCreate', async (interaction) => {
         if (action === 'add') {
           // 추가
           newQuantity = oldQuantity + totalChange;
+          
+          // 제작품 추가 시 레시피가 있으면 재료 차감
+          if (type === 'crafting' && totalChange > 0) {
+            const recipe = inventory.crafting?.recipes?.[category]?.[itemName];
+            if (recipe) {
+              // 재료 충분한지 확인
+              let canCraft = true;
+              const materialCheck = [];
+              
+              for (const material of recipe) {
+                const materialData = inventory.categories[material.category]?.[material.name];
+                const requiredQty = material.quantity * totalChange;
+                const currentQty = materialData?.quantity || 0;
+                
+                materialCheck.push({
+                  name: material.name,
+                  category: material.category,
+                  required: requiredQty,
+                  current: currentQty,
+                  enough: currentQty >= requiredQty
+                });
+                
+                if (currentQty < requiredQty) {
+                  canCraft = false;
+                }
+              }
+              
+              if (!canCraft) {
+                // 재료 부족
+                const lackingMaterials = materialCheck
+                  .filter(m => !m.enough)
+                  .map(m => {
+                    const icon = getItemIcon(m.name, inventory);
+                    return `${icon} **${m.name}**: ${m.current}개 / ${m.required}개 필요 (${m.required - m.current}개 부족)`;
+                  })
+                  .join('\n');
+                
+                return await interaction.reply({
+                  content: `❌ **${itemName}** ${totalChange}개를 제작하기 위한 재료가 부족합니다!\n\n**부족한 재료:**\n${lackingMaterials}`,
+                  ephemeral: true
+                });
+              }
+              
+              // 재료 차감
+              for (const material of recipe) {
+                const requiredQty = material.quantity * totalChange;
+                inventory.categories[material.category][material.name].quantity -= requiredQty;
+                
+                // 재료 차감 내역 추가
+                addHistory(inventory, 'inventory', material.category, material.name, 'update_quantity',
+                  `[제작 재료 소모] ${itemName} ${totalChange}개 제작으로 ${requiredQty}개 소모`,
+                  interaction.user.displayName || interaction.user.username);
+              }
+            }
+          }
         } else if (action === 'subtract') {
           // 차감
           newQuantity = Math.max(0, oldQuantity - totalChange);
@@ -1898,9 +2221,24 @@ client.on('interactionCreate', async (interaction) => {
           'edit': '✏️',
           'subtract': '➖'
         };
+        
+        // 재료 소모 정보 추가 (제작품 추가 시)
+        let materialInfo = '';
+        if (type === 'crafting' && action === 'add' && totalChange > 0) {
+          const recipe = inventory.crafting?.recipes?.[category]?.[itemName];
+          if (recipe) {
+            const materialList = recipe.map(m => {
+              const matIcon = getItemIcon(m.name, inventory);
+              const consumed = m.quantity * totalChange;
+              return `${matIcon} ${m.name} -${consumed}개`;
+            }).join(', ');
+            materialInfo = `\n\n**소모된 재료:** ${materialList}`;
+          }
+        }
+        
         const successEmbed = new EmbedBuilder()
           .setColor(action === 'add' ? 0x57F287 : action === 'subtract' ? 0xED4245 : 0x5865F2)
-          .setDescription(`### ${actionEmojis[action]} ${actionLabels[action]} 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldSets}세트+${oldRemainder}개 (${oldQuantity}개)\n↓\n${newSets}세트+${newRemainder}개 (${newQuantity}개)`);
+          .setDescription(`### ${actionEmojis[action]} ${actionLabels[action]} 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldSets}세트+${oldRemainder}개 (${oldQuantity}개)\n↓\n${newSets}세트+${newRemainder}개 (${newQuantity}개)${materialInfo}`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
         
