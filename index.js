@@ -373,9 +373,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   const autoRefreshId = categoryName ? `auto_refresh_${type}_${categoryName}` : `auto_refresh_${type}`;
   const uiModeId = categoryName ? `ui_mode_${type}_${categoryName}` : `ui_mode_${type}`;
   const barSizeId = categoryName ? `bar_size_${type}_${categoryName}` : `bar_size_${type}`;
-  const addId = categoryName ? `add_${type}_${categoryName}` : `add_${type}`;
-  const editId = categoryName ? `edit_${type}_${categoryName}` : `edit_${type}`;
-  const subtractId = categoryName ? `subtract_${type}_${categoryName}` : `subtract_${type}`;
+  const quantityId = categoryName ? `quantity_${type}_${categoryName}` : `quantity_${type}`;
   const resetId = categoryName ? `reset_${type}_${categoryName}` : `reset_${type}`;
   const manageId = categoryName ? `manage_${type}_${categoryName}` : `manage_${type}`;
   
@@ -391,21 +389,17 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
         .setLabel(type === 'inventory' ? '📦 수집중' : '🔨 제작중')
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
-        .setCustomId(addId)
-        .setLabel('➕ 추가')
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId(editId)
-        .setLabel('✏️ 수정')
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(subtractId)
-        .setLabel('➖ 차감')
-        .setStyle(ButtonStyle.Danger),
+        .setCustomId(quantityId)
+        .setLabel('📊 수량관리')
+        .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
         .setCustomId(resetId)
         .setLabel('🔄 초기화')
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId(manageId)
+        .setLabel(type === 'inventory' ? '📝 물품관리' : '📝 품목관리')
+        .setStyle(ButtonStyle.Secondary)
     );
   
   const row2 = new ActionRowBuilder()
@@ -421,11 +415,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
       new ButtonBuilder()
         .setCustomId(barSizeId)
         .setLabel(`📊 바 크기: ${Math.round(barLength * 10)}%`)
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(manageId)
-        .setLabel(type === 'inventory' ? '📝 물품관리' : '📝 품목관리')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Secondary)
     );
   
   return [row1, row2];
@@ -805,10 +795,10 @@ client.on('interactionCreate', async (interaction) => {
                 '',
                 '**버튼 기능**',
                 '• 📦 수집중 / 🔨 제작중: 작업자 등록',
-                '• ➕ 추가 / ➖ 차감: 수량 조절',
-                '• ✏️ 수정: 수량 직접 입력',
+                '• 📊 수량관리: 추가/수정/차감 통합 관리',
                 '• 🔄 초기화: 개별/일괄 초기화',
-                '• ▶️ 자동새로고침: 30초마다 자동 업데이트',
+                '• � 물품관리: 물품/품목 추가 및 삭제',
+                '• ▶️ 자동새로고침: 5초마다 자동 업데이트',
                 '• 📏 UI 모드: 일반/컴팩트/상세 전환',
                 '• 📊 바 크기: 프로그레스 바 크기 조절'
               ].join('\n'),
@@ -932,7 +922,16 @@ client.on('interactionCreate', async (interaction) => {
           embed.setFooter({ text: `총 ${inventory.history.length}개 중 ${count}개 표시` });
         }
         
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        const reply = await interaction.reply({ embeds: [embed], ephemeral: true, fetchReply: true });
+        
+        // 30초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {
+            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+          }
+        }, 30000);
       }
 
       else if (commandName === '제작') {
@@ -1199,7 +1198,16 @@ client.on('interactionCreate', async (interaction) => {
           });
         }
         
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        const reply = await interaction.reply({ embeds: [embed], ephemeral: true, fetchReply: true });
+        
+        // 30초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {
+            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+          }
+        }, 30000);
       }
 
       else if (commandName === '레시피삭제') {
@@ -1269,20 +1277,13 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('add') || interaction.customId.startsWith('edit') || interaction.customId.startsWith('subtract')) {
+    else if (interaction.customId.startsWith('quantity')) {
       try {
         const parts = interaction.customId.split('_');
-        const action = parts[0]; // 'add', 'edit', or 'subtract'
         const type = parts[1]; // 'inventory' or 'crafting'
         const category = parts.length > 2 ? parts.slice(2).join('_') : null;
         
-        const actionLabels = {
-          'add': '➕ 추가',
-          'edit': '✏️ 수정',
-          'subtract': '➖ 차감'
-        };
-        
-        console.log(`${actionLabels[action]} 버튼 클릭`);
+        console.log('📊 수량관리 버튼 클릭');
         console.log('  - 타입:', type);
         console.log('  - 카테고리:', category || '전체');
         
@@ -1290,7 +1291,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (!category) {
           return await interaction.reply({ 
-            content: `❌ 특정 카테고리를 선택한 후 ${actionLabels[action]} 버튼을 사용해주세요.\n\`/${type === 'inventory' ? '재고' : '제작'} 카테고리:해양\` 처럼 카테고리를 지정해주세요.`, 
+            content: `❌ 특정 카테고리를 선택한 후 수량관리 버튼을 사용해주세요.\n\`/${type === 'inventory' ? '재고' : '제작'} 카테고리:해양\` 처럼 카테고리를 지정해주세요.`, 
             ephemeral: true 
           });
         }
@@ -1330,14 +1331,14 @@ client.on('interactionCreate', async (interaction) => {
         // 선택 메뉴 생성
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_${action}_${type}_${category}`)
-          .setPlaceholder(`${actionLabels[action]}할 아이템을 선택하세요`)
+          .setCustomId(`select_quantity_${type}_${category}`)
+          .setPlaceholder('수량을 관리할 아이템을 선택하세요')
           .addOptions(itemOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
         const reply = await interaction.reply({
-          content: `${actionLabels[action]} **${category}** 카테고리에서 ${actionLabels[action]}할 아이템을 선택하세요:`,
+          content: `📊 **${category}** 카테고리에서 수량을 관리할 아이템을 선택하세요:`,
           components: [row],
           ephemeral: true,
           fetchReply: true
@@ -2099,13 +2100,56 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('select_add_') || interaction.customId.startsWith('select_edit_') || interaction.customId.startsWith('select_subtract_')) {
+    else if (interaction.customId.startsWith('select_quantity_')) {
+      try {
+        const parts = interaction.customId.split('_');
+        const type = parts[2]; // 'inventory' or 'crafting'
+        const category = parts.slice(3).join('_');
+        const selectedItem = interaction.values[0];
+        
+        // 추가/수정/차감 선택 버튼 생성
+        const addButton = new ButtonBuilder()
+          .setCustomId(`quantity_add_${type}_${category}_${selectedItem}`)
+          .setLabel('➕ 추가')
+          .setStyle(ButtonStyle.Success);
+        
+        const editButton = new ButtonBuilder()
+          .setCustomId(`quantity_edit_${type}_${category}_${selectedItem}`)
+          .setLabel('✏️ 수정')
+          .setStyle(ButtonStyle.Primary);
+        
+        const subtractButton = new ButtonBuilder()
+          .setCustomId(`quantity_subtract_${type}_${category}_${selectedItem}`)
+          .setLabel('➖ 차감')
+          .setStyle(ButtonStyle.Danger);
+        
+        const row = new ActionRowBuilder().addComponents(addButton, editButton, subtractButton);
+        
+        const inventory = await loadInventory();
+        const targetData = type === 'inventory' ? inventory : inventory.crafting;
+        const itemData = targetData.categories[category][selectedItem];
+        const sets = Math.floor(itemData.quantity / 64);
+        const remainder = itemData.quantity % 64;
+        const icon = getItemIcon(selectedItem, inventory);
+        
+        await interaction.update({
+          content: `📊 ${icon} **${selectedItem}** 수량관리\n\n**현재 수량:** ${sets}세트 + ${remainder}개 (총 ${itemData.quantity}개)\n**목표 수량:** ${itemData.required}개\n\n원하는 작업을 선택하세요:`,
+          components: [row]
+        });
+        
+      } catch (error) {
+        console.error('❌ 수량관리 선택 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('quantity_add_') || interaction.customId.startsWith('quantity_edit_') || interaction.customId.startsWith('quantity_subtract_')) {
       try {
         const parts = interaction.customId.split('_');
         const action = parts[1]; // 'add', 'edit', or 'subtract'
         const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.slice(3).join('_');
-        const selectedItem = interaction.values[0];
+        const category = parts[3];
+        const selectedItem = parts.slice(4).join('_');
         
         const inventory = await loadInventory();
         const targetData = type === 'inventory' ? inventory : inventory.crafting;
@@ -2171,7 +2215,7 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.showModal(modal);
         
       } catch (error) {
-        console.error('❌ 선택 에러:', error);
+        console.error('❌ 수량관리 액션 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
       }
     }
@@ -2424,7 +2468,16 @@ client.on('interactionCreate', async (interaction) => {
           .setTitle('✅ 추가 완료')
           .setDescription(`**카테고리:** ${category}\n${icon} **${itemName}**이(가) 추가되었습니다!\n\n**초기 수량:** ${initialQty}개 (${initialSetsDisplay}세트 + ${initialRemainderDisplay}개)\n**충족 수량:** ${requiredQty}개 (${requiredSetsDisplay}세트 + ${requiredRemainderDisplay}개)`);
         
-        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+        const reply = await interaction.reply({ embeds: [successEmbed], ephemeral: true, fetchReply: true });
+        
+        // 15초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {
+            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+          }
+        }, 15000);
         
       } catch (error) {
         console.error('❌ 아이템 추가 모달 제출 에러:', error);
