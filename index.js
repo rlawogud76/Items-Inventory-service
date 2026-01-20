@@ -376,6 +376,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   const addId = categoryName ? `add_${type}_${categoryName}` : `add_${type}`;
   const editId = categoryName ? `edit_${type}_${categoryName}` : `edit_${type}`;
   const subtractId = categoryName ? `subtract_${type}_${categoryName}` : `subtract_${type}`;
+  const resetId = categoryName ? `reset_${type}_${categoryName}` : `reset_${type}`;
   
   // UI 모드 버튼 라벨
   let uiModeLabel = '📏 일반';
@@ -386,7 +387,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
     .addComponents(
       new ButtonBuilder()
         .setCustomId(actionId)
-        .setLabel(type === 'inventory' ? '📦 수집중' : '� 제작중')
+        .setLabel(type === 'inventory' ? '📦 수집중' : '🔨 제작중')
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId(addId)
@@ -399,6 +400,10 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
       new ButtonBuilder()
         .setCustomId(subtractId)
         .setLabel('➖ 차감')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId(resetId)
+        .setLabel('🔄 초기화')
         .setStyle(ButtonStyle.Danger)
     );
   
@@ -1630,6 +1635,147 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
+    else if (interaction.customId.startsWith('reset')) {
+      try {
+        const parts = interaction.customId.split('_');
+        const type = parts[1]; // 'inventory' or 'crafting'
+        const category = parts.length > 2 ? parts.slice(2).join('_') : null;
+        
+        console.log('🔄 초기화 버튼 클릭');
+        console.log('  - 타입:', type);
+        console.log('  - 카테고리:', category || '전체');
+        
+        if (!category) {
+          return await interaction.reply({ 
+            content: `❌ 특정 카테고리를 선택한 후 초기화 버튼을 사용해주세요.\n\`/${type === 'inventory' ? '재고' : '제작'} 카테고리:해양\` 처럼 카테고리를 지정해주세요.`, 
+            ephemeral: true 
+          });
+        }
+        
+        // 초기화 방식 선택 버튼 생성
+        const individualButton = new ButtonBuilder()
+          .setCustomId(`reset_individual_${type}_${category}`)
+          .setLabel('개별 초기화')
+          .setStyle(ButtonStyle.Primary);
+        
+        const batchButton = new ButtonBuilder()
+          .setCustomId(`reset_batch_${type}_${category}`)
+          .setLabel('일괄 초기화')
+          .setStyle(ButtonStyle.Danger);
+        
+        const row = new ActionRowBuilder().addComponents(individualButton, batchButton);
+        
+        await interaction.reply({
+          content: `🔄 **${category}** 카테고리 초기화 방식을 선택하세요:\n\n**개별 초기화**: 특정 ${type === 'inventory' ? '아이템' : '제작품'}만 선택하여 초기화\n**일괄 초기화**: 카테고리 전체를 0으로 초기화`,
+          components: [row],
+          ephemeral: true
+        });
+        
+      } catch (error) {
+        console.error('❌ 초기화 버튼 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('reset_individual') || interaction.customId.startsWith('reset_batch')) {
+      try {
+        const parts = interaction.customId.split('_');
+        const resetType = parts[1]; // 'individual' or 'batch'
+        const type = parts[2]; // 'inventory' or 'crafting'
+        const category = parts.slice(3).join('_');
+        
+        const inventory = await loadInventory();
+        const targetData = type === 'inventory' ? inventory : inventory.crafting;
+        
+        if (!targetData.categories[category]) {
+          return await interaction.update({ 
+            content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`,
+            components: []
+          });
+        }
+        
+        if (resetType === 'batch') {
+          // 일괄 초기화
+          let resetCount = 0;
+          let resetItems = [];
+          
+          for (const [itemName, data] of Object.entries(targetData.categories[category])) {
+            if (data.quantity > 0) {
+              const oldQuantity = data.quantity;
+              data.quantity = 0;
+              resetCount++;
+              resetItems.push(`${getItemIcon(itemName, inventory)} ${itemName} (${oldQuantity}개)`);
+              
+              addHistory(inventory, type, category, itemName, 'reset', 
+                `${oldQuantity}개 → 0개`, 
+                interaction.user.displayName || interaction.user.username);
+            }
+          }
+          
+          if (resetCount === 0) {
+            return await interaction.update({
+              content: '⚠️ 초기화할 항목이 없습니다. (이미 모두 0개입니다)',
+              components: []
+            });
+          }
+          
+          await saveInventory(inventory);
+          
+          const itemList = resetItems.slice(0, 10).join('\n');
+          const moreText = resetItems.length > 10 ? `\n... 외 ${resetItems.length - 10}개` : '';
+          
+          const successEmbed = new EmbedBuilder()
+            .setColor(0xFFA500)
+            .setTitle('🔄 일괄 초기화 완료')
+            .setDescription(`**${category}** 카테고리의 ${type === 'inventory' ? '아이템' : '제작품'} **${resetCount}개**가 초기화되었습니다.\n\n${itemList}${moreText}`);
+          
+          await interaction.update({
+            embeds: [successEmbed],
+            components: []
+          });
+          
+        } else {
+          // 개별 초기화 - 아이템 선택 메뉴 표시
+          const items = Object.keys(targetData.categories[category]);
+          
+          if (items.length === 0) {
+            return await interaction.update({
+              content: `❌ "${category}" 카테고리에 ${type === 'inventory' ? '아이템' : '제작품'}이 없습니다.`,
+              components: []
+            });
+          }
+          
+          const itemOptions = items.map(item => {
+            const itemData = targetData.categories[category][item];
+            const customEmoji = itemData?.emoji;
+            return {
+              label: item,
+              value: item,
+              emoji: customEmoji || getItemIcon(item, inventory),
+              description: `현재: ${itemData.quantity}개`
+            };
+          });
+          
+          const { StringSelectMenuBuilder } = await import('discord.js');
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId(`select_reset_${type}_${category}`)
+            .setPlaceholder('초기화할 항목을 선택하세요')
+            .addOptions(itemOptions);
+          
+          const row = new ActionRowBuilder().addComponents(selectMenu);
+          
+          await interaction.update({
+            content: `🔄 **${category}** 카테고리에서 초기화할 ${type === 'inventory' ? '아이템' : '제작품'}을 선택하세요:`,
+            components: [row]
+          });
+        }
+        
+      } catch (error) {
+        console.error('❌ 초기화 타입 선택 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
+    
     else if (interaction.customId.startsWith('bar_size')) {
       try {
         const parts = interaction.customId.split('_');
@@ -2082,6 +2228,59 @@ client.on('interactionCreate', async (interaction) => {
         
       } catch (error) {
         console.error('❌ 선택 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('select_reset_')) {
+      try {
+        const parts = interaction.customId.replace('select_reset_', '').split('_');
+        const type = parts[0]; // 'inventory' or 'crafting'
+        const category = parts.slice(1).join('_');
+        const selectedItem = interaction.values[0];
+        
+        const inventory = await loadInventory();
+        const targetData = type === 'inventory' ? inventory : inventory.crafting;
+        
+        if (!targetData.categories[category][selectedItem]) {
+          return await interaction.update({
+            content: `❌ "${selectedItem}"을(를) 찾을 수 없습니다.`,
+            components: []
+          });
+        }
+        
+        const oldQuantity = targetData.categories[category][selectedItem].quantity;
+        
+        if (oldQuantity === 0) {
+          return await interaction.update({
+            content: `⚠️ **${selectedItem}**은(는) 이미 0개입니다.`,
+            components: []
+          });
+        }
+        
+        targetData.categories[category][selectedItem].quantity = 0;
+        
+        addHistory(inventory, type, category, selectedItem, 'reset', 
+          `${oldQuantity}개 → 0개`, 
+          interaction.user.displayName || interaction.user.username);
+        
+        await saveInventory(inventory);
+        
+        const icon = getItemIcon(selectedItem, inventory);
+        const successEmbed = new EmbedBuilder()
+          .setColor(0xFFA500)
+          .setTitle('🔄 개별 초기화 완료')
+          .setDescription(`**카테고리:** ${category}\n${icon} **${selectedItem}**\n${oldQuantity}개 → 0개`);
+        
+        await interaction.update({
+          embeds: [successEmbed],
+          components: []
+        });
+        
+        console.log(`🔄 ${interaction.user.displayName}님이 ${category} - ${selectedItem} 초기화: ${oldQuantity} -> 0`);
+        
+      } catch (error) {
+        console.error('❌ 초기화 선택 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
       }
     }
