@@ -1277,7 +1277,10 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('quantity')) {
+    else if (interaction.customId.startsWith('quantity') && 
+             !interaction.customId.startsWith('quantity_add_') && 
+             !interaction.customId.startsWith('quantity_edit_') && 
+             !interaction.customId.startsWith('quantity_subtract_')) {
       try {
         const parts = interaction.customId.split('_');
         const type = parts[1]; // 'inventory' or 'crafting'
