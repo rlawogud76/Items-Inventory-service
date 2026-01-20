@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+﻿import { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import fs from 'fs/promises';
 import dotenv from 'dotenv';
 
@@ -394,11 +394,11 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
         .setCustomId(manageId)
-        .setLabel(type === 'inventory' ? '� 물품관리' : '📝 품목관리')
-        .setStyle(ButtonStyle.Danger),
+        .setLabel(type === 'inventory' ? '📋 물품관리' : '� 품목관리')
+        .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
         .setCustomId(resetId)
-        .setLabel('� 초기화')
+        .setLabel('♻️ 초기화')
         .setStyle(ButtonStyle.Secondary)
     );
   
