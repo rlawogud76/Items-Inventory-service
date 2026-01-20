@@ -1646,10 +1646,9 @@ client.on('interactionCreate', async (interaction) => {
         console.log('  - 카테고리:', category || '전체');
         
         if (!category) {
-          return await interaction.reply({ 
-            content: `❌ 특정 카테고리를 선택한 후 초기화 버튼을 사용해주세요.\n\`/${type === 'inventory' ? '재고' : '제작'} 카테고리:해양\` 처럼 카테고리를 지정해주세요.`, 
-            ephemeral: true 
-          });
+          return await sendTemporaryReply(interaction, 
+            `❌ 특정 카테고리를 선택한 후 초기화 버튼을 사용해주세요.\n\`/${type === 'inventory' ? '재고' : '제작'} 카테고리:해양\` 처럼 카테고리를 지정해주세요.`
+          );
         }
         
         // 초기화 방식 선택 버튼 생성
@@ -1665,15 +1664,14 @@ client.on('interactionCreate', async (interaction) => {
         
         const row = new ActionRowBuilder().addComponents(individualButton, batchButton);
         
-        await interaction.reply({
+        await sendTemporaryReply(interaction, {
           content: `🔄 **${category}** 카테고리 초기화 방식을 선택하세요:\n\n**개별 초기화**: 특정 ${type === 'inventory' ? '아이템' : '제작품'}만 선택하여 초기화\n**일괄 초기화**: 카테고리 전체를 0으로 초기화`,
-          components: [row],
-          ephemeral: true
-        });
+          components: [row]
+        }, 15000);
         
       } catch (error) {
         console.error('❌ 초기화 버튼 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+        await sendTemporaryReply(interaction, '오류가 발생했습니다: ' + error.message).catch(() => {});
       }
     }
     
