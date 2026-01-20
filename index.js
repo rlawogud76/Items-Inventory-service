@@ -97,7 +97,8 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
     // inventory 전체를 전달하기 위해 crafting을 포함한 객체 생성
     const fullInventory = { crafting: crafting };
 
-    for (const [itemName, data] of Object.entries(crafting.categories[categoryName])) {
+    const items = Object.entries(crafting.categories[categoryName]);
+    items.forEach(([itemName, data], index) => {
       const status = getStatusEmoji(data.quantity, data.required);
       const icon = getItemIcon(itemName, fullInventory);
       const progressBar = createProgressBar(data.quantity, data.required, barLength);
@@ -129,13 +130,18 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
           `${progressBar} ${percentage}% ${status}${craftingText}`
         ].join('\n');
       }
+      
+      // 마지막 아이템이 아니면 구분선 추가
+      if (index < items.length - 1) {
+        fieldValue += '\n━━━━━━━━━━━━━━━━━━━━';
+      }
 
       embed.addFields({
         name: `${icon} **${itemName}**`,
         value: fieldValue,
         inline: uiMode === 'compact'
       });
-    }
+    });
   } else {
     // 전체 카테고리 표시
     embed.setTitle('🔨 제작 관리 시스템');
@@ -149,7 +155,9 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
 
     for (const [catName, items] of Object.entries(crafting.categories)) {
       let categoryText = '';
-      for (const [itemName, data] of Object.entries(items)) {
+      const itemEntries = Object.entries(items);
+      
+      itemEntries.forEach(([itemName, data], index) => {
         const status = getStatusEmoji(data.quantity, data.required);
         const icon = getItemIcon(itemName, fullInventory);
         const percentage = Math.round((data.quantity / data.required) * 100);
@@ -161,11 +169,16 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
         if (uiMode === 'compact') {
           categoryText += `${icon} ${itemName}: ${data.quantity}/${data.required} (${percentage}%) ${status}${craftingText}\n`;
         } else if (uiMode === 'detailed') {
-          categoryText += `### ${icon} ${itemName}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${craftingText}\n\n`;
+          categoryText += `### ${icon} ${itemName}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${craftingText}\n`;
         } else {
-          categoryText += `### ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${craftingText}\n\n`;
+          categoryText += `### ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${craftingText}\n`;
         }
-      }
+        
+        // 마지막 아이템이 아니면 구분선 추가
+        if (index < itemEntries.length - 1) {
+          categoryText += '━━━━━━━━━━━━━━━━━━━━\n';
+        }
+      });
       
       embed.addFields({
         name: `📦 **${catName}**`,
@@ -194,7 +207,8 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
       return embed;
     }
 
-    for (const [itemName, data] of Object.entries(inventory.categories[categoryName])) {
+    const items = Object.entries(inventory.categories[categoryName]);
+    items.forEach(([itemName, data], index) => {
       const status = getStatusEmoji(data.quantity, data.required);
       const icon = getItemIcon(itemName, inventory);
       const progressBar = createProgressBar(data.quantity, data.required, barLength);
@@ -226,13 +240,18 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
           `${progressBar} ${percentage}% ${status}${collectingText}`
         ].join('\n');
       }
+      
+      // 마지막 아이템이 아니면 구분선 추가
+      if (index < items.length - 1) {
+        fieldValue += '\n━━━━━━━━━━━━━━━━━━━━';
+      }
 
       embed.addFields({
         name: `${icon} **${itemName}**`,
         value: fieldValue,
         inline: uiMode === 'compact'
       });
-    }
+    });
   } else {
     // 전체 카테고리 표시
     embed.setTitle('🏘️ 마을 재고 관리 시스템');
@@ -244,7 +263,9 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
 
     for (const [catName, items] of Object.entries(inventory.categories)) {
       let categoryText = '';
-      for (const [itemName, data] of Object.entries(items)) {
+      const itemEntries = Object.entries(items);
+      
+      itemEntries.forEach(([itemName, data], index) => {
         const status = getStatusEmoji(data.quantity, data.required);
         const icon = getItemIcon(itemName, inventory);
         const percentage = Math.round((data.quantity / data.required) * 100);
@@ -256,11 +277,16 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
         if (uiMode === 'compact') {
           categoryText += `${icon} ${itemName}: ${data.quantity}/${data.required} (${percentage}%) ${status}${collectingText}\n`;
         } else if (uiMode === 'detailed') {
-          categoryText += `### ${icon} ${itemName}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${collectingText}\n\n`;
+          categoryText += `### ${icon} ${itemName}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${collectingText}\n`;
         } else {
-          categoryText += `### ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${collectingText}\n\n`;
+          categoryText += `### ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${collectingText}\n`;
         }
-      }
+        
+        // 마지막 아이템이 아니면 구분선 추가
+        if (index < itemEntries.length - 1) {
+          categoryText += '━━━━━━━━━━━━━━━━━━━━\n';
+        }
+      });
       
       embed.addFields({
         name: `📦 **${catName}**`,
