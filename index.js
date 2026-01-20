@@ -439,8 +439,8 @@ client.on('ready', async () => {
         .setDescription('현재 재고 현황을 확인합니다')
         .addStringOption(option =>
           option.setName('카테고리')
-            .setDescription('확인할 카테고리 (선택 안하면 전체)')
-            .setRequired(false)
+            .setDescription('확인할 카테고리')
+            .setRequired(true)
             .addChoices(
               { name: '해양', value: '해양' },
               { name: '채광', value: '채광' },
@@ -539,8 +539,8 @@ client.on('ready', async () => {
         .setDescription('현재 제작 현황을 확인합니다')
         .addStringOption(option =>
           option.setName('카테고리')
-            .setDescription('확인할 카테고리 (선택 안하면 전체)')
-            .setRequired(false)
+            .setDescription('확인할 카테고리')
+            .setRequired(true)
             .addChoices(
               { name: '해양', value: '해양' },
               { name: '채광', value: '채광' },
@@ -1282,35 +1282,30 @@ client.on('interactionCreate', async (interaction) => {
         const category = parts.length > 3 ? parts.slice(3).join('_') : null;
         
         const inventory = await loadInventory();
+        const currentLength = inventory.settings?.barLength || 15;
         
-        // 바 크기 순환: 5 -> 10 -> 15 -> 20 -> 5
-        let currentLength = inventory.settings?.barLength || 15;
-        let newLength;
-        if (currentLength === 5) newLength = 10;
-        else if (currentLength === 10) newLength = 15;
-        else if (currentLength === 15) newLength = 20;
-        else newLength = 5;
+        // 모달 생성
+        const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
         
-        // 설정 저장
-        if (!inventory.settings) inventory.settings = {};
-        inventory.settings.barLength = newLength;
-        await saveInventory(inventory);
+        const modal = new ModalBuilder()
+          .setCustomId(`bar_size_modal_${type}_${category || 'all'}`)
+          .setTitle('📊 프로그레스 바 크기 설정');
         
-        const uiMode = inventory.settings?.uiMode || 'normal';
-        let embed;
-        if (type === 'crafting') {
-          const crafting = inventory.crafting || { categories: {}, crafting: {} };
-          embed = createCraftingEmbed(crafting, category, uiMode, newLength);
-        } else {
-          embed = createInventoryEmbed(inventory, category, uiMode, newLength);
-        }
+        const barSizeInput = new TextInputBuilder()
+          .setCustomId('bar_size_value')
+          .setLabel('바 크기 (25% ~ 200%)')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('예: 100')
+          .setValue(String(Math.round(currentLength * 10)))
+          .setRequired(true)
+          .setMinLength(2)
+          .setMaxLength(3);
         
-        const messageId = interaction.message.id;
-        const isAutoRefreshing = autoRefreshTimers.has(messageId);
-        const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', uiMode, newLength);
+        const row = new ActionRowBuilder().addComponents(barSizeInput);
+        modal.addComponents(row);
         
-        await interaction.update({ embeds: [embed], components: buttons });
-        console.log(`📊 바 크기 변경: ${currentLength} -> ${newLength} (${Math.round(newLength * 10)}%)`);
+        await interaction.showModal(modal);
+        console.log(`📊 바 크기 설정 모달 표시 (현재: ${Math.round(currentLength * 10)}%)`);
       } catch (error) {
         console.error('❌ 바 크기 변경 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
@@ -1783,7 +1778,51 @@ client.on('interactionCreate', async (interaction) => {
   
   // 모달 제출 처리
   if (interaction.isModalSubmit()) {
-    if (interaction.customId.startsWith('modal_add_') || interaction.customId.startsWith('modal_edit_') || interaction.customId.startsWith('modal_subtract_')) {
+    if (interaction.customId.startsWith('bar_size_modal_')) {
+      try {
+        const parts = interaction.customId.split('_');
+        const type = parts[3]; // 'inventory' or 'crafting'
+        const category = parts[4] === 'all' ? null : parts.slice(4).join('_');
+        
+        const barSizeValue = interaction.fields.getTextInputValue('bar_size_value').trim();
+        const percentage = parseInt(barSizeValue);
+        
+        if (isNaN(percentage) || percentage < 25 || percentage > 200) {
+          return await interaction.reply({ 
+            content: `❌ 25% ~ 200% 사이의 숫자를 입력해주세요. (입력값: ${barSizeValue})`, 
+            ephemeral: true 
+          });
+        }
+        
+        const newLength = Math.round(percentage / 10);
+        
+        const inventory = await loadInventory();
+        if (!inventory.settings) inventory.settings = {};
+        inventory.settings.barLength = newLength;
+        await saveInventory(inventory);
+        
+        const uiMode = inventory.settings?.uiMode || 'normal';
+        let embed;
+        if (type === 'crafting') {
+          const crafting = inventory.crafting || { categories: {}, crafting: {} };
+          embed = createCraftingEmbed(crafting, category, uiMode, newLength);
+        } else {
+          embed = createInventoryEmbed(inventory, category, uiMode, newLength);
+        }
+        
+        const messageId = interaction.message.id;
+        const isAutoRefreshing = autoRefreshTimers.has(messageId);
+        const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', uiMode, newLength);
+        
+        await interaction.update({ embeds: [embed], components: buttons });
+        console.log(`📊 바 크기 변경: ${percentage}% (길이: ${newLength})`);
+      } catch (error) {
+        console.error('❌ 바 크기 모달 제출 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('modal_add_') || interaction.customId.startsWith('modal_edit_') || interaction.customId.startsWith('modal_subtract_')) {
       try {
         const parts = interaction.customId.split('_');
         const action = parts[1]; // 'add', 'edit', or 'subtract'
