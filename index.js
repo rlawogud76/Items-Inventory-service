@@ -53,11 +53,12 @@ function addHistory(inventory, type, category, itemName, action, details, userNa
 
 // ephemeral 메시지 자동 삭제
 async function sendTemporaryReply(interaction, content, deleteAfter = 10000) {
-  const reply = await interaction.reply({ 
-    content: content, 
-    ephemeral: true,
-    fetchReply: true 
-  });
+  // content가 문자열이면 { content: ... }, 객체면 그대로 사용
+  const replyOptions = typeof content === 'string' 
+    ? { content: content, ephemeral: true, fetchReply: true }
+    : { ...content, ephemeral: true, fetchReply: true };
+  
+  const reply = await interaction.reply(replyOptions);
   
   setTimeout(async () => {
     try {
