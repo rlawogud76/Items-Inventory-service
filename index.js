@@ -619,7 +619,19 @@ client.on('ready', async () => {
         .addIntegerOption(option =>
           option.setName('개수')
             .setDescription('확인할 내역 개수 (기본: 10개)')
-            .setRequired(false))
+            .setRequired(false)),
+      new SlashCommandBuilder()
+        .setName('제작초기화')
+        .setDescription('제작품의 현재 수량을 0으로 초기화합니다')
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('초기화할 카테고리 (선택 안하면 전체)')
+            .setRequired(false)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            ))
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);
@@ -838,7 +850,8 @@ client.on('interactionCreate', async (interaction) => {
             'add': '추가',
             'remove': '제거',
             'update_quantity': '현재 수량 변경',
-            'update_required': '충족 수량 변경'
+            'update_required': '충족 수량 변경',
+            'reset': '초기화'
           }[history.action] || history.action;
           
           const icon = getItemIcon(history.itemName, inventory);
@@ -855,6 +868,72 @@ client.on('interactionCreate', async (interaction) => {
         }
         
         await interaction.reply({ embeds: [embed], ephemeral: true });
+      }
+
+      else if (commandName === '제작초기화') {
+        const category = interaction.options.getString('카테고리');
+        const inventory = await loadInventory();
+        
+        if (!inventory.crafting || !inventory.crafting.categories) {
+          return sendTemporaryReply(interaction, '❌ 제작 목록이 없습니다.');
+        }
+        
+        let resetCount = 0;
+        let resetItems = [];
+        
+        if (category) {
+          // 특정 카테고리만 초기화
+          if (!inventory.crafting.categories[category]) {
+            return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
+          }
+          
+          for (const [itemName, data] of Object.entries(inventory.crafting.categories[category])) {
+            if (data.quantity > 0) {
+              const oldQuantity = data.quantity;
+              data.quantity = 0;
+              resetCount++;
+              resetItems.push(`${getItemIcon(itemName, inventory)} ${itemName} (${oldQuantity}개)`);
+              
+              // 수정 내역 추가
+              addHistory(inventory, 'crafting', category, itemName, 'reset', 
+                `${oldQuantity}개 → 0개`, 
+                interaction.user.displayName || interaction.user.username);
+            }
+          }
+        } else {
+          // 전체 카테고리 초기화
+          for (const [catName, items] of Object.entries(inventory.crafting.categories)) {
+            for (const [itemName, data] of Object.entries(items)) {
+              if (data.quantity > 0) {
+                const oldQuantity = data.quantity;
+                data.quantity = 0;
+                resetCount++;
+                resetItems.push(`${getItemIcon(itemName, inventory)} ${catName} - ${itemName} (${oldQuantity}개)`);
+                
+                // 수정 내역 추가
+                addHistory(inventory, 'crafting', catName, itemName, 'reset', 
+                  `${oldQuantity}개 → 0개`, 
+                  interaction.user.displayName || interaction.user.username);
+              }
+            }
+          }
+        }
+        
+        if (resetCount === 0) {
+          return sendTemporaryReply(interaction, '⚠️ 초기화할 제작품이 없습니다. (모든 제작품이 이미 0개입니다)');
+        }
+        
+        await saveInventory(inventory);
+        
+        const itemList = resetItems.slice(0, 10).join('\n');
+        const moreText = resetItems.length > 10 ? `\n... 외 ${resetItems.length - 10}개` : '';
+        
+        const successEmbed = new EmbedBuilder()
+          .setColor(0xFFA500)
+          .setTitle('🔄 제작 목록 초기화 완료')
+          .setDescription(`**${category || '전체'}** 카테고리의 제작품 **${resetCount}개**가 초기화되었습니다.\n\n${itemList}${moreText}`);
+        
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
       else if (commandName === '제작') {
