@@ -429,9 +429,9 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
 client.on('ready', async () => {
   console.log(`✅ ${client.user.tag} 봇이 준비되었습니다!`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📦 재고 관리: /재고, /재고목록추가, /재고목록제거');
-  console.log('🔨 제작 관리: /제작, /제작목록추가, /제작목록제거');
-  console.log('📋 레시피 관리: /레시피확인, /레시피수정, /레시피삭제');
+  console.log('📦 재고 관리: /재고, /재고물품추가, /재고물품제거');
+  console.log('🔨 제작 관리: /제작, /제작품목추가, /제작품목제거');
+  console.log('📋 레시피 관리: /레시피조회, /레시피수정, /레시피삭제');
   console.log('🔧 기타: /도움말, /수정내역');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   
@@ -457,7 +457,7 @@ client.on('ready', async () => {
         .setName('도움말')
         .setDescription('재고 관리 봇 사용법을 확인합니다'),
       new SlashCommandBuilder()
-        .setName('재고목록추가')
+        .setName('재고물품추가')
         .setDescription('새로운 아이템을 재고 목록에 추가합니다')
         .addStringOption(option =>
           option.setName('카테고리')
@@ -486,7 +486,7 @@ client.on('ready', async () => {
             .setDescription('아이템 이모지 (선택사항)')
             .setRequired(false)),
       new SlashCommandBuilder()
-        .setName('재고목록제거')
+        .setName('재고물품제거')
         .setDescription('재고 목록에서 아이템을 제거합니다')
         .addStringOption(option =>
           option.setName('카테고리')
@@ -514,7 +514,7 @@ client.on('ready', async () => {
               { name: '요리', value: '요리' }
             )),
       new SlashCommandBuilder()
-        .setName('제작목록추가')
+        .setName('제작품목추가')
         .setDescription('새로운 제작품을 추가합니다 (레시피 포함)')
         .addStringOption(option =>
           option.setName('카테고리')
@@ -570,7 +570,7 @@ client.on('ready', async () => {
             .setDescription('제작품 이모지 (선택사항)')
             .setRequired(false)),
       new SlashCommandBuilder()
-        .setName('제작목록제거')
+        .setName('제작품목제거')
         .setDescription('제작 목록에서 제작품을 제거합니다')
         .addStringOption(option =>
           option.setName('카테고리')
@@ -593,7 +593,7 @@ client.on('ready', async () => {
             .setDescription('확인할 내역 개수 (기본: 10개)')
             .setRequired(false)),
       new SlashCommandBuilder()
-        .setName('레시피확인')
+        .setName('레시피조회')
         .setDescription('제작품의 레시피를 확인합니다')
         .addStringOption(option =>
           option.setName('카테고리')
@@ -717,13 +717,13 @@ client.on('interactionCreate', async (interaction) => {
                 '재고 현황을 확인합니다.',
                 '> 예: `/재고 카테고리:해양`',
                 '',
-                '**`/재고목록추가`**',
+                '**`/재고물품추가`**',
                 '새로운 아이템을 추가합니다.',
-                '> 예: `/재고목록추가 카테고리:요리 아이템:금괴 초기수량:20 충족수량:100`',
+                '> 예: `/재고물품추가 카테고리:요리 아이템:금괴 초기수량:20 충족수량:100`',
                 '',
-                '**`/재고목록제거`**',
+                '**`/재고물품제거`**',
                 '아이템을 제거합니다.',
-                '> 예: `/재고목록제거 카테고리:해양 아이템:금괴`'
+                '> 예: `/재고물품제거 카테고리:해양 아이템:금괴`'
               ].join('\n'),
               inline: false
             },
@@ -739,13 +739,13 @@ client.on('interactionCreate', async (interaction) => {
                 '제작 현황을 확인합니다.',
                 '> 예: `/제작 카테고리:해양`',
                 '',
-                '**`/제작목록추가`**',
+                '**`/제작품목추가`**',
                 '새로운 제작품을 추가합니다 (레시피 포함).',
-                '> 예: `/제작목록추가 카테고리:해양 제작품:낚싯대 초기수량:0 충족수량:10 재료1:나무 재료1수량:5 재료2:실 재료2수량:2`',
+                '> 예: `/제작품목추가 카테고리:해양 제작품:낚싯대 초기수량:0 충족수량:10 재료1:나무 재료1수량:5 재료2:실 재료2수량:2`',
                 '',
-                '**`/제작목록제거`**',
+                '**`/제작품목제거`**',
                 '제작품을 제거합니다.',
-                '> 예: `/제작목록제거 카테고리:채광 제작품:곡괭이`'
+                '> 예: `/제작품목제거 카테고리:채광 제작품:곡괭이`'
               ].join('\n'),
               inline: false
             },
@@ -757,9 +757,9 @@ client.on('interactionCreate', async (interaction) => {
             { 
               name: '📋 레시피 관리', 
               value: [
-                '**`/레시피확인`**',
+                '**`/레시피조회`**',
                 '제작품의 레시피를 확인합니다.',
-                '> 예: `/레시피확인 카테고리:해양 제작품:낚싯대`',
+                '> 예: `/레시피조회 카테고리:해양 제작품:낚싯대`',
                 '',
                 '**`/레시피수정`**',
                 '제작품의 레시피를 수정합니다.',
@@ -798,7 +798,7 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.reply({ embeds: [helpEmbed], ephemeral: true });
       }
 
-      else if (commandName === '재고목록추가') {
+      else if (commandName === '재고물품추가') {
         const category = interaction.options.getString('카테고리');
         const itemName = interaction.options.getString('아이템');
         const requiredQuantity = interaction.options.getInteger('충족수량');
@@ -839,7 +839,7 @@ client.on('interactionCreate', async (interaction) => {
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
-      else if (commandName === '재고목록제거') {
+      else if (commandName === '재고물품제거') {
         const category = interaction.options.getString('카테고리');
         const itemName = interaction.options.getString('아이템');
 
@@ -926,7 +926,7 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.reply({ embeds: [embed], components: buttons });
       }
 
-      else if (commandName === '제작목록추가') {
+      else if (commandName === '제작품목추가') {
         const category = interaction.options.getString('카테고리');
         const itemName = interaction.options.getString('제작품');
         const requiredQuantity = interaction.options.getInteger('충족수량');
@@ -1024,7 +1024,7 @@ client.on('interactionCreate', async (interaction) => {
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
-      else if (commandName === '제작목록제거') {
+      else if (commandName === '제작품목제거') {
         const category = interaction.options.getString('카테고리');
         const itemName = interaction.options.getString('제작품');
 
@@ -1124,7 +1124,7 @@ client.on('interactionCreate', async (interaction) => {
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
-      else if (commandName === '레시피확인') {
+      else if (commandName === '레시피조회') {
         const category = interaction.options.getString('카테고리');
         const craftItem = interaction.options.getString('제작품');
 
