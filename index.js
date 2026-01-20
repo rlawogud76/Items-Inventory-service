@@ -428,10 +428,12 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
 
 client.on('ready', async () => {
   console.log(`✅ ${client.user.tag} 봇이 준비되었습니다!`);
-  console.log('슬래시 커맨드를 사용하세요:');
-  console.log('재고 관리: /재고, /재고수량변경, /재고충족수량변경, /재고목록추가, /재고목록제거');
-  console.log('제작 관리: /제작, /제작수량변경, /제작충족수량변경, /제작목록추가, /제작목록제거');
-  console.log('기타: /도움말, /수정내역, /제작초기화');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('📦 재고 관리: /재고, /재고목록추가, /재고목록제거, /재고수량변경, /재고충족수량변경');
+  console.log('🔨 제작 관리: /제작, /제작목록추가, /제작목록제거, /제작수량변경, /제작충족수량변경');
+  console.log('📋 레시피 관리: /레시피확인, /레시피수정, /레시피삭제');
+  console.log('🔧 기타: /도움말, /수정내역');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   
   // 슬래시 커맨드 자동 등록
   try {
@@ -671,20 +673,8 @@ client.on('ready', async () => {
             .setDescription('확인할 내역 개수 (기본: 10개)')
             .setRequired(false)),
       new SlashCommandBuilder()
-        .setName('제작초기화')
-        .setDescription('제작품의 현재 수량을 0으로 초기화합니다')
-        .addStringOption(option =>
-          option.setName('카테고리')
-            .setDescription('초기화할 카테고리 (선택 안하면 전체)')
-            .setRequired(false)
-            .addChoices(
-              { name: '해양', value: '해양' },
-              { name: '채광', value: '채광' },
-              { name: '요리', value: '요리' }
-            )),
-      new SlashCommandBuilder()
-        .setName('레시피등록')
-        .setDescription('제작품의 레시피를 등록합니다')
+        .setName('레시피확인')
+        .setDescription('제작품의 레시피를 확인합니다')
         .addStringOption(option =>
           option.setName('카테고리')
             .setDescription('제작품 카테고리')
@@ -696,7 +686,23 @@ client.on('ready', async () => {
             ))
         .addStringOption(option =>
           option.setName('제작품')
-            .setDescription('레시피를 등록할 제작품 이름')
+            .setDescription('레시피를 확인할 제작품 이름')
+            .setRequired(true)),
+      new SlashCommandBuilder()
+        .setName('레시피수정')
+        .setDescription('제작품의 레시피를 수정합니다')
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('제작품 카테고리')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            ))
+        .addStringOption(option =>
+          option.setName('제작품')
+            .setDescription('레시피를 수정할 제작품 이름')
             .setRequired(true))
         .addStringOption(option =>
           option.setName('재료1')
@@ -726,22 +732,6 @@ client.on('ready', async () => {
             .setRequired(false)
             .setMinValue(1)),
       new SlashCommandBuilder()
-        .setName('레시피확인')
-        .setDescription('제작품의 레시피를 확인합니다')
-        .addStringOption(option =>
-          option.setName('카테고리')
-            .setDescription('제작품 카테고리')
-            .setRequired(true)
-            .addChoices(
-              { name: '해양', value: '해양' },
-              { name: '채광', value: '채광' },
-              { name: '요리', value: '요리' }
-            ))
-        .addStringOption(option =>
-          option.setName('제작품')
-            .setDescription('레시피를 확인할 제작품 이름')
-            .setRequired(true)),
-      new SlashCommandBuilder()
         .setName('레시피삭제')
         .setDescription('제작품의 레시피를 삭제합니다')
         .addStringOption(option =>
@@ -756,39 +746,7 @@ client.on('ready', async () => {
         .addStringOption(option =>
           option.setName('제작품')
             .setDescription('레시피를 삭제할 제작품 이름')
-            .setRequired(true)),
-      new SlashCommandBuilder()
-        .setName('재고초기화')
-        .setDescription('재고 아이템의 현재 수량을 0으로 초기화합니다')
-        .addStringOption(option =>
-          option.setName('카테고리')
-            .setDescription('카테고리 선택')
-            .setRequired(true)
-            .addChoices(
-              { name: '해양', value: '해양' },
-              { name: '채광', value: '채광' },
-              { name: '요리', value: '요리' }
-            ))
-        .addStringOption(option =>
-          option.setName('아이템')
-            .setDescription('초기화할 아이템 (선택 안하면 카테고리 전체)')
-            .setRequired(false)),
-      new SlashCommandBuilder()
-        .setName('제작초기화개별')
-        .setDescription('제작품의 현재 수량을 0으로 초기화합니다')
-        .addStringOption(option =>
-          option.setName('카테고리')
-            .setDescription('카테고리 선택')
-            .setRequired(true)
-            .addChoices(
-              { name: '해양', value: '해양' },
-              { name: '채광', value: '채광' },
-              { name: '요리', value: '요리' }
-            ))
-        .addStringOption(option =>
-          option.setName('제작품')
-            .setDescription('초기화할 제작품 (선택 안하면 카테고리 전체)')
-            .setRequired(false))
+            .setRequired(true))
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);
@@ -901,21 +859,21 @@ client.on('interactionCreate', async (interaction) => {
                 '재고 현황을 확인합니다.',
                 '> 예: `/재고 카테고리:해양`',
                 '',
-                '**`/재고수량변경`**',
-                '아이템의 현재 수량을 변경합니다.',
-                '> 예: `/재고수량변경 카테고리:해양 아이템:다이아몬드 수량:50`',
-                '',
-                '**`/재고충족수량변경`**',
-                '아이템의 충족 수량을 변경합니다.',
-                '> 예: `/재고충족수량변경 카테고리:채광 아이템:철괴 수량:200`',
-                '',
                 '**`/재고목록추가`**',
                 '새로운 아이템을 추가합니다.',
                 '> 예: `/재고목록추가 카테고리:요리 아이템:금괴 초기수량:20 충족수량:100`',
                 '',
                 '**`/재고목록제거`**',
                 '아이템을 제거합니다.',
-                '> 예: `/재고목록제거 카테고리:해양 아이템:금괴`'
+                '> 예: `/재고목록제거 카테고리:해양 아이템:금괴`',
+                '',
+                '**`/재고수량변경`**',
+                '아이템의 현재 수량을 변경합니다.',
+                '> 예: `/재고수량변경 카테고리:해양 아이템:다이아몬드 수량:50`',
+                '',
+                '**`/재고충족수량변경`**',
+                '아이템의 충족 수량을 변경합니다.',
+                '> 예: `/재고충족수량변경 카테고리:채광 아이템:철괴 수량:200`'
               ].join('\n'),
               inline: false
             },
@@ -931,21 +889,66 @@ client.on('interactionCreate', async (interaction) => {
                 '제작 현황을 확인합니다.',
                 '> 예: `/제작 카테고리:해양`',
                 '',
+                '**`/제작목록추가`**',
+                '새로운 제작품을 추가합니다 (레시피 포함).',
+                '> 예: `/제작목록추가 카테고리:해양 제작품:낚싯대 초기수량:0 충족수량:10 재료1:나무 재료1수량:5 재료2:실 재료2수량:2`',
+                '',
+                '**`/제작목록제거`**',
+                '제작품을 제거합니다.',
+                '> 예: `/제작목록제거 카테고리:채광 제작품:곡괭이`',
+                '',
                 '**`/제작수량변경`**',
                 '제작품의 현재 수량을 변경합니다.',
                 '> 예: `/제작수량변경 카테고리:채광 제작품:곡괭이 수량:5`',
                 '',
                 '**`/제작충족수량변경`**',
                 '제작품의 충족 수량을 변경합니다.',
-                '> 예: `/제작충족수량변경 카테고리:요리 제작품:빵 수량:10`',
+                '> 예: `/제작충족수량변경 카테고리:요리 제작품:빵 수량:10`'
+              ].join('\n'),
+              inline: false
+            },
+            { 
+              name: '\u200B', 
+              value: '━━━━━━━━━━━━━━━━━━━━',
+              inline: false
+            },
+            { 
+              name: '📋 레시피 관리', 
+              value: [
+                '**`/레시피확인`**',
+                '제작품의 레시피를 확인합니다.',
+                '> 예: `/레시피확인 카테고리:해양 제작품:낚싯대`',
                 '',
-                '**`/제작목록추가`**',
-                '새로운 제작품을 추가합니다 (레시피 포함).',
-                '> 예: `/제작목록추가 카테고리:해양 제작품:낚싯대 초기수량:3 충족수량:10 재료1:나무 재료1수량:5 재료2:실 재료2수량:2`',
+                '**`/레시피수정`**',
+                '제작품의 레시피를 수정합니다.',
+                '> 예: `/레시피수정 카테고리:해양 제작품:낚싯대 재료1:나무 재료1수량:10`',
                 '',
-                '**`/제작목록제거`**',
-                '제작품을 제거합니다.',
-                '> 예: `/제작목록제거 카테고리:채광 제작품:곡괭이`'
+                '**`/레시피삭제`**',
+                '제작품의 레시피를 삭제합니다.',
+                '> 예: `/레시피삭제 카테고리:해양 제작품:낚싯대`'
+              ].join('\n'),
+              inline: false
+            },
+            { 
+              name: '\u200B', 
+              value: '━━━━━━━━━━━━━━━━━━━━',
+              inline: false
+            },
+            { 
+              name: '🔧 기타 기능', 
+              value: [
+                '**`/수정내역 [개수]`**',
+                '재고 및 제작 수정 내역을 확인합니다.',
+                '> 예: `/수정내역 개수:20`',
+                '',
+                '**버튼 기능**',
+                '• 📦 수집중 / 🔨 제작중: 작업자 등록',
+                '• ➕ 추가 / ➖ 차감: 수량 조절',
+                '• ✏️ 수정: 수량 직접 입력',
+                '• 🔄 초기화: 개별/일괄 초기화',
+                '• ▶️ 자동새로고침: 30초마다 자동 업데이트',
+                '• 📏 UI 모드: 일반/컴팩트/상세 전환',
+                '• 📊 바 크기: 프로그레스 바 크기 조절'
               ].join('\n'),
               inline: false
             }
@@ -1068,72 +1071,6 @@ client.on('interactionCreate', async (interaction) => {
         }
         
         await interaction.reply({ embeds: [embed], ephemeral: true });
-      }
-
-      else if (commandName === '제작초기화') {
-        const category = interaction.options.getString('카테고리');
-        const inventory = await loadInventory();
-        
-        if (!inventory.crafting || !inventory.crafting.categories) {
-          return sendTemporaryReply(interaction, '❌ 제작 목록이 없습니다.');
-        }
-        
-        let resetCount = 0;
-        let resetItems = [];
-        
-        if (category) {
-          // 특정 카테고리만 초기화
-          if (!inventory.crafting.categories[category]) {
-            return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
-          }
-          
-          for (const [itemName, data] of Object.entries(inventory.crafting.categories[category])) {
-            if (data.quantity > 0) {
-              const oldQuantity = data.quantity;
-              data.quantity = 0;
-              resetCount++;
-              resetItems.push(`${getItemIcon(itemName, inventory)} ${itemName} (${oldQuantity}개)`);
-              
-              // 수정 내역 추가
-              addHistory(inventory, 'crafting', category, itemName, 'reset', 
-                `${oldQuantity}개 → 0개`, 
-                interaction.user.displayName || interaction.user.username);
-            }
-          }
-        } else {
-          // 전체 카테고리 초기화
-          for (const [catName, items] of Object.entries(inventory.crafting.categories)) {
-            for (const [itemName, data] of Object.entries(items)) {
-              if (data.quantity > 0) {
-                const oldQuantity = data.quantity;
-                data.quantity = 0;
-                resetCount++;
-                resetItems.push(`${getItemIcon(itemName, inventory)} ${catName} - ${itemName} (${oldQuantity}개)`);
-                
-                // 수정 내역 추가
-                addHistory(inventory, 'crafting', catName, itemName, 'reset', 
-                  `${oldQuantity}개 → 0개`, 
-                  interaction.user.displayName || interaction.user.username);
-              }
-            }
-          }
-        }
-        
-        if (resetCount === 0) {
-          return sendTemporaryReply(interaction, '⚠️ 초기화할 제작품이 없습니다. (모든 제작품이 이미 0개입니다)');
-        }
-        
-        await saveInventory(inventory);
-        
-        const itemList = resetItems.slice(0, 10).join('\n');
-        const moreText = resetItems.length > 10 ? `\n... 외 ${resetItems.length - 10}개` : '';
-        
-        const successEmbed = new EmbedBuilder()
-          .setColor(0xFFA500)
-          .setTitle('🔄 제작 목록 초기화 완료')
-          .setDescription(`**${category || '전체'}** 카테고리의 제작품 **${resetCount}개**가 초기화되었습니다.\n\n${itemList}${moreText}`);
-        
-        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
       else if (commandName === '제작') {
@@ -1334,7 +1271,7 @@ client.on('interactionCreate', async (interaction) => {
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
-      else if (commandName === '레시피등록') {
+      else if (commandName === '레시피수정') {
         const category = interaction.options.getString('카테고리');
         const craftItem = interaction.options.getString('제작품');
         const material1 = interaction.options.getString('재료1');
@@ -1401,7 +1338,7 @@ client.on('interactionCreate', async (interaction) => {
         const icon = getItemIcon(craftItem, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x57F287)
-          .setTitle('✅ 레시피 등록 완료')
+          .setTitle('✅ 레시피 수정 완료')
           .setDescription(`**카테고리:** ${category}\n${icon} **${craftItem}**\n\n**필요 재료:**\n${recipeText}`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
@@ -1458,129 +1395,6 @@ client.on('interactionCreate', async (interaction) => {
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
-      else if (commandName === '재고초기화') {
-        const category = interaction.options.getString('카테고리');
-        const itemName = interaction.options.getString('아이템');
-
-        const inventory = await loadInventory();
-        
-        if (!inventory.categories[category]) {
-          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
-        }
-
-        let resetCount = 0;
-        let resetItems = [];
-
-        if (itemName) {
-          // 특정 아이템만 초기화
-          if (!inventory.categories[category][itemName]) {
-            return sendTemporaryReply(interaction, `❌ "${itemName}" 아이템을 찾을 수 없습니다.`);
-          }
-
-          const oldQuantity = inventory.categories[category][itemName].quantity;
-          if (oldQuantity > 0) {
-            inventory.categories[category][itemName].quantity = 0;
-            resetCount = 1;
-            resetItems.push(`${getItemIcon(itemName, inventory)} ${itemName} (${oldQuantity}개)`);
-            
-            addHistory(inventory, 'inventory', category, itemName, 'reset', 
-              `${oldQuantity}개 → 0개`, 
-              interaction.user.displayName || interaction.user.username);
-          }
-        } else {
-          // 카테고리 전체 초기화
-          for (const [item, data] of Object.entries(inventory.categories[category])) {
-            if (data.quantity > 0) {
-              const oldQuantity = data.quantity;
-              data.quantity = 0;
-              resetCount++;
-              resetItems.push(`${getItemIcon(item, inventory)} ${item} (${oldQuantity}개)`);
-              
-              addHistory(inventory, 'inventory', category, item, 'reset', 
-                `${oldQuantity}개 → 0개`, 
-                interaction.user.displayName || interaction.user.username);
-            }
-          }
-        }
-
-        if (resetCount === 0) {
-          return sendTemporaryReply(interaction, '⚠️ 초기화할 아이템이 없습니다. (이미 0개입니다)');
-        }
-
-        await saveInventory(inventory);
-
-        const itemList = resetItems.slice(0, 10).join('\n');
-        const moreText = resetItems.length > 10 ? `\n... 외 ${resetItems.length - 10}개` : '';
-
-        const successEmbed = new EmbedBuilder()
-          .setColor(0xFFA500)
-          .setTitle('🔄 재고 초기화 완료')
-          .setDescription(`**${category}** 카테고리의 ${itemName ? `**${itemName}**` : `아이템 **${resetCount}개**`}가 초기화되었습니다.\n\n${itemList}${moreText}`);
-        
-        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
-      }
-
-      else if (commandName === '제작초기화개별') {
-        const category = interaction.options.getString('카테고리');
-        const craftItem = interaction.options.getString('제작품');
-
-        const inventory = await loadInventory();
-        
-        if (!inventory.crafting?.categories[category]) {
-          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
-        }
-
-        let resetCount = 0;
-        let resetItems = [];
-
-        if (craftItem) {
-          // 특정 제작품만 초기화
-          if (!inventory.crafting.categories[category][craftItem]) {
-            return sendTemporaryReply(interaction, `❌ "${craftItem}" 제작품을 찾을 수 없습니다.`);
-          }
-
-          const oldQuantity = inventory.crafting.categories[category][craftItem].quantity;
-          if (oldQuantity > 0) {
-            inventory.crafting.categories[category][craftItem].quantity = 0;
-            resetCount = 1;
-            resetItems.push(`${getItemIcon(craftItem, inventory)} ${craftItem} (${oldQuantity}개)`);
-            
-            addHistory(inventory, 'crafting', category, craftItem, 'reset', 
-              `${oldQuantity}개 → 0개`, 
-              interaction.user.displayName || interaction.user.username);
-          }
-        } else {
-          // 카테고리 전체 초기화
-          for (const [item, data] of Object.entries(inventory.crafting.categories[category])) {
-            if (data.quantity > 0) {
-              const oldQuantity = data.quantity;
-              data.quantity = 0;
-              resetCount++;
-              resetItems.push(`${getItemIcon(item, inventory)} ${item} (${oldQuantity}개)`);
-              
-              addHistory(inventory, 'crafting', category, item, 'reset', 
-                `${oldQuantity}개 → 0개`, 
-                interaction.user.displayName || interaction.user.username);
-            }
-          }
-        }
-
-        if (resetCount === 0) {
-          return sendTemporaryReply(interaction, '⚠️ 초기화할 제작품이 없습니다. (이미 0개입니다)');
-        }
-
-        await saveInventory(inventory);
-
-        const itemList = resetItems.slice(0, 10).join('\n');
-        const moreText = resetItems.length > 10 ? `\n... 외 ${resetItems.length - 10}개` : '';
-
-        const successEmbed = new EmbedBuilder()
-          .setColor(0xFFA500)
-          .setTitle('🔄 제작 초기화 완료')
-          .setDescription(`**${category}** 카테고리의 ${craftItem ? `**${craftItem}**` : `제작품 **${resetCount}개**`}가 초기화되었습니다.\n\n${itemList}${moreText}`);
-        
-        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
-      }
     } catch (error) {
       console.error('커맨드 실행 에러:', error);
       await interaction.reply({ content: '❌ 에러가 발생했습니다: ' + error.message, ephemeral: true });
