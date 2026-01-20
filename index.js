@@ -376,6 +376,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   const quantityId = categoryName ? `quantity_${type}_${categoryName}` : `quantity_${type}`;
   const resetId = categoryName ? `reset_${type}_${categoryName}` : `reset_${type}`;
   const manageId = categoryName ? `manage_${type}_${categoryName}` : `manage_${type}`;
+  const recipeId = categoryName ? `recipe_${type}_${categoryName}` : `recipe_${type}`;
   
   // UI 모드 버튼 라벨
   let uiModeLabel = '📏 일반';
@@ -1562,6 +1563,172 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
+    else if (interaction.customId.startsWith('recipe') && !interaction.customId.startsWith('recipe_quantity_modal')) {
+      try {
+        // 이미 응답했는지 확인
+        if (interaction.replied || interaction.deferred) {
+          console.log('⚠️ 이미 응답한 인터랙션, 무시');
+          return;
+        }
+        
+        const parts = interaction.customId.split('_');
+        const type = parts[1]; // 'crafting'
+        const category = parts.slice(2).join('_');
+        
+        // 레시피 관리 버튼 생성
+        const viewButton = new ButtonBuilder()
+          .setCustomId(`recipe_view_${category}`)
+          .setLabel('📖 조회')
+          .setStyle(ButtonStyle.Primary);
+        
+        const editButton = new ButtonBuilder()
+          .setCustomId(`recipe_edit_${category}`)
+          .setLabel('✏️ 수정')
+          .setStyle(ButtonStyle.Primary);
+        
+        const deleteButton = new ButtonBuilder()
+          .setCustomId(`recipe_delete_${category}`)
+          .setLabel('🗑️ 삭제')
+          .setStyle(ButtonStyle.Danger);
+        
+        const row = new ActionRowBuilder().addComponents(viewButton, editButton, deleteButton);
+        
+        await sendTemporaryReply(interaction, {
+          content: `📋 **${category}** 카테고리 레시피 관리\n\n원하는 작업을 선택하세요:`,
+          components: [row]
+        }, 15000);
+        
+      } catch (error) {
+        console.error('❌ 레시피 버튼 에러:', error);
+        if (!interaction.replied && !interaction.deferred) {
+          await sendTemporaryReply(interaction, '오류가 발생했습니다.').catch(() => {});
+        }
+      }
+    }
+    
+    else if (interaction.customId.startsWith('recipe_view_')) {
+      try {
+        const category = interaction.customId.replace('recipe_view_', '');
+        const inventory = await loadInventory();
+        
+        if (!inventory.crafting?.recipes?.[category] || Object.keys(inventory.crafting.recipes[category]).length === 0) {
+          return await interaction.update({
+            content: `❌ "${category}" 카테고리에 레시피가 없습니다.`,
+            components: []
+          });
+        }
+        
+        const embed = new EmbedBuilder()
+          .setTitle(`📋 ${category} 카테고리 레시피`)
+          .setColor(0xFFA500)
+          .setTimestamp();
+        
+        for (const [itemName, materials] of Object.entries(inventory.crafting.recipes[category])) {
+          const icon = getItemIcon(itemName, inventory);
+          const recipeText = materials
+            .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
+            .join('\n');
+          
+          embed.addFields({
+            name: `${icon} ${itemName}`,
+            value: recipeText || '재료 없음',
+            inline: false
+          });
+        }
+        
+        await interaction.update({
+          embeds: [embed],
+          components: []
+        });
+        
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 30000);
+        
+      } catch (error) {
+        console.error('❌ 레시피 조회 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('recipe_edit_')) {
+      try {
+        const category = interaction.customId.replace('recipe_edit_', '');
+        const inventory = await loadInventory();
+        
+        if (!inventory.crafting?.categories?.[category] || Object.keys(inventory.crafting.categories[category]).length === 0) {
+          return await interaction.update({
+            content: `❌ "${category}" 카테고리에 제작품이 없습니다.`,
+            components: []
+          });
+        }
+        
+        const items = Object.keys(inventory.crafting.categories[category]);
+        const itemOptions = items.map(item => ({
+          label: item,
+          value: item,
+          emoji: getItemIcon(item, inventory)
+        }));
+        
+        const { StringSelectMenuBuilder } = await import('discord.js');
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId(`select_recipe_edit_${category}`)
+          .setPlaceholder('레시피를 수정할 제작품을 선택하세요')
+          .addOptions(itemOptions);
+        
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+        
+        await interaction.update({
+          content: `✏️ **${category}** 카테고리에서 레시피를 수정할 제작품을 선택하세요:`,
+          components: [row]
+        });
+        
+      } catch (error) {
+        console.error('❌ 레시피 수정 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('recipe_delete_')) {
+      try {
+        const category = interaction.customId.replace('recipe_delete_', '');
+        const inventory = await loadInventory();
+        
+        if (!inventory.crafting?.recipes?.[category] || Object.keys(inventory.crafting.recipes[category]).length === 0) {
+          return await interaction.update({
+            content: `❌ "${category}" 카테고리에 레시피가 없습니다.`,
+            components: []
+          });
+        }
+        
+        const items = Object.keys(inventory.crafting.recipes[category]);
+        const itemOptions = items.map(item => ({
+          label: item,
+          value: item,
+          emoji: getItemIcon(item, inventory)
+        }));
+        
+        const { StringSelectMenuBuilder } = await import('discord.js');
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId(`select_recipe_delete_${category}`)
+          .setPlaceholder('레시피를 삭제할 제작품을 선택하세요')
+          .addOptions(itemOptions);
+        
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+        
+        await interaction.update({
+          content: `🗑️ **${category}** 카테고리에서 레시피를 삭제할 제작품을 선택하세요:`,
+          components: [row]
+        });
+        
+      } catch (error) {
+        console.error('❌ 레시피 삭제 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
     else if (interaction.customId.startsWith('manage_add')) {
       try {
         // 이미 응답했는지 확인
@@ -2237,6 +2404,67 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
+    else if (interaction.customId.startsWith('add_more_recipe_edit_') || interaction.customId.startsWith('finish_recipe_edit_')) {
+      try {
+        const isFinish = interaction.customId.startsWith('finish_recipe_edit_');
+        const prefix = isFinish ? 'finish_recipe_edit_' : 'add_more_recipe_edit_';
+        const parts = interaction.customId.replace(prefix, '').split('_');
+        const category = parts[0];
+        const step = isFinish ? null : parseInt(parts[parts.length - 1]);
+        const itemName = isFinish ? parts.slice(1).join('_') : parts.slice(1, -1).join('_');
+        
+        if (isFinish) {
+          const inventory = await loadInventory();
+          const recipe = inventory.crafting.recipes?.[category]?.[itemName] || [];
+          const recipeText = recipe
+            .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
+            .join('\n');
+          
+          await interaction.update({
+            content: `✅ **${itemName}** 레시피 수정 완료!\n\n**새 레시피:**\n${recipeText}`,
+            components: []
+          });
+          
+          setTimeout(async () => {
+            try {
+              await interaction.deleteReply();
+            } catch (error) {}
+          }, 15000);
+          return;
+        }
+        
+        // 다음 재료 선택
+        const inventory = await loadInventory();
+        const materials = Object.keys(inventory.categories[category]);
+        const materialOptions = materials.map(mat => ({
+          label: mat,
+          value: mat,
+          emoji: getItemIcon(mat, inventory)
+        }));
+        
+        const { StringSelectMenuBuilder } = await import('discord.js');
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId(`select_recipe_material_edit_${category}_${itemName}_${step}`)
+          .setPlaceholder(`재료 ${step}을 선택하세요`)
+          .addOptions(materialOptions);
+        
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+        
+        const currentRecipe = inventory.crafting.recipes[category][itemName]
+          .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
+          .join('\n');
+        
+        await interaction.update({
+          content: `✏️ **${itemName}** 레시피 수정\n\n**현재 레시피:**\n${currentRecipe}\n\n**${step}단계:** ${step}번째 재료를 선택하세요`,
+          components: [row]
+        });
+        
+      } catch (error) {
+        console.error('❌ 레시피 수정 버튼 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
+    
     else if (interaction.customId.startsWith('add_more_recipe_') || interaction.customId.startsWith('finish_recipe_')) {
       try {
         const isFinish = interaction.customId.startsWith('finish_recipe_');
@@ -2301,7 +2529,127 @@ client.on('interactionCreate', async (interaction) => {
   
   // 선택 메뉴 인터랙션 처리
   if (interaction.isStringSelectMenu()) {
-    if (interaction.customId.startsWith('select_recipe_material_')) {
+    if (interaction.customId.startsWith('select_recipe_edit_')) {
+      try {
+        const category = interaction.customId.replace('select_recipe_edit_', '');
+        const selectedItem = interaction.values[0];
+        const inventory = await loadInventory();
+        
+        // 현재 레시피 표시
+        const currentRecipe = inventory.crafting.recipes?.[category]?.[selectedItem] || [];
+        const recipeText = currentRecipe.length > 0
+          ? currentRecipe.map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`).join('\n')
+          : '레시피 없음';
+        
+        // 재료 선택 메뉴 생성
+        const materials = Object.keys(inventory.categories[category] || {});
+        if (materials.length === 0) {
+          return await interaction.update({
+            content: `❌ "${category}" 카테고리에 재료가 없습니다.`,
+            components: []
+          });
+        }
+        
+        const materialOptions = materials.map(mat => ({
+          label: mat,
+          value: mat,
+          emoji: getItemIcon(mat, inventory)
+        }));
+        
+        const { StringSelectMenuBuilder } = await import('discord.js');
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId(`select_recipe_material_edit_${category}_${selectedItem}_1`)
+          .setPlaceholder('재료 1을 선택하세요')
+          .addOptions(materialOptions);
+        
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+        
+        await interaction.update({
+          content: `✏️ **${selectedItem}** 레시피 수정\n\n**현재 레시피:**\n${recipeText}\n\n**새 레시피 입력 - 1단계:** 첫 번째 재료를 선택하세요`,
+          components: [row]
+        });
+        
+      } catch (error) {
+        console.error('❌ 레시피 수정 선택 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('select_recipe_delete_')) {
+      try {
+        const category = interaction.customId.replace('select_recipe_delete_', '');
+        const selectedItem = interaction.values[0];
+        const inventory = await loadInventory();
+        
+        if (!inventory.crafting.recipes?.[category]?.[selectedItem]) {
+          return await interaction.update({
+            content: `❌ "${selectedItem}"의 레시피를 찾을 수 없습니다.`,
+            components: []
+          });
+        }
+        
+        const recipe = inventory.crafting.recipes[category][selectedItem];
+        const recipeText = recipe.map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`).join('\n');
+        
+        delete inventory.crafting.recipes[category][selectedItem];
+        await saveInventory(inventory);
+        
+        const icon = getItemIcon(selectedItem, inventory);
+        const successEmbed = new EmbedBuilder()
+          .setColor(0xED4245)
+          .setTitle('🗑️ 레시피 삭제 완료')
+          .setDescription(`**카테고리:** ${category}\n${icon} **${selectedItem}**\n\n**삭제된 레시피:**\n${recipeText}`);
+        
+        await interaction.update({
+          embeds: [successEmbed],
+          components: []
+        });
+        
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 15000);
+        
+      } catch (error) {
+        console.error('❌ 레시피 삭제 선택 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('select_recipe_material_edit_')) {
+      try {
+        const parts = interaction.customId.replace('select_recipe_material_edit_', '').split('_');
+        const category = parts[0];
+        const step = parseInt(parts[parts.length - 1]);
+        const itemName = parts.slice(1, -1).join('_');
+        const selectedMaterial = interaction.values[0];
+        
+        // 수량 입력 모달 표시
+        const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
+        
+        const modal = new ModalBuilder()
+          .setCustomId(`recipe_edit_quantity_modal_${category}_${itemName}_${step}_${selectedMaterial}`)
+          .setTitle(`재료 ${step}: ${selectedMaterial}`);
+        
+        const quantityInput = new TextInputBuilder()
+          .setCustomId('material_quantity')
+          .setLabel(`${selectedMaterial} 필요 수량`)
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('예: 5')
+          .setRequired(true);
+        
+        modal.addComponents(new ActionRowBuilder().addComponents(quantityInput));
+        
+        await interaction.showModal(modal);
+        
+      } catch (error) {
+        console.error('❌ 레시피 수정 재료 선택 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('select_recipe_material_')) {
       try {
         const parts = interaction.customId.replace('select_recipe_material_', '').split('_');
         const category = parts[0];
@@ -2591,7 +2939,88 @@ client.on('interactionCreate', async (interaction) => {
   
   // 모달 제출 처리
   if (interaction.isModalSubmit()) {
-    if (interaction.customId.startsWith('add_item_modal_')) {
+    if (interaction.customId.startsWith('recipe_edit_quantity_modal_')) {
+      try {
+        const parts = interaction.customId.replace('recipe_edit_quantity_modal_', '').split('_');
+        const category = parts[0];
+        const step = parseInt(parts[parts.length - 2]);
+        const materialName = parts[parts.length - 1];
+        const itemName = parts.slice(1, -2).join('_');
+        
+        const quantity = parseInt(interaction.fields.getTextInputValue('material_quantity').trim());
+        
+        if (isNaN(quantity) || quantity <= 0) {
+          return await interaction.reply({
+            content: '❌ 올바른 수량을 입력해주세요. (1 이상의 숫자)',
+            ephemeral: true
+          });
+        }
+        
+        const inventory = await loadInventory();
+        
+        // 첫 번째 재료면 레시피 초기화
+        if (step === 1) {
+          inventory.crafting.recipes[category][itemName] = [];
+        }
+        
+        // 재료 추가
+        inventory.crafting.recipes[category][itemName].push({
+          name: materialName,
+          quantity: quantity,
+          category: category
+        });
+        
+        await saveInventory(inventory);
+        
+        const icon = getItemIcon(materialName, inventory);
+        
+        // 다음 재료 추가 또는 완료
+        if (step < 3) {
+          const addMoreButton = new ButtonBuilder()
+            .setCustomId(`add_more_recipe_edit_${category}_${itemName}_${step + 1}`)
+            .setLabel(`➕ 재료 ${step + 1} 추가`)
+            .setStyle(ButtonStyle.Primary);
+          
+          const finishButton = new ButtonBuilder()
+            .setCustomId(`finish_recipe_edit_${category}_${itemName}`)
+            .setLabel('✅ 완료')
+            .setStyle(ButtonStyle.Success);
+          
+          const row = new ActionRowBuilder().addComponents(addMoreButton, finishButton);
+          
+          const currentRecipe = inventory.crafting.recipes[category][itemName]
+            .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
+            .join('\n');
+          
+          await interaction.reply({
+            content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${currentRecipe}\n\n더 추가하시겠습니까?`,
+            components: [row],
+            ephemeral: true
+          });
+        } else {
+          const currentRecipe = inventory.crafting.recipes[category][itemName]
+            .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
+            .join('\n');
+          
+          await interaction.reply({
+            content: `✅ **${itemName}** 레시피 수정 완료!\n\n**새 레시피:**\n${currentRecipe}`,
+            ephemeral: true
+          });
+          
+          setTimeout(async () => {
+            try {
+              await interaction.deleteReply();
+            } catch (error) {}
+          }, 15000);
+        }
+        
+      } catch (error) {
+        console.error('❌ 레시피 수정 모달 제출 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('add_item_modal_')) {
       try {
         const parts = interaction.customId.split('_');
         const type = parts[3]; // 'inventory' or 'crafting'
