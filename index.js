@@ -383,25 +383,38 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   if (uiMode === 'compact') uiModeLabel = '📏 컴팩트';
   else if (uiMode === 'detailed') uiModeLabel = '📏 상세';
   
-  const row1 = new ActionRowBuilder()
-    .addComponents(
+  const row1Buttons = [
+    new ButtonBuilder()
+      .setCustomId(actionId)
+      .setLabel(type === 'inventory' ? '📦 수집중' : '🔨 제작중')
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId(quantityId)
+      .setLabel('📊 수량관리')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(manageId)
+      .setLabel(type === 'inventory' ? '📋 물품관리' : '📦 품목관리')
+      .setStyle(ButtonStyle.Primary)
+  ];
+  
+  if (type === 'crafting') {
+    row1Buttons.push(
       new ButtonBuilder()
-        .setCustomId(actionId)
-        .setLabel(type === 'inventory' ? '📦 수집중' : '🔨 제작중')
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId(quantityId)
-        .setLabel('📊 수량관리')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId(manageId)
-        .setLabel(type === 'inventory' ? '📋 물품관리' : '� 품목관리')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId(resetId)
-        .setLabel('♻️ 초기화')
-        .setStyle(ButtonStyle.Secondary)
+        .setCustomId(recipeId)
+        .setLabel('📋 레시피')
+        .setStyle(ButtonStyle.Primary)
     );
+  }
+  
+  row1Buttons.push(
+    new ButtonBuilder()
+      .setCustomId(resetId)
+      .setLabel('♻️ 초기화')
+      .setStyle(ButtonStyle.Secondary)
+  );
+  
+  const row1 = new ActionRowBuilder().addComponents(row1Buttons);
   
   const row2 = new ActionRowBuilder()
     .addComponents(
