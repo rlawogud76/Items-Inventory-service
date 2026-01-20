@@ -29,6 +29,47 @@ async function saveInventory(data) {
   }
 }
 
+// 수정 내역 추가
+function addHistory(inventory, type, category, itemName, action, details, userName) {
+  if (!inventory.history) {
+    inventory.history = [];
+  }
+  
+  inventory.history.unshift({
+    timestamp: new Date().toISOString(),
+    type: type, // 'inventory' or 'crafting'
+    category: category,
+    itemName: itemName,
+    action: action, // 'add', 'remove', 'update_quantity', 'update_required'
+    details: details,
+    userName: userName
+  });
+  
+  // 최대 100개까지만 보관
+  if (inventory.history.length > 100) {
+    inventory.history = inventory.history.slice(0, 100);
+  }
+}
+
+// ephemeral 메시지 자동 삭제
+async function sendTemporaryReply(interaction, content, deleteAfter = 10000) {
+  const reply = await interaction.reply({ 
+    content: content, 
+    ephemeral: true,
+    fetchReply: true 
+  });
+  
+  setTimeout(async () => {
+    try {
+      await interaction.deleteReply();
+    } catch (error) {
+      // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+    }
+  }, deleteAfter);
+  
+  return reply;
+}
+
 // 재고 상태 이모지 반환
 function getStatusEmoji(quantity, required) {
   const percentage = (quantity / required) * 100;
@@ -568,7 +609,14 @@ client.on('ready', async () => {
         .addIntegerOption(option =>
           option.setName('수량')
             .setDescription('새로운 충족 수량')
-            .setRequired(true))
+            .setRequired(true)),
+      new SlashCommandBuilder()
+        .setName('수정내역')
+        .setDescription('재고 및 제작 수정 내역을 확인합니다')
+        .addIntegerOption(option =>
+          option.setName('개수')
+            .setDescription('확인할 내역 개수 (기본: 10개)')
+            .setRequired(false))
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);
@@ -613,22 +661,28 @@ client.on('interactionCreate', async (interaction) => {
 
         const inventory = await loadInventory();
         if (!inventory.categories[category]) {
-          return interaction.reply({ content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, ephemeral: true });
+          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
         }
         if (!inventory.categories[category][itemName]) {
-          return interaction.reply({ content: `❌ "${itemName}" 아이템을 찾을 수 없습니다.`, ephemeral: true });
+          return sendTemporaryReply(interaction, `❌ "${itemName}" 아이템을 찾을 수 없습니다.`);
         }
 
         const oldQuantity = inventory.categories[category][itemName].quantity;
         inventory.categories[category][itemName].quantity = newQuantity;
+        
+        // 수정 내역 추가
+        addHistory(inventory, 'inventory', category, itemName, 'update_quantity', 
+          `${oldQuantity}개 → ${newQuantity}개`, 
+          interaction.user.displayName || interaction.user.username);
+        
         await saveInventory(inventory);
 
-        const icon = getItemIcon(itemName);
+        const icon = getItemIcon(itemName, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x5865F2)
           .setDescription(`### ✅ 현재 수량 변경 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldQuantity}개 → ${newQuantity}개`);
         
-        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
       else if (commandName === '충족수량변경') {
@@ -638,22 +692,28 @@ client.on('interactionCreate', async (interaction) => {
 
         const inventory = await loadInventory();
         if (!inventory.categories[category]) {
-          return interaction.reply({ content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, ephemeral: true });
+          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
         }
         if (!inventory.categories[category][itemName]) {
-          return interaction.reply({ content: `❌ "${itemName}" 아이템을 찾을 수 없습니다.`, ephemeral: true });
+          return sendTemporaryReply(interaction, `❌ "${itemName}" 아이템을 찾을 수 없습니다.`);
         }
 
         const oldRequired = inventory.categories[category][itemName].required;
         inventory.categories[category][itemName].required = newRequired;
+        
+        // 수정 내역 추가
+        addHistory(inventory, 'inventory', category, itemName, 'update_required', 
+          `${oldRequired}개 → ${newRequired}개`, 
+          interaction.user.displayName || interaction.user.username);
+        
         await saveInventory(inventory);
 
-        const icon = getItemIcon(itemName);
+        const icon = getItemIcon(itemName, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x5865F2)
           .setDescription(`### ✅ 충족 수량 변경 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldRequired}개 → ${newRequired}개`);
         
-        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
       else if (commandName === '도움말') {
@@ -692,7 +752,7 @@ client.on('interactionCreate', async (interaction) => {
         }
         
         if (inventory.categories[category][itemName]) {
-          return interaction.reply({ content: `❌ "${itemName}" 아이템이 이미 존재합니다.`, ephemeral: true });
+          return sendTemporaryReply(interaction, `❌ "${itemName}" 아이템이 이미 존재합니다.`);
         }
 
         inventory.categories[category][itemName] = {
@@ -704,6 +764,11 @@ client.on('interactionCreate', async (interaction) => {
           inventory.categories[category][itemName].emoji = emoji;
         }
         
+        // 수정 내역 추가
+        addHistory(inventory, 'inventory', category, itemName, 'add', 
+          `초기: ${initialQuantity}개, 목표: ${requiredQuantity}개`, 
+          interaction.user.displayName || interaction.user.username);
+        
         await saveInventory(inventory);
 
         const icon = emoji || getItemIcon(itemName, inventory);
@@ -711,7 +776,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0x57F287)
           .setDescription(`### ✅ 목록 추가 완료\n**카테고리:** ${category}\n${icon} **${itemName}**이(가) 재고 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**충족 수량:** ${requiredQuantity}개`);
         
-        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
       else if (commandName === '목록제거') {
@@ -721,17 +786,72 @@ client.on('interactionCreate', async (interaction) => {
         const inventory = await loadInventory();
         
         if (!inventory.categories[category] || !inventory.categories[category][itemName]) {
-          return interaction.reply({ content: `❌ "${itemName}" 아이템을 찾을 수 없습니다.`, ephemeral: true });
+          return sendTemporaryReply(interaction, `❌ "${itemName}" 아이템을 찾을 수 없습니다.`);
         }
 
+        const itemData = inventory.categories[category][itemName];
         delete inventory.categories[category][itemName];
+        
+        // 수정 내역 추가
+        addHistory(inventory, 'inventory', category, itemName, 'remove', 
+          `수량: ${itemData.quantity}/${itemData.required}`, 
+          interaction.user.displayName || interaction.user.username);
+        
         await saveInventory(inventory);
 
         const successEmbed = new EmbedBuilder()
           .setColor(0xED4245)
           .setDescription(`### ✅ 목록 제거 완료\n**카테고리:** ${category}\n**${itemName}**이(가) 재고 목록에서 제거되었습니다.`);
         
-        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
+      }
+
+      else if (commandName === '수정내역') {
+        const count = interaction.options.getInteger('개수') || 10;
+        const inventory = await loadInventory();
+        
+        if (!inventory.history || inventory.history.length === 0) {
+          return sendTemporaryReply(interaction, '📋 수정 내역이 없습니다.');
+        }
+        
+        const embed = new EmbedBuilder()
+          .setTitle('📋 수정 내역')
+          .setColor(0x5865F2)
+          .setTimestamp();
+        
+        const histories = inventory.history.slice(0, Math.min(count, 25)); // 최대 25개
+        
+        for (const history of histories) {
+          const date = new Date(history.timestamp);
+          const timeStr = date.toLocaleString('ko-KR', { 
+            month: '2-digit', 
+            day: '2-digit', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          });
+          
+          const typeEmoji = history.type === 'inventory' ? '📦' : '🔨';
+          const actionText = {
+            'add': '추가',
+            'remove': '제거',
+            'update_quantity': '현재 수량 변경',
+            'update_required': '충족 수량 변경'
+          }[history.action] || history.action;
+          
+          const icon = getItemIcon(history.itemName, inventory);
+          
+          embed.addFields({
+            name: `${typeEmoji} ${history.category} - ${icon} ${history.itemName}`,
+            value: `**${actionText}** by ${history.userName}\n${history.details}\n\`${timeStr}\``,
+            inline: false
+          });
+        }
+        
+        if (inventory.history.length > count) {
+          embed.setFooter({ text: `총 ${inventory.history.length}개 중 ${count}개 표시` });
+        }
+        
+        await interaction.reply({ embeds: [embed], ephemeral: true });
       }
 
       else if (commandName === '제작') {
@@ -762,7 +882,7 @@ client.on('interactionCreate', async (interaction) => {
         }
         
         if (inventory.crafting.categories[category][itemName]) {
-          return interaction.reply({ content: `❌ "${itemName}" 제작품이 이미 존재합니다.`, ephemeral: true });
+          return sendTemporaryReply(interaction, `❌ "${itemName}" 제작품이 이미 존재합니다.`);
         }
 
         inventory.crafting.categories[category][itemName] = {
@@ -774,6 +894,11 @@ client.on('interactionCreate', async (interaction) => {
           inventory.crafting.categories[category][itemName].emoji = emoji;
         }
         
+        // 수정 내역 추가
+        addHistory(inventory, 'crafting', category, itemName, 'add', 
+          `초기: ${initialQuantity}개, 목표: ${requiredQuantity}개`, 
+          interaction.user.displayName || interaction.user.username);
+        
         await saveInventory(inventory);
 
         const icon = emoji || getItemIcon(itemName, inventory);
@@ -781,7 +906,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0x57F287)
           .setDescription(`### ✅ 제작 목록 추가 완료\n**카테고리:** ${category}\n${icon} **${itemName}**이(가) 제작 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**충족 수량:** ${requiredQuantity}개`);
         
-        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
       else if (commandName === '제작목록제거') {
@@ -791,17 +916,24 @@ client.on('interactionCreate', async (interaction) => {
         const inventory = await loadInventory();
         
         if (!inventory.crafting?.categories[category] || !inventory.crafting.categories[category][itemName]) {
-          return interaction.reply({ content: `❌ "${itemName}" 제작품을 찾을 수 없습니다.`, ephemeral: true });
+          return sendTemporaryReply(interaction, `❌ "${itemName}" 제작품을 찾을 수 없습니다.`);
         }
 
+        const itemData = inventory.crafting.categories[category][itemName];
         delete inventory.crafting.categories[category][itemName];
+        
+        // 수정 내역 추가
+        addHistory(inventory, 'crafting', category, itemName, 'remove', 
+          `수량: ${itemData.quantity}/${itemData.required}`, 
+          interaction.user.displayName || interaction.user.username);
+        
         await saveInventory(inventory);
 
         const successEmbed = new EmbedBuilder()
           .setColor(0xED4245)
           .setDescription(`### ✅ 제작 목록 제거 완료\n**카테고리:** ${category}\n**${itemName}**이(가) 제작 목록에서 제거되었습니다.`);
         
-        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
       else if (commandName === '제작수량변경') {
@@ -811,22 +943,28 @@ client.on('interactionCreate', async (interaction) => {
 
         const inventory = await loadInventory();
         if (!inventory.crafting?.categories[category]) {
-          return interaction.reply({ content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, ephemeral: true });
+          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
         }
         if (!inventory.crafting.categories[category][itemName]) {
-          return interaction.reply({ content: `❌ "${itemName}" 제작품을 찾을 수 없습니다.`, ephemeral: true });
+          return sendTemporaryReply(interaction, `❌ "${itemName}" 제작품을 찾을 수 없습니다.`);
         }
 
         const oldQuantity = inventory.crafting.categories[category][itemName].quantity;
         inventory.crafting.categories[category][itemName].quantity = newQuantity;
+        
+        // 수정 내역 추가
+        addHistory(inventory, 'crafting', category, itemName, 'update_quantity', 
+          `${oldQuantity}개 → ${newQuantity}개`, 
+          interaction.user.displayName || interaction.user.username);
+        
         await saveInventory(inventory);
 
-        const icon = getItemIcon(itemName);
+        const icon = getItemIcon(itemName, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x5865F2)
           .setDescription(`### ✅ 제작 수량 변경 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldQuantity}개 → ${newQuantity}개`);
         
-        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
       else if (commandName === '제작충족수량변경') {
@@ -836,22 +974,28 @@ client.on('interactionCreate', async (interaction) => {
 
         const inventory = await loadInventory();
         if (!inventory.crafting?.categories[category]) {
-          return interaction.reply({ content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, ephemeral: true });
+          return sendTemporaryReply(interaction, `❌ "${category}" 카테고리를 찾을 수 없습니다.`);
         }
         if (!inventory.crafting.categories[category][itemName]) {
-          return interaction.reply({ content: `❌ "${itemName}" 제작품을 찾을 수 없습니다.`, ephemeral: true });
+          return sendTemporaryReply(interaction, `❌ "${itemName}" 제작품을 찾을 수 없습니다.`);
         }
 
         const oldRequired = inventory.crafting.categories[category][itemName].required;
         inventory.crafting.categories[category][itemName].required = newRequired;
+        
+        // 수정 내역 추가
+        addHistory(inventory, 'crafting', category, itemName, 'update_required', 
+          `${oldRequired}개 → ${newRequired}개`, 
+          interaction.user.displayName || interaction.user.username);
+        
         await saveInventory(inventory);
 
-        const icon = getItemIcon(itemName);
+        const icon = getItemIcon(itemName, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x5865F2)
           .setDescription(`### ✅ 제작 충족 수량 변경 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${oldRequired}개 → ${newRequired}개`);
         
-        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
     } catch (error) {
       console.error('커맨드 실행 에러:', error);
