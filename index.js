@@ -535,7 +535,10 @@ client.on('ready', async () => {
         .addStringOption(option =>
           option.setName('이모지')
             .setDescription('설정할 이모지 (예: 🪵, ⚙️, 💎)')
-            .setRequired(true))
+            .setRequired(true)),
+      new SlashCommandBuilder()
+        .setName('기여도초기화')
+        .setDescription('기여도 통계를 초기화합니다 (수정 내역 삭제)')
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);
@@ -882,7 +885,7 @@ client.on('interactionCreate', async (interaction) => {
                 };
               }
               
-              // details에서 수량 추출 - 추가만 점수로 계산
+              // details에서 수량 추출 - 추가는 +점수, 차감은 -점수
               let quantity = 0; // 기본값 0
               
               if (h.action === 'add') {
@@ -895,7 +898,7 @@ client.on('interactionCreate', async (interaction) => {
                   quantity = 10; // 기본 10점
                 }
               } else if (h.action === 'update_quantity') {
-                // "0 -> 192" 형식 - 증가만 점수
+                // "0 -> 192" 형식 - 증가는 +점수, 감소는 0점
                 const match1 = h.details.match(/(\d+)\s*->\s*(\d+)/);
                 if (match1) {
                   const oldQty = parseInt(match1[1]);
@@ -904,16 +907,16 @@ client.on('interactionCreate', async (interaction) => {
                   quantity = diff > 0 ? diff : 0; // 증가만 점수, 감소는 0점
                 }
                 
-                // "192개 추가" 형식
+                // "192개 추가" 형식 - +점수
                 const match2 = h.details.match(/(\d+)개\s*추가/);
                 if (match2) {
                   quantity = parseInt(match2[1]);
                 }
                 
-                // "192개 차감" 형식 - 점수 없음
+                // "192개 차감" 형식 - 마이너스 점수
                 const match3 = h.details.match(/(\d+)개\s*차감/);
                 if (match3) {
-                  quantity = 0; // 차감은 점수 없음
+                  quantity = -parseInt(match3[1]); // 차감은 마이너스 점수
                 }
               }
               // remove, reset, update_required는 모두 0점
@@ -1419,6 +1422,48 @@ client.on('interactionCreate', async (interaction) => {
           .setDescription(`### ✅ 레시피 삭제 완료\n**카테고리:** ${category}\n${icon} **${craftItem}**의 레시피가 삭제되었습니다.`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
+      }
+
+      else if (commandName === '기여도초기화') {
+        const inventory = await loadInventory();
+        
+        // 기여도 데이터 확인
+        const historyCount = inventory.history?.length || 0;
+        
+        if (historyCount === 0) {
+          return await sendTemporaryReply(interaction, '❌ 초기화할 기여도 데이터가 없습니다.');
+        }
+        
+        // 확인 버튼 생성
+        const confirmRow = new ActionRowBuilder()
+          .addComponents(
+            new ButtonBuilder()
+              .setCustomId('confirm_contribution_reset')
+              .setLabel('✅ 확인')
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId('cancel_contribution_reset')
+              .setLabel('❌ 취소')
+              .setStyle(ButtonStyle.Secondary)
+          );
+        
+        const confirmEmbed = new EmbedBuilder()
+          .setColor(0xED4245)
+          .setTitle('⚠️ 기여도 초기화 확인')
+          .setDescription([
+            '**모든 수정 내역이 삭제됩니다!**',
+            '',
+            `현재 저장된 내역: **${historyCount}개**`,
+            '',
+            '이 작업은 되돌릴 수 없습니다.',
+            '정말로 초기화하시겠습니까?'
+          ].join('\n'));
+        
+        await interaction.reply({ 
+          embeds: [confirmEmbed], 
+          components: [confirmRow], 
+          ephemeral: true 
+        });
       }
 
     } catch (error) {
@@ -2735,6 +2780,83 @@ client.on('interactionCreate', async (interaction) => {
       } catch (error) {
         console.error('❌ 레시피 버튼 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    // 기여도 초기화 확인 버튼
+    else if (interaction.customId === 'confirm_contribution_reset') {
+      try {
+        const inventory = await loadInventory();
+        const historyCount = inventory.history?.length || 0;
+        
+        // 히스토리 초기화
+        inventory.history = [];
+        await saveInventory(inventory);
+        
+        const successEmbed = new EmbedBuilder()
+          .setColor(0x57F287)
+          .setTitle('✅ 기여도 초기화 완료')
+          .setDescription([
+            `**${historyCount}개**의 수정 내역이 삭제되었습니다.`,
+            '',
+            '모든 기여도 통계가 초기화되었습니다.'
+          ].join('\n'));
+        
+        await interaction.update({ 
+          embeds: [successEmbed], 
+          components: [] 
+        });
+        
+        console.log(`✅ 기여도 초기화 완료 (${historyCount}개 삭제)`);
+        
+        // 30초 후 메시지 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {
+            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+          }
+        }, 30000);
+        
+      } catch (error) {
+        console.error('❌ 기여도 초기화 에러:', error);
+        await interaction.reply({ 
+          content: `❌ 오류가 발생했습니다: ${error.message}`, 
+          ephemeral: true 
+        }).catch(() => {});
+      }
+    }
+    
+    // 기여도 초기화 취소 버튼
+    else if (interaction.customId === 'cancel_contribution_reset') {
+      try {
+        const cancelEmbed = new EmbedBuilder()
+          .setColor(0x5865F2)
+          .setTitle('❌ 기여도 초기화 취소')
+          .setDescription('기여도 초기화가 취소되었습니다.');
+        
+        await interaction.update({ 
+          embeds: [cancelEmbed], 
+          components: [] 
+        });
+        
+        console.log('❌ 기여도 초기화 취소됨');
+        
+        // 15초 후 메시지 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {
+            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+          }
+        }, 15000);
+        
+      } catch (error) {
+        console.error('❌ 취소 버튼 에러:', error);
+        await interaction.reply({ 
+          content: `❌ 오류가 발생했습니다: ${error.message}`, 
+          ephemeral: true 
+        }).catch(() => {});
       }
     }
   }
