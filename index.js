@@ -488,7 +488,10 @@ client.on('ready', async () => {
             .setRequired(false)),
       new SlashCommandBuilder()
         .setName('도움말')
-        .setDescription('재고 관리 봇 사용법을 확인합니다')
+        .setDescription('재고 관리 봇 사용법을 확인합니다'),
+      new SlashCommandBuilder()
+        .setName('통계')
+        .setDescription('마을 재고 및 제작 통계를 확인합니다')
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);
@@ -620,6 +623,10 @@ client.on('interactionCreate', async (interaction) => {
             { 
               name: '🔧 기타 기능', 
               value: [
+                '**`/통계`**',
+                '마을 재고 및 제작 통계를 확인합니다.',
+                '> 전체 진행률, 카테고리별 현황, 활동 통계, 주의 필요 항목',
+                '',
                 '**`/수정내역 [개수]`**',
                 '재고 및 제작 수정 내역을 확인합니다.',
                 '> 예: `/수정내역 개수:20`',
@@ -637,6 +644,239 @@ client.on('interactionCreate', async (interaction) => {
             }
           );
         await sendTemporaryReply(interaction, { embeds: [helpEmbed] }, 30000);
+      }
+
+      else if (commandName === '통계') {
+        const inventory = await loadInventory();
+        const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        
+        // 전체 진행률 계산
+        let totalQuantity = 0, totalRequired = 0;
+        let inventoryQuantity = 0, inventoryRequired = 0;
+        let craftingQuantity = 0, craftingRequired = 0;
+        
+        // 카테고리별 통계
+        const categoryStats = {
+          inventory: {},
+          crafting: {}
+        };
+        
+        // 재고 통계
+        for (const [category, items] of Object.entries(inventory.categories || {})) {
+          let catQty = 0, catReq = 0, completed = 0, total = 0;
+          
+          for (const [itemName, itemData] of Object.entries(items)) {
+            catQty += itemData.quantity;
+            catReq += itemData.required;
+            total++;
+            if (itemData.quantity >= itemData.required) completed++;
+          }
+          
+          inventoryQuantity += catQty;
+          inventoryRequired += catReq;
+          
+          const percentage = catReq > 0 ? Math.round((catQty / catReq) * 100) : 0;
+          const emoji = percentage >= 90 ? '🟢' : percentage >= 25 ? '🟡' : '🔴';
+          
+          categoryStats.inventory[category] = {
+            percentage,
+            emoji,
+            completed,
+            total
+          };
+        }
+        
+        // 제작 통계
+        for (const [category, items] of Object.entries(inventory.crafting?.categories || {})) {
+          let catQty = 0, catReq = 0, completed = 0, total = 0;
+          
+          for (const [itemName, itemData] of Object.entries(items)) {
+            catQty += itemData.quantity;
+            catReq += itemData.required;
+            total++;
+            if (itemData.quantity >= itemData.required) completed++;
+          }
+          
+          craftingQuantity += catQty;
+          craftingRequired += catReq;
+          
+          const percentage = catReq > 0 ? Math.round((catQty / catReq) * 100) : 0;
+          const emoji = percentage >= 90 ? '🟢' : percentage >= 25 ? '🟡' : '🔴';
+          
+          categoryStats.crafting[category] = {
+            percentage,
+            emoji,
+            completed,
+            total
+          };
+        }
+        
+        totalQuantity = inventoryQuantity + craftingQuantity;
+        totalRequired = inventoryRequired + craftingRequired;
+        
+        const totalPercentage = totalRequired > 0 ? Math.round((totalQuantity / totalRequired) * 100) : 0;
+        const inventoryPercentage = inventoryRequired > 0 ? Math.round((inventoryQuantity / inventoryRequired) * 100) : 0;
+        const craftingPercentage = craftingRequired > 0 ? Math.round((craftingQuantity / craftingRequired) * 100) : 0;
+        
+        // 최근 7일 활동 통계
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        
+        const recentHistory = (inventory.history || []).filter(h => 
+          new Date(h.timestamp) >= sevenDaysAgo
+        );
+        
+        // 사용자별 활동
+        const userActivity = {};
+        recentHistory.forEach(h => {
+          userActivity[h.userName] = (userActivity[h.userName] || 0) + 1;
+        });
+        
+        const topUsers = Object.entries(userActivity)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3);
+        
+        // 아이템별 변경 횟수
+        const itemActivity = {};
+        recentHistory.forEach(h => {
+          itemActivity[h.itemName] = (itemActivity[h.itemName] || 0) + 1;
+        });
+        
+        const topItems = Object.entries(itemActivity)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3);
+        
+        // 부족한 아이템 (30% 미만)
+        const lackingItems = [];
+        for (const [category, items] of Object.entries(inventory.categories || {})) {
+          for (const [itemName, itemData] of Object.entries(items)) {
+            const percentage = (itemData.quantity / itemData.required) * 100;
+            if (percentage < 30) {
+              lackingItems.push({
+                category,
+                name: itemName,
+                quantity: itemData.quantity,
+                required: itemData.required,
+                icon: getItemIcon(itemName, inventory)
+              });
+            }
+          }
+        }
+        lackingItems.sort((a, b) => (a.quantity / a.required) - (b.quantity / b.required));
+        
+        // 제작 불가 아이템 (재료 부족)
+        const cannotCraft = [];
+        for (const [category, items] of Object.entries(inventory.crafting?.categories || {})) {
+          for (const [itemName, itemData] of Object.entries(items)) {
+            const recipe = inventory.crafting?.recipes?.[category]?.[itemName];
+            if (recipe) {
+              let canCraft = true;
+              const missingMaterials = [];
+              
+              for (const material of recipe) {
+                const matData = inventory.categories[material.category]?.[material.name];
+                const currentQty = matData?.quantity || 0;
+                if (currentQty < material.quantity) {
+                  canCraft = false;
+                  missingMaterials.push(material.name);
+                }
+              }
+              
+              if (!canCraft) {
+                cannotCraft.push({
+                  name: itemName,
+                  missing: missingMaterials,
+                  icon: getItemIcon(itemName, inventory)
+                });
+              }
+            }
+          }
+        }
+        
+        // Embed 생성
+        const statsEmbed = new EmbedBuilder()
+          .setTitle(`📊 마을 재고 통계 (${today})`)
+          .setColor(0x5865F2)
+          .setDescription([
+            '━━━━━━━━━━━━━━━━━━━━',
+            `📦 **전체 진행률: ${totalPercentage}%**`,
+            '━━━━━━━━━━━━━━━━━━━━',
+            '',
+            '🏘️ **재고:** ' + inventoryPercentage + '%',
+            ...Object.entries(categoryStats.inventory).map(([cat, stats]) => 
+              `${cat}: ${stats.percentage}% ${stats.emoji} (${stats.completed}/${stats.total} 완료)`
+            ),
+            '',
+            '🔨 **제작:** ' + craftingPercentage + '%',
+            ...Object.entries(categoryStats.crafting).map(([cat, stats]) => 
+              `${cat}: ${stats.percentage}% ${stats.emoji} (${stats.completed}/${stats.total} 완료)`
+            ),
+            '━━━━━━━━━━━━━━━━━━━━'
+          ].join('\n'))
+          .setTimestamp();
+        
+        // 활동 현황 필드
+        if (recentHistory.length > 0) {
+          const activityText = [];
+          
+          if (topUsers.length > 0) {
+            activityText.push('**가장 활발한 사용자:**');
+            const medals = ['🥇', '🥈', '🥉'];
+            topUsers.forEach(([user, count], idx) => {
+              activityText.push(`${medals[idx] || '•'} ${user} - ${count}회 변경`);
+            });
+            activityText.push('');
+          }
+          
+          if (topItems.length > 0) {
+            activityText.push('**가장 많이 변경된 아이템:**');
+            topItems.forEach(([item, count], idx) => {
+              activityText.push(`${idx + 1}. ${item} (${count}회)`);
+            });
+          }
+          
+          if (activityText.length > 0) {
+            statsEmbed.addFields({
+              name: '👥 활동 현황 (최근 7일)',
+              value: '━━━━━━━━━━━━━━━━━━━━\n' + activityText.join('\n') + '\n━━━━━━━━━━━━━━━━━━━━',
+              inline: false
+            });
+          }
+        }
+        
+        // 주의 필요 필드
+        const warningText = [];
+        
+        if (lackingItems.length > 0) {
+          warningText.push(`🔴 **부족한 아이템 (${lackingItems.length}개):**`);
+          lackingItems.slice(0, 5).forEach(item => {
+            warningText.push(`- ${item.category} > ${item.icon} ${item.name} (${item.quantity}/${item.required})`);
+          });
+          if (lackingItems.length > 5) {
+            warningText.push(`... 외 ${lackingItems.length - 5}개`);
+          }
+          warningText.push('');
+        }
+        
+        if (cannotCraft.length > 0) {
+          warningText.push(`❌ **제작 불가 (재료 부족):**`);
+          cannotCraft.slice(0, 5).forEach(item => {
+            warningText.push(`- ${item.icon} ${item.name} (${item.missing.join(', ')} 부족)`);
+          });
+          if (cannotCraft.length > 5) {
+            warningText.push(`... 외 ${cannotCraft.length - 5}개`);
+          }
+        }
+        
+        if (warningText.length > 0) {
+          statsEmbed.addFields({
+            name: '⚠️ 주의 필요',
+            value: '━━━━━━━━━━━━━━━━━━━━\n' + warningText.join('\n'),
+            inline: false
+          });
+        }
+        
+        await sendTemporaryReply(interaction, { embeds: [statsEmbed] }, 30000);
       }
 
       else if (commandName === '수정내역') {
