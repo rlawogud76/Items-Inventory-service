@@ -1620,17 +1620,26 @@ client.on('interactionCreate', async (interaction) => {
           };
         });
         
+        // Discord 제한: 최대 25개 옵션
+        const limitedOptions = itemOptions.slice(0, 25);
+        const hasMore = itemOptions.length > 25;
+        
         // 선택 메뉴 생성
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_quantity_${type}_${category}`)
           .setPlaceholder('수량을 관리할 아이템을 선택하세요')
-          .addOptions(itemOptions);
+          .addOptions(limitedOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
+        let contentMessage = `📊 **${category}** 카테고리에서 수량을 관리할 아이템을 선택하세요:`;
+        if (hasMore) {
+          contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${itemOptions.length}개)`;
+        }
+        
         const reply = await interaction.reply({
-          content: `📊 **${category}** 카테고리에서 수량을 관리할 아이템을 선택하세요:`,
+          content: contentMessage,
           components: [row],
           ephemeral: true,
           fetchReply: true
@@ -1785,16 +1794,25 @@ client.on('interactionCreate', async (interaction) => {
             };
           });
           
+          // Discord 제한: 최대 25개 옵션
+          const limitedOptions = itemOptions.slice(0, 25);
+          const hasMore = itemOptions.length > 25;
+          
           const { StringSelectMenuBuilder } = await import('discord.js');
           const selectMenu = new StringSelectMenuBuilder()
             .setCustomId(`select_reset_${type}_${category}`)
             .setPlaceholder('초기화할 항목을 선택하세요')
-            .addOptions(itemOptions);
+            .addOptions(limitedOptions);
           
           const row = new ActionRowBuilder().addComponents(selectMenu);
           
+          let contentMessage = `🔄 **${category}** 카테고리에서 초기화할 ${type === 'inventory' ? '아이템' : '제작품'}을 선택하세요:`;
+          if (hasMore) {
+            contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${itemOptions.length}개)`;
+          }
+          
           await interaction.update({
-            content: `🔄 **${category}** 카테고리에서 초기화할 ${type === 'inventory' ? '아이템' : '제작품'}을 선택하세요:`,
+            content: contentMessage,
             components: [row]
           });
           
@@ -2139,16 +2157,25 @@ client.on('interactionCreate', async (interaction) => {
           };
         });
         
+        // Discord 제한: 최대 25개 옵션
+        const limitedOptions = itemOptions.slice(0, 25);
+        const hasMore = itemOptions.length > 25;
+        
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_remove_${type}_${category}`)
           .setPlaceholder('삭제할 항목을 선택하세요')
-          .addOptions(itemOptions);
+          .addOptions(limitedOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
+        let contentMessage = `🗑️ **${category}** 카테고리에서 삭제할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:`;
+        if (hasMore) {
+          contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${itemOptions.length}개)`;
+        }
+        
         await interaction.update({
-          content: `🗑️ **${category}** 카테고리에서 삭제할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:`,
+          content: contentMessage,
           components: [row]
         });
         
@@ -2199,16 +2226,25 @@ client.on('interactionCreate', async (interaction) => {
           };
         });
         
+        // Discord 제한: 최대 25개 옵션
+        const limitedOptions = itemOptions.slice(0, 25);
+        const hasMore = itemOptions.length > 25;
+        
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_edit_${type}_${category}`)
           .setPlaceholder('이름을 수정할 항목을 선택하세요')
-          .addOptions(itemOptions);
+          .addOptions(limitedOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
+        let contentMessage = `✏️ **${category}** 카테고리에서 이름을 수정할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:`;
+        if (hasMore) {
+          contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${itemOptions.length}개)`;
+        }
+        
         await interaction.update({
-          content: `✏️ **${category}** 카테고리에서 이름을 수정할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:`,
+          content: contentMessage,
           components: [row]
         });
         
@@ -2306,16 +2342,25 @@ client.on('interactionCreate', async (interaction) => {
           };
         });
         
+        // Discord 제한: 최대 25개 옵션
+        const limitedOptions = itemOptions.slice(0, 25);
+        const hasMore = itemOptions.length > 25;
+        
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_tag_item_${type}_${category}`)
           .setPlaceholder('태그를 설정할 항목을 선택하세요')
-          .addOptions(itemOptions);
+          .addOptions(limitedOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
+        let contentMessage = `🏷️ **${category}** 카테고리에서 태그를 설정할 항목을 선택하세요:`;
+        if (hasMore) {
+          contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${itemOptions.length}개)`;
+        }
+        
         await interaction.update({
-          content: `🏷️ **${category}** 카테고리에서 태그를 설정할 항목을 선택하세요:`,
+          content: contentMessage,
           components: [row]
         });
         
@@ -2686,17 +2731,29 @@ client.on('interactionCreate', async (interaction) => {
           });
         }
         
+        // Discord 제한: 최대 25개 옵션
+        const limitedOptions = allOptions.slice(0, 25);
+        const hasMore = allOptions.length > 25;
+        
         // 선택 메뉴 생성
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_item_${isCrafting ? 'crafting' : 'collecting'}_${category}`)
           .setPlaceholder(`${isCrafting ? '제작' : '수집'}할 아이템 또는 태그를 선택하세요`)
-          .addOptions(allOptions);
+          .addOptions(limitedOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
+        let contentMessage = `${isCrafting ? '🔨' : '📦'} **${category}** 카테고리에서 ${isCrafting ? '제작' : '수집'}할 아이템 또는 태그를 선택하세요:`;
+        if (tags.length > 0) {
+          contentMessage += '\n\n💡 태그를 선택하면 해당 태그의 모든 항목이 선택됩니다.';
+        }
+        if (hasMore) {
+          contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${allOptions.length}개)`;
+        }
+        
         await interaction.reply({
-          content: `${isCrafting ? '🔨' : '📦'} **${category}** 카테고리에서 ${isCrafting ? '제작' : '수집'}할 아이템 또는 태그를 선택하세요:${tags.length > 0 ? '\n\n💡 태그를 선택하면 해당 태그의 모든 항목이 선택됩니다.' : ''}`,
+          content: contentMessage,
           components: [row],
           ephemeral: true
         });
