@@ -145,22 +145,43 @@ export async function loadInventory() {
     const inventory = await Inventory.getInstance();
     const data = inventory.toObject();
     
-    // Map을 일반 객체로 변환
-    const convertMapToObject = (obj) => {
+    // Map을 일반 객체로 변환 (순환 참조 방지)
+    const convertMapToObject = (obj, visited = new WeakSet()) => {
+      // null이나 primitive 타입은 그대로 반환
+      if (obj === null || typeof obj !== 'object') {
+        return obj;
+      }
+      
+      // 배열은 그대로 반환
+      if (Array.isArray(obj)) {
+        return obj;
+      }
+      
+      // 순환 참조 체크
+      if (visited.has(obj)) {
+        return {};
+      }
+      visited.add(obj);
+      
+      // Map 변환
       if (obj instanceof Map) {
         const result = {};
         for (const [key, value] of obj.entries()) {
-          result[key] = convertMapToObject(value);
-        }
-        return result;
-      } else if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
-        const result = {};
-        for (const [key, value] of Object.entries(obj)) {
-          result[key] = convertMapToObject(value);
+          result[key] = convertMapToObject(value, visited);
         }
         return result;
       }
-      return obj;
+      
+      // 일반 객체 변환 (메타데이터 제외)
+      const result = {};
+      for (const [key, value] of Object.entries(obj)) {
+        // MongoDB 메타데이터 제외
+        if (key === '_id' || key === '__v' || key === 'id') {
+          continue;
+        }
+        result[key] = convertMapToObject(value, visited);
+      }
+      return result;
     };
     
     const converted = convertMapToObject(data);
