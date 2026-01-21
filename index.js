@@ -1342,12 +1342,7 @@ client.on('interactionCreate', async (interaction) => {
           .setLabel('✏️ 수정')
           .setStyle(ButtonStyle.Primary);
         
-        const deleteButton = new ButtonBuilder()
-          .setCustomId(`recipe_delete_${category}`)
-          .setLabel('🗑️ 삭제')
-          .setStyle(ButtonStyle.Danger);
-        
-        const row = new ActionRowBuilder().addComponents(viewButton, editButton, deleteButton);
+        const row = new ActionRowBuilder().addComponents(viewButton, editButton);
         
         await interaction.reply({
           content: `📋 **${category}** 카테고리 레시피 관리\n\n원하는 작업을 선택하세요:`,
@@ -1475,44 +1470,6 @@ client.on('interactionCreate', async (interaction) => {
         
       } catch (error) {
         console.error('❌ 레시피 수정 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-      }
-    }
-    
-    else if (interaction.customId.startsWith('recipe_delete_')) {
-      try {
-        const category = interaction.customId.replace('recipe_delete_', '');
-        const inventory = await loadInventory();
-        
-        if (!inventory.crafting?.recipes?.[category] || Object.keys(inventory.crafting.recipes[category]).length === 0) {
-          return await interaction.update({
-            content: `❌ "${category}" 카테고리에 레시피가 없습니다.`,
-            components: []
-          });
-        }
-        
-        const items = Object.keys(inventory.crafting.recipes[category]);
-        const itemOptions = items.map(item => ({
-          label: item,
-          value: item,
-          emoji: getItemIcon(item, inventory)
-        }));
-        
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_recipe_delete_${category}`)
-          .setPlaceholder('레시피를 삭제할 제작품을 선택하세요')
-          .addOptions(itemOptions);
-        
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-        
-        await interaction.update({
-          content: `🗑️ **${category}** 카테고리에서 레시피를 삭제할 제작품을 선택하세요:`,
-          components: [row]
-        });
-        
-      } catch (error) {
-        console.error('❌ 레시피 삭제 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
       }
     }
@@ -2363,48 +2320,6 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('select_recipe_delete_')) {
-      try {
-        const category = interaction.customId.replace('select_recipe_delete_', '');
-        const selectedItem = interaction.values[0];
-        const inventory = await loadInventory();
-        
-        if (!inventory.crafting.recipes?.[category]?.[selectedItem]) {
-          return await interaction.update({
-            content: `❌ "${selectedItem}"의 레시피를 찾을 수 없습니다.`,
-            components: []
-          });
-        }
-        
-        const recipe = inventory.crafting.recipes[category][selectedItem];
-        const recipeText = recipe.map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`).join('\n');
-        
-        delete inventory.crafting.recipes[category][selectedItem];
-        await saveInventory(inventory);
-        
-        const icon = getItemIcon(selectedItem, inventory);
-        const successEmbed = new EmbedBuilder()
-          .setColor(0xED4245)
-          .setTitle('🗑️ 레시피 삭제 완료')
-          .setDescription(`**카테고리:** ${category}\n${icon} **${selectedItem}**\n\n**삭제된 레시피:**\n${recipeText}`);
-        
-        await interaction.update({
-          embeds: [successEmbed],
-          components: []
-        });
-        
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 15000);
-        
-      } catch (error) {
-        console.error('❌ 레시피 삭제 선택 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-      }
-    }
-    
     else if (interaction.customId.startsWith('select_recipe_material_edit_')) {
       try {
         const parts = interaction.customId.replace('select_recipe_material_edit_', '').split('_');
@@ -2507,13 +2422,20 @@ client.on('interactionCreate', async (interaction) => {
         const itemData = targetData[category][selectedItem];
         delete targetData[category][selectedItem];
         
+        // 제작품 삭제 시 레시피도 함께 삭제
+        let recipeDeleted = false;
+        if (type === 'crafting' && inventory.crafting?.recipes?.[category]?.[selectedItem]) {
+          delete inventory.crafting.recipes[category][selectedItem];
+          recipeDeleted = true;
+        }
+        
         addHistory(
           inventory, 
           type, 
           category, 
           selectedItem, 
           'remove', 
-          `수량: ${itemData.quantity}/${itemData.required}`, 
+          `수량: ${itemData.quantity}/${itemData.required}${recipeDeleted ? ' (레시피 포함)' : ''}`, 
           interaction.user.displayName || interaction.user.username
         );
         
@@ -2522,7 +2444,7 @@ client.on('interactionCreate', async (interaction) => {
         const successEmbed = new EmbedBuilder()
           .setColor(0xED4245)
           .setTitle('✅ 삭제 완료')
-          .setDescription(`**카테고리:** ${category}\n**${selectedItem}**이(가) 삭제되었습니다.`);
+          .setDescription(`**카테고리:** ${category}\n**${selectedItem}**이(가) 삭제되었습니다.${recipeDeleted ? '\n🗑️ 연결된 레시피도 함께 삭제되었습니다.' : ''}`);
         
         await interaction.update({
           embeds: [successEmbed],
