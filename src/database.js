@@ -94,33 +94,48 @@ inventorySchema.statics.getInstance = async function() {
 
 export const Inventory = mongoose.model('Inventory', inventorySchema);
 
+// 마지막 업데이트 시간 추적
+let lastUpdateTime = null;
+
+// 변경 감지 (폴링 방식)
+export function watchInventoryChanges() {
+  console.log('�️ 재고 변경 감지 시작 (폴링 방식)');
+  
+  // 3초마다 체크
+  setInterval(async () => {
+    try {
+      const inventory = await Inventory.findOne().select('updatedAt').lean();
+      if (!inventory) return;
+      
+      const currentUpdateTime = inventory.updatedAt?.getTime();
+      
+      // 처음 실행이거나 변경이 있으면
+      if (lastUpdateTime === null) {
+        lastUpdateTime = currentUpdateTime;
+        return;
+      }
+      
+      if (currentUpdateTime > lastUpdateTime) {
+        console.log('� 재고 데이터 변경 감지!');
+        lastUpdateTime = currentUpdateTime;
+        
+        // 모든 리스너에게 알림
+        changeListeners.forEach(listener => {
+          try {
+            listener({ operationType: 'update' });
+          } catch (error) {
+            console.error('리스너 실행 에러:', error);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('❌ 변경 감지 에러:', error.message);
+    }
+  }, 3000); // 3초
+}
+
 // 변경 감지 리스너들
 const changeListeners = new Set();
-
-// 변경 감지 시작
-export function watchInventoryChanges() {
-  const changeStream = Inventory.watch();
-  
-  changeStream.on('change', (change) => {
-    console.log('📢 재고 데이터 변경 감지:', change.operationType);
-    
-    // 모든 리스너에게 알림
-    changeListeners.forEach(listener => {
-      try {
-        listener(change);
-      } catch (error) {
-        console.error('리스너 실행 에러:', error);
-      }
-    });
-  });
-  
-  changeStream.on('error', (error) => {
-    console.error('❌ Change Stream 에러:', error.message);
-  });
-  
-  console.log('👁️ 재고 변경 감지 시작');
-  return changeStream;
-}
 
 // 변경 리스너 등록
 export function addChangeListener(listener) {
