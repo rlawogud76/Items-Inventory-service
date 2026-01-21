@@ -166,8 +166,8 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
       let fieldValue;
       
       if (uiMode === 'compact') {
-        // 컴팩트 모드: 한 줄로 표시
-        fieldValue = `${currentSets}세트/${currentRemainder}개 │ ${requiredSets}세트/${requiredRemainder}개 ${progressBar} ${percentage}% ${status}${craftingInfo ? ` 🔨 ${craftingInfo.userName}` : ''}`;
+        // 컴팩트 모드: 간결하게 표시
+        fieldValue = `${status} ${currentSets}세트/${currentRemainder}개 │ ${requiredSets}세트/${requiredRemainder}개 (${percentage}%)${craftingInfo ? ` 🔨 ${craftingInfo.userName}` : ''}\n${progressBar}`;
       } else if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
@@ -282,8 +282,8 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
       let fieldValue;
       
       if (uiMode === 'compact') {
-        // 컴팩트 모드: 한 줄로 표시
-        fieldValue = `${currentSets}세트/${currentRemainder}개 │ ${requiredSets}세트/${requiredRemainder}개 ${progressBar} ${percentage}% ${status}${collectingInfo ? ` 👤 ${collectingInfo.userName}` : ''}`;
+        // 컴팩트 모드: 간결하게 표시
+        fieldValue = `${status} ${currentSets}세트/${currentRemainder}개 │ ${requiredSets}세트/${requiredRemainder}개 (${percentage}%)${collectingInfo ? ` 👤 ${collectingInfo.userName}` : ''}\n${progressBar}`;
       } else if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
