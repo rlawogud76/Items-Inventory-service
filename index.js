@@ -907,15 +907,9 @@ client.on('interactionCreate', async (interaction) => {
               } else if (h.action === 'remove') {
                 quantity = 5; // 삭제는 5점
               } else if (h.action === 'reset') {
-                // "192개 -> 0개" 형식
-                const match = h.details.match(/(\d+)개\s*→\s*0개/);
-                if (match) {
-                  quantity = Math.min(parseInt(match[1]) / 10, 10); // 초기화는 최대 10점
-                } else {
-                  quantity = 3; // 기본 3점
-                }
+                quantity = 0; // 초기화는 점수 없음
               } else if (h.action === 'update_required') {
-                quantity = 2; // 목표 수정은 2점
+                quantity = 0; // 목표 수정은 점수 없음
               }
               
               userScores[h.userName].score += quantity;
