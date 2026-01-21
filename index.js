@@ -484,7 +484,35 @@ client.on('ready', async () => {
         .setDescription('재고 관리 봇 사용법을 확인합니다'),
       new SlashCommandBuilder()
         .setName('통계')
-        .setDescription('마을 재고 및 제작 통계를 확인합니다')
+        .setDescription('마을 재고 및 제작 통계를 확인합니다'),
+      new SlashCommandBuilder()
+        .setName('이모지설정')
+        .setDescription('아이템의 이모지를 설정합니다')
+        .addStringOption(option =>
+          option.setName('타입')
+            .setDescription('재고 또는 제작')
+            .setRequired(true)
+            .addChoices(
+              { name: '재고', value: 'inventory' },
+              { name: '제작', value: 'crafting' }
+            ))
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('카테고리 선택')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            ))
+        .addStringOption(option =>
+          option.setName('아이템')
+            .setDescription('아이템 이름')
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('이모지')
+            .setDescription('설정할 이모지 (예: 🪵, ⚙️, 💎)')
+            .setRequired(true))
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);
@@ -872,6 +900,39 @@ client.on('interactionCreate', async (interaction) => {
         }
         
         await sendTemporaryReply(interaction, { embeds: [statsEmbed] }, 30000);
+      }
+
+      else if (commandName === '이모지설정') {
+        const type = interaction.options.getString('타입');
+        const category = interaction.options.getString('카테고리');
+        const itemName = interaction.options.getString('아이템');
+        const emoji = interaction.options.getString('이모지');
+        
+        const inventory = await loadInventory();
+        
+        // 아이템 존재 확인
+        const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+        
+        if (!targetData?.[category]?.[itemName]) {
+          return await sendTemporaryReply(interaction, `❌ "${category}" 카테고리에 "${itemName}" 아이템이 존재하지 않습니다.`);
+        }
+        
+        // 이모지 설정
+        targetData[category][itemName].emoji = emoji;
+        await saveInventory(inventory);
+        
+        const successEmbed = new EmbedBuilder()
+          .setColor(0x57F287)
+          .setTitle('✅ 이모지 설정 완료')
+          .setDescription([
+            `**타입:** ${type === 'inventory' ? '재고' : '제작'}`,
+            `**카테고리:** ${category}`,
+            `**아이템:** ${emoji} ${itemName}`,
+            '',
+            '이제 이 아이템은 설정한 이모지로 표시됩니다.'
+          ].join('\n'));
+        
+        await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
       else if (commandName === '수정내역') {
