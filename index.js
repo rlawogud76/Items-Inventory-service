@@ -4430,6 +4430,9 @@ client.on('interactionCreate', async (interaction) => {
     
     else if (interaction.customId.startsWith('select_tag_items_')) {
       try {
+        // 먼저 응답 지연 처리
+        await interaction.deferUpdate();
+        
         const parts = interaction.customId.replace('select_tag_items_', '').split('_');
         const tagName = parts[parts.length - 1];
         const type = parts[0];
@@ -4438,9 +4441,9 @@ client.on('interactionCreate', async (interaction) => {
         const selectedItems = interaction.values;
         
         if (!selectedItems || selectedItems.length === 0) {
-          return await interaction.reply({ 
+          return await interaction.editReply({ 
             content: '❌ 항목을 선택해주세요.', 
-            ephemeral: true 
+            components: []
           });
         }
         
@@ -4494,7 +4497,7 @@ client.on('interactionCreate', async (interaction) => {
             selectedItems.map(item => `• ${getItemIcon(item, inventory)} ${item}`).join('\n')
           ].filter(Boolean).join('\n'));
         
-        await interaction.update({ 
+        await interaction.editReply({ 
           content: '✅ 태그 설정이 완료되었습니다!',
           embeds: [successEmbed], 
           components: [] 
@@ -4568,6 +4571,9 @@ client.on('interactionCreate', async (interaction) => {
     
     else if (interaction.customId.startsWith('confirm_tag_remove_')) {
       try {
+        // 먼저 응답 지연 처리
+        await interaction.deferUpdate();
+        
         const parts = interaction.customId.replace('confirm_tag_remove_', '').split('_');
         const type = parts[0];
         const category = parts.slice(1).join('_');
@@ -4577,9 +4583,9 @@ client.on('interactionCreate', async (interaction) => {
         const inventory = await loadInventory();
         
         if (!inventory.tags?.[type]?.[category]?.[tagName]) {
-          return await interaction.reply({ 
-            content: `❌ 태그 "${tagName}"을 찾을 수 없습니다.`, 
-            ephemeral: true 
+          return await interaction.editReply({ 
+            content: `❌ 태그 "${tagName}"을 찾을 수 없습니다.`,
+            components: []
           });
         }
         
@@ -4601,7 +4607,7 @@ client.on('interactionCreate', async (interaction) => {
             `⚠️ 항목은 유지되며, 태그만 제거되었습니다.`
           ].join('\n'));
         
-        await interaction.update({ 
+        await interaction.editReply({ 
           content: '✅ 태그가 제거되었습니다!',
           embeds: [successEmbed], 
           components: [] 
