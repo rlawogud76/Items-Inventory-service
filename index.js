@@ -9,10 +9,13 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
 });
 
+// 재고 파일 경로 (Railway Volume 지원)
+const INVENTORY_PATH = process.env.INVENTORY_PATH || './inventory.json';
+
 // 재고 데이터 로드
 async function loadInventory() {
   try {
-    const data = await fs.readFile('inventory.json', 'utf-8');
+    const data = await fs.readFile(INVENTORY_PATH, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
     console.error('재고 파일 로드 실패:', error);
@@ -23,7 +26,7 @@ async function loadInventory() {
 // 재고 데이터 저장
 async function saveInventory(data) {
   try {
-    await fs.writeFile('inventory.json', JSON.stringify(data, null, 2));
+    await fs.writeFile(INVENTORY_PATH, JSON.stringify(data, null, 2));
   } catch (error) {
     console.error('재고 파일 저장 실패:', error);
   }
