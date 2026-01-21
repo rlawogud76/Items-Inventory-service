@@ -33,68 +33,22 @@ export async function connectDatabase() {
   }
 }
 
-// 재고 스키마
+// 재고 스키마 - Mixed 타입으로 단순화
 const inventorySchema = new mongoose.Schema({
   categories: {
-    type: Map,
-    of: {
-      type: Map,
-      of: {
-        quantity: { type: Number, default: 0 },
-        required: { type: Number, default: 0 },
-        emoji: { type: String, default: null }
-      }
-    },
+    type: mongoose.Schema.Types.Mixed,
     default: {}
   },
   collecting: {
-    type: Map,
-    of: {
-      type: Map,
-      of: {
-        userId: String,
-        userName: String,
-        startTime: String
-      }
-    },
+    type: mongoose.Schema.Types.Mixed,
     default: {}
   },
   crafting: {
-    categories: {
-      type: Map,
-      of: {
-        type: Map,
-        of: {
-          quantity: { type: Number, default: 0 },
-          required: { type: Number, default: 0 },
-          emoji: { type: String, default: null }
-        }
-      },
-      default: {}
-    },
-    crafting: {
-      type: Map,
-      of: {
-        type: Map,
-        of: {
-          userId: String,
-          userName: String,
-          startTime: String
-        }
-      },
-      default: {}
-    },
-    recipes: {
-      type: Map,
-      of: {
-        type: Map,
-        of: [{
-          name: String,
-          quantity: Number,
-          category: String
-        }]
-      },
-      default: {}
+    type: mongoose.Schema.Types.Mixed,
+    default: {
+      categories: {},
+      crafting: {},
+      recipes: {}
     }
   },
   settings: {
@@ -111,7 +65,8 @@ const inventorySchema = new mongoose.Schema({
     userName: { type: String, required: true }
   }]
 }, {
-  timestamps: true
+  timestamps: true,
+  minimize: false // 빈 객체도 저장
 });
 
 // 싱글톤 패턴
@@ -139,66 +94,48 @@ inventorySchema.statics.getInstance = async function() {
 
 export const Inventory = mongoose.model('Inventory', inventorySchema);
 
-// 재고 데이터 로드
+// 재고 데이터 로드 - 단순화
 export async function loadInventory() {
   try {
     const inventory = await Inventory.getInstance();
     const data = inventory.toObject();
     
-    // Map을 일반 객체로 변환 (순환 참조 방지)
-    const convertMapToObject = (obj, visited = new WeakSet()) => {
-      // null이나 primitive 타입은 그대로 반환
-      if (obj === null || typeof obj !== 'object') {
-        return obj;
-      }
-      
-      // 배열은 그대로 반환
-      if (Array.isArray(obj)) {
-        return obj;
-      }
-      
-      // 순환 참조 체크
-      if (visited.has(obj)) {
-        return {};
-      }
-      visited.add(obj);
-      
-      // Map 변환
-      if (obj instanceof Map) {
-        const result = {};
-        for (const [key, value] of obj.entries()) {
-          result[key] = convertMapToObject(value, visited);
-        }
-        return result;
-      }
-      
-      // 일반 객체 변환 (메타데이터 제외)
-      const result = {};
-      for (const [key, value] of Object.entries(obj)) {
-        // MongoDB 메타데이터 제외
-        if (key === '_id' || key === '__v' || key === 'id') {
-          continue;
-        }
-        result[key] = convertMapToObject(value, visited);
-      }
-      return result;
-    };
-    
-    const converted = convertMapToObject(data);
+    // 메타데이터 제거
+    delete data._id;
+    delete data.__v;
+    delete data.createdAt;
+    delete data.updatedAt;
     
     // history가 배열인지 확인
-    if (!Array.isArray(converted.history)) {
-      converted.history = [];
+    if (!Array.isArray(data.history)) {
+      data.history = [];
     }
     
-    return converted;
+    // 기본 구조 보장
+    if (!data.categories) data.categories = {};
+    if (!data.collecting) data.collecting = {};
+    if (!data.crafting) {
+      data.crafting = {
+        categories: {},
+        crafting: {},
+        recipes: {}
+      };
+    }
+    if (!data.settings) {
+      data.settings = {
+        uiMode: 'normal',
+        barLength: 15
+      };
+    }
+    
+    return data;
   } catch (error) {
     console.error('❌ 재고 로드 실패:', error.message);
     throw error;
   }
 }
 
-// 재고 데이터 저장
+// 재고 데이터 저장 - markModified 추가
 export async function saveInventory(data) {
   try {
     const inventory = await Inventory.getInstance();
@@ -216,6 +153,12 @@ export async function saveInventory(data) {
     };
     inventory.history = data.history || [];
     
+    // Mixed 타입은 명시적으로 변경 표시 필요
+    inventory.markModified('categories');
+    inventory.markModified('collecting');
+    inventory.markModified('crafting');
+    inventory.markModified('settings');
+    
     await inventory.save();
     return true;
   } catch (error) {
@@ -230,7 +173,8 @@ export async function migrateFromDataFile(inventoryData) {
     const inventory = await Inventory.getInstance();
     
     // 기존 데이터가 있으면 건너뜀
-    const hasData = inventory.categories && Object.keys(inventory.categories.toObject()).length > 0;
+    const categoriesObj = inventory.categories || {};
+    const hasData = Object.keys(categoriesObj).length > 0;
     
     if (hasData) {
       console.log('⚠️ MongoDB에 이미 데이터가 있습니다. 마이그레이션 건너뜀.');
@@ -251,6 +195,11 @@ export async function migrateFromDataFile(inventoryData) {
       barLength: 15
     };
     inventory.history = inventoryData.history || [];
+    
+    inventory.markModified('categories');
+    inventory.markModified('collecting');
+    inventory.markModified('crafting');
+    inventory.markModified('settings');
     
     await inventory.save();
     
