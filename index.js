@@ -2375,6 +2375,60 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
+    else if (interaction.customId.startsWith('tag_remove_')) {
+      try {
+        const parts = interaction.customId.split('_');
+        const type = parts[2];
+        const category = parts.slice(3).join('_');
+        
+        const inventory = await loadInventory();
+        const tags = inventory.tags?.[type]?.[category];
+        
+        if (!tags || Object.keys(tags).length === 0) {
+          return await interaction.update({ 
+            content: `❌ "${category}" 카테고리에 태그가 없습니다.`,
+            components: []
+          });
+        }
+        
+        // 태그 선택 메뉴 생성
+        const tagOptions = Object.entries(tags).map(([tagName, items]) => ({
+          label: tagName,
+          value: tagName,
+          description: `${items.length}개 항목`,
+          emoji: '🏷️'
+        }));
+        
+        const { StringSelectMenuBuilder } = await import('discord.js');
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId(`confirm_tag_remove_${type}_${category}`)
+          .setPlaceholder('제거할 태그를 선택하세요')
+          .setMinValues(1)
+          .setMaxValues(1)
+          .addOptions(tagOptions);
+        
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+        
+        await interaction.update({
+          content: `🗑️ **태그 제거**\n\n제거할 태그를 선택하세요.\n⚠️ 태그만 제거되며, 항목은 유지됩니다.`,
+          components: [row]
+        });
+        
+        // 30초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 30000);
+        
+      } catch (error) {
+        console.error('❌ 태그 제거 버튼 에러:', error);
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+        }
+      }
+    }
+    
     else if (interaction.customId.startsWith('tag_view_')) {
       try {
         const parts = interaction.customId.split('_');
