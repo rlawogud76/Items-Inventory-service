@@ -153,7 +153,7 @@ export async function loadInventory() {
           result[key] = convertMapToObject(value);
         }
         return result;
-      } else if (typeof obj === 'object' && obj !== null) {
+      } else if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
         const result = {};
         for (const [key, value] of Object.entries(obj)) {
           result[key] = convertMapToObject(value);
@@ -163,7 +163,14 @@ export async function loadInventory() {
       return obj;
     };
     
-    return convertMapToObject(data);
+    const converted = convertMapToObject(data);
+    
+    // history가 배열인지 확인
+    if (!Array.isArray(converted.history)) {
+      converted.history = [];
+    }
+    
+    return converted;
   } catch (error) {
     console.error('❌ 재고 로드 실패:', error.message);
     throw error;
