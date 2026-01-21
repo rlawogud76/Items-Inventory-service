@@ -167,19 +167,19 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
       
       if (uiMode === 'compact') {
         // 컴팩트 모드: 한 줄로 표시
-        fieldValue = `${currentSets}세트-${currentRemainder}개/${requiredSets}세트-${requiredRemainder}개 ${progressBar} ${percentage}% ${status}${craftingInfo ? ` 🔨 ${craftingInfo.userName}` : ''}`;
+        fieldValue = `${currentSets}세트/${currentRemainder}개 | ${requiredSets}세트/${requiredRemainder}개 ${progressBar} ${percentage}% ${status}${craftingInfo ? ` 🔨 ${craftingInfo.userName}` : ''}`;
       } else if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
-          `**현재 수량:** ${currentSets}세트-${currentRemainder}개 (총 ${data.quantity}개)`,
-          `**충족 수량:** ${requiredSets}세트-${requiredRemainder}개 (총 ${data.required}개)`,
+          `**현재 수량:** ${currentSets}세트/${currentRemainder}개 (총 ${data.quantity}개)`,
+          `**충족 수량:** ${requiredSets}세트/${requiredRemainder}개 (총 ${data.required}개)`,
           `**진행률:** ${percentage}% ${status}`,
           `${progressBar}${craftingText}`
         ].join('\n');
       } else {
         // 일반 모드
         fieldValue = [
-          `**현재 수량:** ${currentSets}세트-${currentRemainder}개 / **충족 수량:** ${requiredSets}세트-${requiredRemainder}개`,
+          `**현재 수량:** ${currentSets}세트/${currentRemainder}개 | **충족 수량:** ${requiredSets}세트/${requiredRemainder}개`,
           `${progressBar} ${percentage}% ${status}${craftingText}`
         ].join('\n');
       }
@@ -283,19 +283,19 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
       
       if (uiMode === 'compact') {
         // 컴팩트 모드: 한 줄로 표시
-        fieldValue = `${currentSets}세트-${currentRemainder}개/${requiredSets}세트-${requiredRemainder}개 ${progressBar} ${percentage}% ${status}${collectingInfo ? ` 👤 ${collectingInfo.userName}` : ''}`;
+        fieldValue = `${currentSets}세트/${currentRemainder}개 | ${requiredSets}세트/${requiredRemainder}개 ${progressBar} ${percentage}% ${status}${collectingInfo ? ` 👤 ${collectingInfo.userName}` : ''}`;
       } else if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
-          `**현재 수량:** ${currentSets}세트-${currentRemainder}개 (총 ${data.quantity}개)`,
-          `**충족 수량:** ${requiredSets}세트-${requiredRemainder}개 (총 ${data.required}개)`,
+          `**현재 수량:** ${currentSets}세트/${currentRemainder}개 (총 ${data.quantity}개)`,
+          `**충족 수량:** ${requiredSets}세트/${requiredRemainder}개 (총 ${data.required}개)`,
           `**진행률:** ${percentage}% ${status}`,
           `${progressBar}${collectingText}`
         ].join('\n');
       } else {
         // 일반 모드
         fieldValue = [
-          `**현재 수량:** ${currentSets}세트-${currentRemainder}개 / **충족 수량:** ${requiredSets}세트-${requiredRemainder}개`,
+          `**현재 수량:** ${currentSets}세트/${currentRemainder}개 | **충족 수량:** ${requiredSets}세트/${requiredRemainder}개`,
           `${progressBar} ${percentage}% ${status}${collectingText}`
         ].join('\n');
       }
