@@ -1,7 +1,6 @@
 ﻿import { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import fs from 'fs/promises';
 import dotenv from 'dotenv';
-import { inventoryData } from './data.js';
+import { connectDatabase, loadInventory, saveInventory, migrateFromDataFile } from './src/database.js';
 
 // .env 파일 로드
 dotenv.config();
@@ -9,30 +8,6 @@ dotenv.config();
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
 });
-
-// 메모리에 데이터 저장 (런타임 중에만 유지)
-let currentInventory = JSON.parse(JSON.stringify(inventoryData));
-
-// 재고 데이터 로드
-async function loadInventory() {
-  return currentInventory;
-}
-
-// 재고 데이터 저장 (data.js 파일에 자동 저장)
-async function saveInventory(data) {
-  try {
-    currentInventory = data;
-    
-    // data.js 파일 업데이트
-    const fileContent = `// 재고 데이터 - 이 파일을 수정하면 Git에 커밋하세요
-export const inventoryData = ${JSON.stringify(data, null, 2)};
-`;
-    await fs.writeFile('./data.js', fileContent, 'utf-8');
-    console.log('✅ data.js 파일 저장 완료');
-  } catch (error) {
-    console.error('❌ 재고 파일 저장 실패:', error);
-  }
-}
 
 // 수정 내역 추가
 function addHistory(inventory, type, category, itemName, action, details, userName) {
@@ -435,6 +410,22 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
 
 client.on('ready', async () => {
   console.log(`✅ ${client.user.tag} 봇이 준비되었습니다!`);
+  
+  // MongoDB 연결
+  const connected = await connectDatabase();
+  if (!connected) {
+    console.error('❌ MongoDB 연결 실패로 봇을 종료합니다.');
+    process.exit(1);
+  }
+  
+  // data.js에서 마이그레이션 시도
+  try {
+    const { inventoryData } = await import('./data.js');
+    await migrateFromDataFile(inventoryData);
+  } catch (error) {
+    console.log('ℹ️ data.js 파일이 없습니다. (정상 - MongoDB만 사용)');
+  }
+  
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('📦 재고 관리: /재고, /재고물품추가, /재고물품제거');
   console.log('🔨 제작 관리: /제작, /제작품목추가, /제작품목제거');
