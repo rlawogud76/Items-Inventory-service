@@ -866,25 +866,80 @@ client.on('interactionCreate', async (interaction) => {
         
         // 활동 현황 필드
         if (recentHistory.length > 0) {
+          // 점수 계산 함수 (횟수 x 수량)
+          const calculateScore = (historyList) => {
+            const userScores = {};
+            
+            historyList.forEach(h => {
+              if (!userScores[h.userName]) {
+                userScores[h.userName] = {
+                  score: 0,
+                  count: 0,
+                  add: 0,
+                  update: 0,
+                  remove: 0,
+                  reset: 0
+                };
+              }
+              
+              // details에서 수량 추출 (예: "0 -> 192", "192개 추가", "초기: 0개, 목표: 100개")
+              let quantity = 1; // 기본값
+              
+              if (h.action === 'add' || h.action === 'update_quantity') {
+                // "0 -> 192" 형식
+                const match1 = h.details.match(/(\d+)\s*->\s*(\d+)/);
+                if (match1) {
+                  const diff = Math.abs(parseInt(match1[2]) - parseInt(match1[1]));
+                  quantity = diff > 0 ? diff : 1;
+                }
+                
+                // "192개 추가" 형식
+                const match2 = h.details.match(/(\d+)개\s*추가/);
+                if (match2) {
+                  quantity = parseInt(match2[1]);
+                }
+                
+                // "초기: 0개, 목표: 100개" 형식 (추가 시)
+                const match3 = h.details.match(/초기:\s*(\d+)개/);
+                if (match3 && h.action === 'add') {
+                  quantity = 10; // 아이템 추가는 10점
+                }
+              } else if (h.action === 'remove') {
+                quantity = 5; // 삭제는 5점
+              } else if (h.action === 'reset') {
+                // "192개 -> 0개" 형식
+                const match = h.details.match(/(\d+)개\s*→\s*0개/);
+                if (match) {
+                  quantity = Math.min(parseInt(match[1]) / 10, 10); // 초기화는 최대 10점
+                } else {
+                  quantity = 3; // 기본 3점
+                }
+              } else if (h.action === 'update_required') {
+                quantity = 2; // 목표 수정은 2점
+              }
+              
+              userScores[h.userName].score += quantity;
+              userScores[h.userName].count += 1;
+              
+              // 활동 유형별 카운트
+              if (h.action === 'add') userScores[h.userName].add += 1;
+              else if (h.action === 'update_quantity' || h.action === 'update_required') userScores[h.userName].update += 1;
+              else if (h.action === 'remove') userScores[h.userName].remove += 1;
+              else if (h.action === 'reset') userScores[h.userName].reset += 1;
+            });
+            
+            return Object.entries(userScores)
+              .sort((a, b) => b[1].score - a[1].score)
+              .slice(0, 3);
+          };
+          
           // 재고 활동 분석
           const inventoryHistory = recentHistory.filter(h => h.type === 'inventory');
-          const inventoryUserActivity = {};
-          inventoryHistory.forEach(h => {
-            inventoryUserActivity[h.userName] = (inventoryUserActivity[h.userName] || 0) + 1;
-          });
-          const topInventoryUsers = Object.entries(inventoryUserActivity)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 3);
+          const topInventoryUsers = calculateScore(inventoryHistory);
           
           // 제작 활동 분석
           const craftingHistory = recentHistory.filter(h => h.type === 'crafting');
-          const craftingUserActivity = {};
-          craftingHistory.forEach(h => {
-            craftingUserActivity[h.userName] = (craftingUserActivity[h.userName] || 0) + 1;
-          });
-          const topCraftingUsers = Object.entries(craftingUserActivity)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 3);
+          const topCraftingUsers = calculateScore(craftingHistory);
           
           const activityText = [];
           
@@ -895,23 +950,15 @@ client.on('interactionCreate', async (interaction) => {
             
             const medals = ['🥇', '🥈', '🥉'];
             
-            topInventoryUsers.forEach(([user, totalCount], idx) => {
-              const userHistory = inventoryHistory.filter(h => h.userName === user);
-              
-              // 활동 유형별 카운트
-              const addCount = userHistory.filter(h => h.action === 'add').length;
-              const updateCount = userHistory.filter(h => h.action === 'update_quantity' || h.action === 'update_required').length;
-              const removeCount = userHistory.filter(h => h.action === 'remove').length;
-              const resetCount = userHistory.filter(h => h.action === 'reset').length;
-              
+            topInventoryUsers.forEach(([user, data], idx) => {
               // 상세 정보
               const details = [];
-              if (addCount > 0) details.push(`추가 ${addCount}`);
-              if (updateCount > 0) details.push(`수정 ${updateCount}`);
-              if (removeCount > 0) details.push(`삭제 ${removeCount}`);
-              if (resetCount > 0) details.push(`초기화 ${resetCount}`);
+              if (data.add > 0) details.push(`추가 ${data.add}`);
+              if (data.update > 0) details.push(`수정 ${data.update}`);
+              if (data.remove > 0) details.push(`삭제 ${data.remove}`);
+              if (data.reset > 0) details.push(`초기화 ${data.reset}`);
               
-              activityText.push(`${medals[idx]} **${user}** - 총 ${totalCount}회`);
+              activityText.push(`${medals[idx]} **${user}** - ${Math.round(data.score)}점 (${data.count}회)`);
               activityText.push(`   └ ${details.join(', ')}`);
               activityText.push('');
             });
@@ -924,23 +971,15 @@ client.on('interactionCreate', async (interaction) => {
             
             const medals = ['🥇', '🥈', '🥉'];
             
-            topCraftingUsers.forEach(([user, totalCount], idx) => {
-              const userHistory = craftingHistory.filter(h => h.userName === user);
-              
-              // 활동 유형별 카운트
-              const addCount = userHistory.filter(h => h.action === 'add').length;
-              const updateCount = userHistory.filter(h => h.action === 'update_quantity' || h.action === 'update_required').length;
-              const removeCount = userHistory.filter(h => h.action === 'remove').length;
-              const resetCount = userHistory.filter(h => h.action === 'reset').length;
-              
+            topCraftingUsers.forEach(([user, data], idx) => {
               // 상세 정보
               const details = [];
-              if (addCount > 0) details.push(`추가 ${addCount}`);
-              if (updateCount > 0) details.push(`수정 ${updateCount}`);
-              if (removeCount > 0) details.push(`삭제 ${removeCount}`);
-              if (resetCount > 0) details.push(`초기화 ${resetCount}`);
+              if (data.add > 0) details.push(`추가 ${data.add}`);
+              if (data.update > 0) details.push(`수정 ${data.update}`);
+              if (data.remove > 0) details.push(`삭제 ${data.remove}`);
+              if (data.reset > 0) details.push(`초기화 ${data.reset}`);
               
-              activityText.push(`${medals[idx]} **${user}** - 총 ${totalCount}회`);
+              activityText.push(`${medals[idx]} **${user}** - ${Math.round(data.score)}점 (${data.count}회)`);
               activityText.push(`   └ ${details.join(', ')}`);
               activityText.push('');
             });
