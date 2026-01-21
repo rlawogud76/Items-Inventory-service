@@ -3,8 +3,14 @@ import mongoose from 'mongoose';
 // MongoDB 연결
 export async function connectDatabase() {
   try {
-    // Railway는 MONGODB_URL, 로컬은 MONGODB_URI 사용
-    const mongoUri = process.env.MONGODB_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017/minecraft-inventory';
+    // Railway는 여러 변수명 사용 가능
+    const mongoUri = process.env.MONGODB_URL || 
+                     process.env.MONGO_URL || 
+                     process.env.DATABASE_URL || 
+                     process.env.MONGODB_URI || 
+                     'mongodb://localhost:27017/minecraft-inventory';
+    
+    console.log('🔍 MongoDB URI 확인:', mongoUri.replace(/\/\/.*:.*@/, '//***:***@')); // 비밀번호 숨김
     
     await mongoose.connect(mongoUri);
     
