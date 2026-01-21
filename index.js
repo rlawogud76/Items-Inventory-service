@@ -1,40 +1,40 @@
-import { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+ï»¿import { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import fs from 'fs/promises';
 import dotenv from 'dotenv';
 import { inventoryData } from './data.js';
 
-// .env ÆÄÀÏ ·Îµå
+// .env íŒŒì¼ ë¡œë“œ
 dotenv.config();
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
 });
 
-// ¸Ş¸ğ¸®¿¡ µ¥ÀÌÅÍ ÀúÀå (·±Å¸ÀÓ Áß¿¡¸¸ À¯Áö)
+// ë©”ëª¨ë¦¬ì— ë°ì´í„° ì €ì¥ (ëŸ°íƒ€ì„ ì¤‘ì—ë§Œ ìœ ì§€)
 let currentInventory = JSON.parse(JSON.stringify(inventoryData));
 
-// Àç°í µ¥ÀÌÅÍ ·Îµå
+// ì¬ê³  ë°ì´í„° ë¡œë“œ
 async function loadInventory() {
   return currentInventory;
 }
 
-// Àç°í µ¥ÀÌÅÍ ÀúÀå (data.js ÆÄÀÏ¿¡ ÀÚµ¿ ÀúÀå)
+// ì¬ê³  ë°ì´í„° ì €ì¥ (data.js íŒŒì¼ì— ìë™ ì €ì¥)
 async function saveInventory(data) {
   try {
     currentInventory = data;
     
-    // data.js ÆÄÀÏ ¾÷µ¥ÀÌÆ®
-    const fileContent = `// Àç°í µ¥ÀÌÅÍ - ÀÌ ÆÄÀÏÀ» ¼öÁ¤ÇÏ¸é Git¿¡ Ä¿¹ÔÇÏ¼¼¿ä
+    // data.js íŒŒì¼ ì—…ë°ì´íŠ¸
+    const fileContent = `// ì¬ê³  ë°ì´í„° - ì´ íŒŒì¼ì„ ìˆ˜ì •í•˜ë©´ Gitì— ì»¤ë°‹í•˜ì„¸ìš”
 export const inventoryData = ${JSON.stringify(data, null, 2)};
 `;
     await fs.writeFile('./data.js', fileContent, 'utf-8');
-    console.log('? data.js ÆÄÀÏ ÀúÀå ¿Ï·á');
+    console.log('âœ… data.js íŒŒì¼ ì €ì¥ ì™„ë£Œ');
   } catch (error) {
-    console.error('? Àç°í ÆÄÀÏ ÀúÀå ½ÇÆĞ:', error);
+    console.error('âŒ ì¬ê³  íŒŒì¼ ì €ì¥ ì‹¤íŒ¨:', error);
   }
 }
 
-// ¼öÁ¤ ³»¿ª Ãß°¡
+// ìˆ˜ì • ë‚´ì—­ ì¶”ê°€
 function addHistory(inventory, type, category, itemName, action, details, userName) {
   if (!inventory.history) {
     inventory.history = [];
@@ -50,15 +50,15 @@ function addHistory(inventory, type, category, itemName, action, details, userNa
     userName: userName
   });
   
-  // ÃÖ´ë 100°³±îÁö¸¸ º¸°ü
+  // ìµœëŒ€ 100ê°œê¹Œì§€ë§Œ ë³´ê´€
   if (inventory.history.length > 100) {
     inventory.history = inventory.history.slice(0, 100);
   }
 }
 
-// ephemeral ¸Ş½ÃÁö ÀÚµ¿ »èÁ¦
+// ephemeral ë©”ì‹œì§€ ìë™ ì‚­ì œ
 async function sendTemporaryReply(interaction, content, deleteAfter = 15000) {
-  // content°¡ ¹®ÀÚ¿­ÀÌ¸é { content: ... }, °´Ã¼¸é ±×´ë·Î »ç¿ë
+  // contentê°€ ë¬¸ìì—´ì´ë©´ { content: ... }, ê°ì²´ë©´ ê·¸ëŒ€ë¡œ ì‚¬ìš©
   const replyOptions = typeof content === 'string' 
     ? { content: content, ephemeral: true, fetchReply: true }
     : { ...content, ephemeral: true, fetchReply: true };
@@ -69,32 +69,32 @@ async function sendTemporaryReply(interaction, content, deleteAfter = 15000) {
     try {
       await interaction.deleteReply();
     } catch (error) {
-      // ÀÌ¹Ì »èÁ¦µÇ¾ú°Å³ª »èÁ¦ÇÒ ¼ö ¾ø´Â °æ¿ì ¹«½Ã
+      // ì´ë¯¸ ì‚­ì œë˜ì—ˆê±°ë‚˜ ì‚­ì œí•  ìˆ˜ ì—†ëŠ” ê²½ìš° ë¬´ì‹œ
     }
   }, deleteAfter);
   
   return reply;
 }
 
-// Àç°í »óÅÂ ÀÌ¸ğÁö ¹İÈ¯
+// ì¬ê³  ìƒíƒœ ì´ëª¨ì§€ ë°˜í™˜
 function getStatusEmoji(quantity, required) {
   const percentage = (quantity / required) * 100;
-  if (percentage <= 25) return '??'; // 25% ÀÌÇÏ
-  if (percentage < 90) return '??'; // 25% ÃÊ°ú ~ 90% ¹Ì¸¸
-  return '??'; // 90% ÀÌ»ó
+  if (percentage <= 25) return 'ğŸ”´'; // 25% ì´í•˜
+  if (percentage < 90) return 'ğŸŸ¡'; // 25% ì´ˆê³¼ ~ 90% ë¯¸ë§Œ
+  return 'ğŸŸ¢'; // 90% ì´ìƒ
 }
 
-// ¾ÆÀÌÅÛ ¾ÆÀÌÄÜ ¹İÈ¯
+// ì•„ì´í…œ ì•„ì´ì½˜ ë°˜í™˜
 function getItemIcon(itemName, inventory = null) {
-  // ¸ÕÀú inventory¿¡¼­ Ä¿½ºÅÒ ÀÌ¸ğÁö È®ÀÎ
+  // ë¨¼ì € inventoryì—ì„œ ì»¤ìŠ¤í…€ ì´ëª¨ì§€ í™•ì¸
   if (inventory) {
-    // Àç°í Ä«Å×°í¸® È®ÀÎ
+    // ì¬ê³  ì¹´í…Œê³ ë¦¬ í™•ì¸
     for (const category of Object.values(inventory.categories || {})) {
       if (category[itemName]?.emoji) {
         return category[itemName].emoji;
       }
     }
-    // Á¦ÀÛ Ä«Å×°í¸® È®ÀÎ
+    // ì œì‘ ì¹´í…Œê³ ë¦¬ í™•ì¸
     for (const category of Object.values(inventory.crafting?.categories || {})) {
       if (category[itemName]?.emoji) {
         return category[itemName].emoji;
@@ -102,46 +102,46 @@ function getItemIcon(itemName, inventory = null) {
     }
   }
   
-  // ±âº» ¾ÆÀÌÄÜ
+  // ê¸°ë³¸ ì•„ì´ì½˜
   const icons = {
-    '´ÙÀÌ¾Æ¸óµå': '??',
-    'Ã¶±«': '??',
-    '³ª¹«': '??',
-    'À½½Ä': '??',
-    '·¹µå½ºÅæ': '??'
+    'ë‹¤ì´ì•„ëª¬ë“œ': 'ğŸ’',
+    'ì² ê´´': 'âš™ï¸',
+    'ë‚˜ë¬´': 'ğŸªµ',
+    'ìŒì‹': 'ğŸ–',
+    'ë ˆë“œìŠ¤í†¤': 'ğŸ”´'
   };
-  return icons[itemName] || '??';
+  return icons[itemName] || 'ğŸ“¦';
 }
 
-// ÇÁ·Î±×·¹½º ¹Ù »ı¼º
+// í”„ë¡œê·¸ë ˆìŠ¤ ë°” ìƒì„±
 function createProgressBar(current, required, length = 10) {
   const percentage = Math.min(current / required, 1);
   const filled = Math.round(percentage * length);
   const empty = length - filled;
   
-  const filledChar = '?';
-  const emptyChar = '?';
+  const filledChar = 'â–ˆ';
+  const emptyChar = 'â–‘';
   
   return filledChar.repeat(filled) + emptyChar.repeat(empty);
 }
 
-// Á¦ÀÛ ÀÓº£µå »ı¼º
+// ì œì‘ ì„ë² ë“œ ìƒì„±
 function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', barLength = 10) {
   const embed = new EmbedBuilder()
     .setColor(0xFFA500)
     .setTimestamp()
-    .setFooter({ text: '¸¶Áö¸· ¾÷µ¥ÀÌÆ®' });
+    .setFooter({ text: 'ë§ˆì§€ë§‰ ì—…ë°ì´íŠ¸' });
 
-  // Æ¯Á¤ Ä«Å×°í¸®¸¸ Ç¥½Ã
+  // íŠ¹ì • ì¹´í…Œê³ ë¦¬ë§Œ í‘œì‹œ
   if (categoryName) {
-    embed.setTitle(`?? ${categoryName} Á¦ÀÛ °ü¸®`);
+    embed.setTitle(`ğŸ”¨ ${categoryName} ì œì‘ ê´€ë¦¬`);
     
     if (!crafting.categories[categoryName] || Object.keys(crafting.categories[categoryName]).length === 0) {
-      embed.setDescription('?? µî·ÏµÈ Á¦ÀÛÇ°ÀÌ ¾ø½À´Ï´Ù.');
+      embed.setDescription('âš ï¸ ë“±ë¡ëœ ì œì‘í’ˆì´ ì—†ìŠµë‹ˆë‹¤.');
       return embed;
     }
 
-    // inventory ÀüÃ¼¸¦ Àü´ŞÇÏ±â À§ÇØ craftingÀ» Æ÷ÇÔÇÑ °´Ã¼ »ı¼º
+    // inventory ì „ì²´ë¥¼ ì „ë‹¬í•˜ê¸° ìœ„í•´ craftingì„ í¬í•¨í•œ ê°ì²´ ìƒì„±
     const fullInventory = { crafting: crafting };
 
     const items = Object.entries(crafting.categories[categoryName]);
@@ -151,42 +151,42 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
       const progressBar = createProgressBar(data.quantity, data.required, barLength);
       const percentage = Math.round((data.quantity / data.required) * 100);
       
-      // ¼¼Æ® °è»ê
+      // ì„¸íŠ¸ ê³„ì‚°
       const currentSets = Math.floor(data.quantity / 64);
       const currentRemainder = data.quantity % 64;
       const requiredSets = Math.floor(data.required / 64);
       const requiredRemainder = data.required % 64;
       
-      // Á¦ÀÛ ÁßÀÎ »ç¶÷ È®ÀÎ
+      // ì œì‘ ì¤‘ì¸ ì‚¬ëŒ í™•ì¸
       const craftingInfo = crafting.crafting?.[categoryName]?.[itemName];
       const craftingText = craftingInfo 
-        ? `\n> ?? **Á¦ÀÛÁß:** ${craftingInfo.userName}` 
+        ? `\n> ğŸ”¨ **ì œì‘ì¤‘:** ${craftingInfo.userName}` 
         : '';
       
       let fieldValue;
       
       if (uiMode === 'compact') {
-        // ÄÄÆÑÆ® ¸ğµå: ÇÑ ÁÙ·Î Ç¥½Ã
-        fieldValue = `${currentSets}¼¼Æ®/${currentRemainder}°³ ¦¢ ${requiredSets}¼¼Æ®/${requiredRemainder}°³ ${progressBar} ${percentage}% ${status}${craftingInfo ? ` ?? ${craftingInfo.userName}` : ''}`;
+        // ì»´íŒ©íŠ¸ ëª¨ë“œ: í•œ ì¤„ë¡œ í‘œì‹œ
+        fieldValue = `${currentSets}ì„¸íŠ¸/${currentRemainder}ê°œ â”‚ ${requiredSets}ì„¸íŠ¸/${requiredRemainder}ê°œ ${progressBar} ${percentage}% ${status}${craftingInfo ? ` ğŸ”¨ ${craftingInfo.userName}` : ''}`;
       } else if (uiMode === 'detailed') {
-        // »ó¼¼ ¸ğµå: ´õ ¸¹Àº Á¤º¸
+        // ìƒì„¸ ëª¨ë“œ: ë” ë§ì€ ì •ë³´
         fieldValue = [
-          `**ÇöÀç ¼ö·®:** ${currentSets}¼¼Æ®/${currentRemainder}°³ (ÃÑ ${data.quantity}°³)`,
-          `**ÃæÁ· ¼ö·®:** ${requiredSets}¼¼Æ®/${requiredRemainder}°³ (ÃÑ ${data.required}°³)`,
-          `**ÁøÇà·ü:** ${percentage}% ${status}`,
+          `**í˜„ì¬ ìˆ˜ëŸ‰:** ${currentSets}ì„¸íŠ¸/${currentRemainder}ê°œ (ì´ ${data.quantity}ê°œ)`,
+          `**ì¶©ì¡± ìˆ˜ëŸ‰:** ${requiredSets}ì„¸íŠ¸/${requiredRemainder}ê°œ (ì´ ${data.required}ê°œ)`,
+          `**ì§„í–‰ë¥ :** ${percentage}% ${status}`,
           `${progressBar}${craftingText}`
         ].join('\n');
       } else {
-        // ÀÏ¹İ ¸ğµå
+        // ì¼ë°˜ ëª¨ë“œ
         fieldValue = [
-          `**ÇöÀç ¼ö·®:** ${currentSets}¼¼Æ®/${currentRemainder}°³ ¦¢ **ÃæÁ· ¼ö·®:** ${requiredSets}¼¼Æ®/${requiredRemainder}°³`,
+          `**í˜„ì¬ ìˆ˜ëŸ‰:** ${currentSets}ì„¸íŠ¸/${currentRemainder}ê°œ â”‚ **ì¶©ì¡± ìˆ˜ëŸ‰:** ${requiredSets}ì„¸íŠ¸/${requiredRemainder}ê°œ`,
           `${progressBar} ${percentage}% ${status}${craftingText}`
         ].join('\n');
       }
       
-      // ¸¶Áö¸· ¾ÆÀÌÅÛÀÌ ¾Æ´Ï¸é ±¸ºĞ¼± Ãß°¡
+      // ë§ˆì§€ë§‰ ì•„ì´í…œì´ ì•„ë‹ˆë©´ êµ¬ë¶„ì„  ì¶”ê°€
       if (index < items.length - 1) {
-        fieldValue += '\n¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬';
+        fieldValue += '\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”';
       }
 
       embed.addFields({
@@ -196,11 +196,11 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
       });
     });
   } else {
-    // ÀüÃ¼ Ä«Å×°í¸® Ç¥½Ã
-    embed.setTitle('?? Á¦ÀÛ °ü¸® ½Ã½ºÅÛ');
+    // ì „ì²´ ì¹´í…Œê³ ë¦¬ í‘œì‹œ
+    embed.setTitle('ğŸ”¨ ì œì‘ ê´€ë¦¬ ì‹œìŠ¤í…œ');
     
     if (!crafting.categories || Object.keys(crafting.categories).length === 0) {
-      embed.setDescription('?? µî·ÏµÈ Ä«Å×°í¸®°¡ ¾ø½À´Ï´Ù.');
+      embed.setDescription('âš ï¸ ë“±ë¡ëœ ì¹´í…Œê³ ë¦¬ê°€ ì—†ìŠµë‹ˆë‹¤.');
       return embed;
     }
 
@@ -215,27 +215,27 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
         const icon = getItemIcon(itemName, fullInventory);
         const percentage = Math.round((data.quantity / data.required) * 100);
         
-        // Á¦ÀÛ ÁßÀÎ »ç¶÷ È®ÀÎ
+        // ì œì‘ ì¤‘ì¸ ì‚¬ëŒ í™•ì¸
         const craftingInfo = crafting.crafting?.[catName]?.[itemName];
-        const craftingText = craftingInfo ? ` ?? **${craftingInfo.userName}**` : '';
+        const craftingText = craftingInfo ? ` ğŸ”¨ **${craftingInfo.userName}**` : '';
         
         if (uiMode === 'compact') {
           categoryText += `${icon} ${itemName}: ${data.quantity}/${data.required} (${percentage}%) ${status}${craftingText}\n`;
         } else if (uiMode === 'detailed') {
-          categoryText += `### ${icon} ${itemName}\n**ÇöÀç:** ${data.quantity}°³ / **¸ñÇ¥:** ${data.required}°³\n**ÁøÇà·ü:** ${percentage}% ${status}${craftingText}\n`;
+          categoryText += `### ${icon} ${itemName}\n**í˜„ì¬:** ${data.quantity}ê°œ / **ëª©í‘œ:** ${data.required}ê°œ\n**ì§„í–‰ë¥ :** ${percentage}% ${status}${craftingText}\n`;
         } else {
           categoryText += `### ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${craftingText}\n`;
         }
         
-        // ¸¶Áö¸· ¾ÆÀÌÅÛÀÌ ¾Æ´Ï¸é ±¸ºĞ¼± Ãß°¡
+        // ë§ˆì§€ë§‰ ì•„ì´í…œì´ ì•„ë‹ˆë©´ êµ¬ë¶„ì„  ì¶”ê°€
         if (index < itemEntries.length - 1) {
-          categoryText += '¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬\n';
+          categoryText += 'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n';
         }
       });
       
       embed.addFields({
-        name: `?? **${catName}**`,
-        value: categoryText || 'Á¦ÀÛÇ° ¾øÀ½',
+        name: `ğŸ“¦ **${catName}**`,
+        value: categoryText || 'ì œì‘í’ˆ ì—†ìŒ',
         inline: false
       });
     }
@@ -244,19 +244,19 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
   return embed;
 }
 
-// Àç°í ÀÓº£µå »ı¼º
+// ì¬ê³  ì„ë² ë“œ ìƒì„±
 function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal', barLength = 10) {
   const embed = new EmbedBuilder()
     .setColor(0x5865F2)
     .setTimestamp()
-    .setFooter({ text: '¸¶Áö¸· ¾÷µ¥ÀÌÆ®' });
+    .setFooter({ text: 'ë§ˆì§€ë§‰ ì—…ë°ì´íŠ¸' });
 
-  // Æ¯Á¤ Ä«Å×°í¸®¸¸ Ç¥½Ã
+  // íŠ¹ì • ì¹´í…Œê³ ë¦¬ë§Œ í‘œì‹œ
   if (categoryName) {
-    embed.setTitle(`??? ${categoryName} Àç°í °ü¸®`);
+    embed.setTitle(`ğŸ˜ï¸ ${categoryName} ì¬ê³  ê´€ë¦¬`);
     
     if (!inventory.categories[categoryName] || Object.keys(inventory.categories[categoryName]).length === 0) {
-      embed.setDescription('?? µî·ÏµÈ ¾ÆÀÌÅÛÀÌ ¾ø½À´Ï´Ù.');
+      embed.setDescription('âš ï¸ ë“±ë¡ëœ ì•„ì´í…œì´ ì—†ìŠµë‹ˆë‹¤.');
       return embed;
     }
 
@@ -267,42 +267,42 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
       const progressBar = createProgressBar(data.quantity, data.required, barLength);
       const percentage = Math.round((data.quantity / data.required) * 100);
       
-      // ¼¼Æ® °è»ê
+      // ì„¸íŠ¸ ê³„ì‚°
       const currentSets = Math.floor(data.quantity / 64);
       const currentRemainder = data.quantity % 64;
       const requiredSets = Math.floor(data.required / 64);
       const requiredRemainder = data.required % 64;
       
-      // ¼öÁı ÁßÀÎ »ç¶÷ È®ÀÎ
+      // ìˆ˜ì§‘ ì¤‘ì¸ ì‚¬ëŒ í™•ì¸
       const collectingInfo = inventory.collecting?.[categoryName]?.[itemName];
       const collectingText = collectingInfo 
-        ? `\n> ?? **¼öÁıÁß:** ${collectingInfo.userName}` 
+        ? `\n> ğŸ‘¤ **ìˆ˜ì§‘ì¤‘:** ${collectingInfo.userName}` 
         : '';
       
       let fieldValue;
       
       if (uiMode === 'compact') {
-        // ÄÄÆÑÆ® ¸ğµå: ÇÑ ÁÙ·Î Ç¥½Ã
-        fieldValue = `${currentSets}¼¼Æ®/${currentRemainder}°³ ¦¢ ${requiredSets}¼¼Æ®/${requiredRemainder}°³ ${progressBar} ${percentage}% ${status}${collectingInfo ? ` ?? ${collectingInfo.userName}` : ''}`;
+        // ì»´íŒ©íŠ¸ ëª¨ë“œ: í•œ ì¤„ë¡œ í‘œì‹œ
+        fieldValue = `${currentSets}ì„¸íŠ¸/${currentRemainder}ê°œ â”‚ ${requiredSets}ì„¸íŠ¸/${requiredRemainder}ê°œ ${progressBar} ${percentage}% ${status}${collectingInfo ? ` ğŸ‘¤ ${collectingInfo.userName}` : ''}`;
       } else if (uiMode === 'detailed') {
-        // »ó¼¼ ¸ğµå: ´õ ¸¹Àº Á¤º¸
+        // ìƒì„¸ ëª¨ë“œ: ë” ë§ì€ ì •ë³´
         fieldValue = [
-          `**ÇöÀç ¼ö·®:** ${currentSets}¼¼Æ®/${currentRemainder}°³ (ÃÑ ${data.quantity}°³)`,
-          `**ÃæÁ· ¼ö·®:** ${requiredSets}¼¼Æ®/${requiredRemainder}°³ (ÃÑ ${data.required}°³)`,
-          `**ÁøÇà·ü:** ${percentage}% ${status}`,
+          `**í˜„ì¬ ìˆ˜ëŸ‰:** ${currentSets}ì„¸íŠ¸/${currentRemainder}ê°œ (ì´ ${data.quantity}ê°œ)`,
+          `**ì¶©ì¡± ìˆ˜ëŸ‰:** ${requiredSets}ì„¸íŠ¸/${requiredRemainder}ê°œ (ì´ ${data.required}ê°œ)`,
+          `**ì§„í–‰ë¥ :** ${percentage}% ${status}`,
           `${progressBar}${collectingText}`
         ].join('\n');
       } else {
-        // ÀÏ¹İ ¸ğµå
+        // ì¼ë°˜ ëª¨ë“œ
         fieldValue = [
-          `**ÇöÀç ¼ö·®:** ${currentSets}¼¼Æ®/${currentRemainder}°³ ¦¢ **ÃæÁ· ¼ö·®:** ${requiredSets}¼¼Æ®/${requiredRemainder}°³`,
+          `**í˜„ì¬ ìˆ˜ëŸ‰:** ${currentSets}ì„¸íŠ¸/${currentRemainder}ê°œ â”‚ **ì¶©ì¡± ìˆ˜ëŸ‰:** ${requiredSets}ì„¸íŠ¸/${requiredRemainder}ê°œ`,
           `${progressBar} ${percentage}% ${status}${collectingText}`
         ].join('\n');
       }
       
-      // ¸¶Áö¸· ¾ÆÀÌÅÛÀÌ ¾Æ´Ï¸é ±¸ºĞ¼± Ãß°¡
+      // ë§ˆì§€ë§‰ ì•„ì´í…œì´ ì•„ë‹ˆë©´ êµ¬ë¶„ì„  ì¶”ê°€
       if (index < items.length - 1) {
-        fieldValue += '\n¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬';
+        fieldValue += '\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”';
       }
 
       embed.addFields({
@@ -312,11 +312,11 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
       });
     });
   } else {
-    // ÀüÃ¼ Ä«Å×°í¸® Ç¥½Ã
-    embed.setTitle('??? ¸¶À» Àç°í °ü¸® ½Ã½ºÅÛ');
+    // ì „ì²´ ì¹´í…Œê³ ë¦¬ í‘œì‹œ
+    embed.setTitle('ğŸ˜ï¸ ë§ˆì„ ì¬ê³  ê´€ë¦¬ ì‹œìŠ¤í…œ');
     
     if (!inventory.categories || Object.keys(inventory.categories).length === 0) {
-      embed.setDescription('?? µî·ÏµÈ Ä«Å×°í¸®°¡ ¾ø½À´Ï´Ù.');
+      embed.setDescription('âš ï¸ ë“±ë¡ëœ ì¹´í…Œê³ ë¦¬ê°€ ì—†ìŠµë‹ˆë‹¤.');
       return embed;
     }
 
@@ -329,27 +329,27 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
         const icon = getItemIcon(itemName, inventory);
         const percentage = Math.round((data.quantity / data.required) * 100);
         
-        // ¼öÁı ÁßÀÎ »ç¶÷ È®ÀÎ
+        // ìˆ˜ì§‘ ì¤‘ì¸ ì‚¬ëŒ í™•ì¸
         const collectingInfo = inventory.collecting?.[catName]?.[itemName];
-        const collectingText = collectingInfo ? ` ?? **${collectingInfo.userName}**` : '';
+        const collectingText = collectingInfo ? ` ğŸ‘¤ **${collectingInfo.userName}**` : '';
         
         if (uiMode === 'compact') {
           categoryText += `${icon} ${itemName}: ${data.quantity}/${data.required} (${percentage}%) ${status}${collectingText}\n`;
         } else if (uiMode === 'detailed') {
-          categoryText += `### ${icon} ${itemName}\n**ÇöÀç:** ${data.quantity}°³ / **¸ñÇ¥:** ${data.required}°³\n**ÁøÇà·ü:** ${percentage}% ${status}${collectingText}\n`;
+          categoryText += `### ${icon} ${itemName}\n**í˜„ì¬:** ${data.quantity}ê°œ / **ëª©í‘œ:** ${data.required}ê°œ\n**ì§„í–‰ë¥ :** ${percentage}% ${status}${collectingText}\n`;
         } else {
           categoryText += `### ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${collectingText}\n`;
         }
         
-        // ¸¶Áö¸· ¾ÆÀÌÅÛÀÌ ¾Æ´Ï¸é ±¸ºĞ¼± Ãß°¡
+        // ë§ˆì§€ë§‰ ì•„ì´í…œì´ ì•„ë‹ˆë©´ êµ¬ë¶„ì„  ì¶”ê°€
         if (index < itemEntries.length - 1) {
-          categoryText += '¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬\n';
+          categoryText += 'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n';
         }
       });
       
       embed.addFields({
-        name: `?? **${catName}**`,
-        value: categoryText || '¾ÆÀÌÅÛ ¾øÀ½',
+        name: `ğŸ“¦ **${catName}**`,
+        value: categoryText || 'ì•„ì´í…œ ì—†ìŒ',
         inline: false
       });
     }
@@ -358,25 +358,25 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
   return embed;
 }
 
-// ÀÚµ¿ »õ·Î°íÄ§ Å¸ÀÌ¸Ó ÀúÀå
+// ìë™ ìƒˆë¡œê³ ì¹¨ íƒ€ì´ë¨¸ ì €ì¥
 const autoRefreshTimers = new Map();
 
-// º¿ Á¾·á ½Ã ¸ğµç Å¸ÀÌ¸Ó Á¤¸®
+// ë´‡ ì¢…ë£Œ ì‹œ ëª¨ë“  íƒ€ì´ë¨¸ ì •ë¦¬
 process.on('SIGINT', () => {
-  console.log('º¿ Á¾·á Áß... Å¸ÀÌ¸Ó Á¤¸®');
+  console.log('ë´‡ ì¢…ë£Œ ì¤‘... íƒ€ì´ë¨¸ ì •ë¦¬');
   autoRefreshTimers.forEach(timer => clearInterval(timer));
   autoRefreshTimers.clear();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.log('º¿ Á¾·á Áß... Å¸ÀÌ¸Ó Á¤¸®');
+  console.log('ë´‡ ì¢…ë£Œ ì¤‘... íƒ€ì´ë¨¸ ì •ë¦¬');
   autoRefreshTimers.forEach(timer => clearInterval(timer));
   autoRefreshTimers.clear();
   process.exit(0);
 });
 
-// ¹öÆ° »ı¼º
+// ë²„íŠ¼ ìƒì„±
 function createButtons(categoryName = null, autoRefresh = false, type = 'inventory', uiMode = 'normal', barLength = 10) {
   const actionId = categoryName ? `${type === 'inventory' ? 'collecting' : 'crafting'}_${categoryName}` : (type === 'inventory' ? 'collecting' : 'crafting');
   const autoRefreshId = categoryName ? `auto_refresh_${type}_${categoryName}` : `auto_refresh_${type}`;
@@ -387,23 +387,23 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   const manageId = categoryName ? `manage_${type}_${categoryName}` : `manage_${type}`;
   const recipeId = categoryName ? `recipe_${type}_${categoryName}` : `recipe_${type}`;
   
-  // UI ¸ğµå ¹öÆ° ¶óº§
-  let uiModeLabel = '?? ÀÏ¹İ';
-  if (uiMode === 'compact') uiModeLabel = '?? ÄÄÆÑÆ®';
-  else if (uiMode === 'detailed') uiModeLabel = '?? »ó¼¼';
+  // UI ëª¨ë“œ ë²„íŠ¼ ë¼ë²¨
+  let uiModeLabel = 'ğŸ“ ì¼ë°˜';
+  if (uiMode === 'compact') uiModeLabel = 'ğŸ“ ì»´íŒ©íŠ¸';
+  else if (uiMode === 'detailed') uiModeLabel = 'ğŸ“ ìƒì„¸';
   
   const row1Buttons = [
     new ButtonBuilder()
       .setCustomId(actionId)
-      .setLabel(type === 'inventory' ? '?? ¼öÁıÁß' : '?? Á¦ÀÛÁß')
+      .setLabel(type === 'inventory' ? 'ğŸ“¦ ìˆ˜ì§‘ì¤‘' : 'ğŸ”¨ ì œì‘ì¤‘')
       .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId(quantityId)
-      .setLabel('?? ¼ö·®°ü¸®')
+      .setLabel('ğŸ“Š ìˆ˜ëŸ‰ê´€ë¦¬')
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId(manageId)
-      .setLabel(type === 'inventory' ? '?? ¹°Ç°°ü¸®' : '?? Ç°¸ñ°ü¸®')
+      .setLabel(type === 'inventory' ? 'ğŸ“‹ ë¬¼í’ˆê´€ë¦¬' : 'ğŸ“¦ í’ˆëª©ê´€ë¦¬')
       .setStyle(ButtonStyle.Primary)
   ];
   
@@ -411,7 +411,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
     row1Buttons.push(
       new ButtonBuilder()
         .setCustomId(recipeId)
-        .setLabel('?? ·¹½ÃÇÇ')
+        .setLabel('ğŸ“‹ ë ˆì‹œí”¼')
         .setStyle(ButtonStyle.Primary)
     );
   }
@@ -419,7 +419,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   row1Buttons.push(
     new ButtonBuilder()
       .setCustomId(resetId)
-      .setLabel('?? ÃÊ±âÈ­')
+      .setLabel('â™»ï¸ ì´ˆê¸°í™”')
       .setStyle(ButtonStyle.Secondary)
   );
   
@@ -429,7 +429,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
     .addComponents(
       new ButtonBuilder()
         .setCustomId(autoRefreshId)
-        .setLabel(autoRefresh ? '?? ÀÚµ¿»õ·Î°íÄ§ ÁßÁö' : '¢º? ÀÚµ¿»õ·Î°íÄ§')
+        .setLabel(autoRefresh ? 'â¸ï¸ ìë™ìƒˆë¡œê³ ì¹¨ ì¤‘ì§€' : 'â–¶ï¸ ìë™ìƒˆë¡œê³ ì¹¨')
         .setStyle(autoRefresh ? ButtonStyle.Danger : ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId(uiModeId)
@@ -437,7 +437,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(barSizeId)
-        .setLabel(`?? ¹Ù Å©±â: ${Math.round(barLength * 10)}%`)
+        .setLabel(`ğŸ“Š ë°” í¬ê¸°: ${Math.round(barLength * 10)}%`)
         .setStyle(ButtonStyle.Secondary)
     );
   
@@ -445,57 +445,57 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
 }
 
 client.on('ready', async () => {
-  console.log(`? ${client.user.tag} º¿ÀÌ ÁØºñµÇ¾ú½À´Ï´Ù!`);
-  console.log('¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬');
-  console.log('?? Àç°í °ü¸®: /Àç°í, /Àç°í¹°Ç°Ãß°¡, /Àç°í¹°Ç°Á¦°Å');
-  console.log('?? Á¦ÀÛ °ü¸®: /Á¦ÀÛ, /Á¦ÀÛÇ°¸ñÃß°¡, /Á¦ÀÛÇ°¸ñÁ¦°Å');
-  console.log('?? ·¹½ÃÇÇ °ü¸®: /·¹½ÃÇÇÁ¶È¸, /·¹½ÃÇÇ¼öÁ¤, /·¹½ÃÇÇ»èÁ¦');
-  console.log('?? ±âÅ¸: /µµ¿ò¸», /¼öÁ¤³»¿ª');
-  console.log('¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬');
+  console.log(`âœ… ${client.user.tag} ë´‡ì´ ì¤€ë¹„ë˜ì—ˆìŠµë‹ˆë‹¤!`);
+  console.log('â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”');
+  console.log('ğŸ“¦ ì¬ê³  ê´€ë¦¬: /ì¬ê³ , /ì¬ê³ ë¬¼í’ˆì¶”ê°€, /ì¬ê³ ë¬¼í’ˆì œê±°');
+  console.log('ğŸ”¨ ì œì‘ ê´€ë¦¬: /ì œì‘, /ì œì‘í’ˆëª©ì¶”ê°€, /ì œì‘í’ˆëª©ì œê±°');
+  console.log('ğŸ“‹ ë ˆì‹œí”¼ ê´€ë¦¬: /ë ˆì‹œí”¼ì¡°íšŒ, /ë ˆì‹œí”¼ìˆ˜ì •, /ë ˆì‹œí”¼ì‚­ì œ');
+  console.log('ğŸ”§ ê¸°íƒ€: /ë„ì›€ë§, /ìˆ˜ì •ë‚´ì—­');
+  console.log('â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”');
   
-  // ½½·¡½Ã Ä¿¸Çµå ÀÚµ¿ µî·Ï
+  // ìŠ¬ë˜ì‹œ ì»¤ë§¨ë“œ ìë™ ë“±ë¡
   try {
-    console.log('½½·¡½Ã Ä¿¸Çµå µî·Ï Áß...');
+    console.log('ìŠ¬ë˜ì‹œ ì»¤ë§¨ë“œ ë“±ë¡ ì¤‘...');
     const { REST, Routes, SlashCommandBuilder } = await import('discord.js');
     
     const commands = [
       new SlashCommandBuilder()
-        .setName('Àç°í')
-        .setDescription('Àç°í ÇöÈ²À» È®ÀÎÇÕ´Ï´Ù (¹öÆ°À¸·Î ¸ğµç ±â´É »ç¿ë °¡´É)')
+        .setName('ì¬ê³ ')
+        .setDescription('ì¬ê³  í˜„í™©ì„ í™•ì¸í•©ë‹ˆë‹¤ (ë²„íŠ¼ìœ¼ë¡œ ëª¨ë“  ê¸°ëŠ¥ ì‚¬ìš© ê°€ëŠ¥)')
         .addStringOption(option =>
-          option.setName('Ä«Å×°í¸®')
-            .setDescription('È®ÀÎÇÒ Ä«Å×°í¸®')
+          option.setName('ì¹´í…Œê³ ë¦¬')
+            .setDescription('í™•ì¸í•  ì¹´í…Œê³ ë¦¬')
             .setRequired(true)
             .addChoices(
-              { name: 'ÇØ¾ç', value: 'ÇØ¾ç' },
-              { name: 'Ã¤±¤', value: 'Ã¤±¤' },
-              { name: '¿ä¸®', value: '¿ä¸®' }
+              { name: 'í•´ì–‘', value: 'í•´ì–‘' },
+              { name: 'ì±„ê´‘', value: 'ì±„ê´‘' },
+              { name: 'ìš”ë¦¬', value: 'ìš”ë¦¬' }
             )),
       new SlashCommandBuilder()
-        .setName('Á¦ÀÛ')
-        .setDescription('Á¦ÀÛ ÇöÈ²À» È®ÀÎÇÕ´Ï´Ù (¹öÆ°À¸·Î ¸ğµç ±â´É »ç¿ë °¡´É)')
+        .setName('ì œì‘')
+        .setDescription('ì œì‘ í˜„í™©ì„ í™•ì¸í•©ë‹ˆë‹¤ (ë²„íŠ¼ìœ¼ë¡œ ëª¨ë“  ê¸°ëŠ¥ ì‚¬ìš© ê°€ëŠ¥)')
         .addStringOption(option =>
-          option.setName('Ä«Å×°í¸®')
-            .setDescription('È®ÀÎÇÒ Ä«Å×°í¸®')
+          option.setName('ì¹´í…Œê³ ë¦¬')
+            .setDescription('í™•ì¸í•  ì¹´í…Œê³ ë¦¬')
             .setRequired(true)
             .addChoices(
-              { name: 'ÇØ¾ç', value: 'ÇØ¾ç' },
-              { name: 'Ã¤±¤', value: 'Ã¤±¤' },
-              { name: '¿ä¸®', value: '¿ä¸®' }
+              { name: 'í•´ì–‘', value: 'í•´ì–‘' },
+              { name: 'ì±„ê´‘', value: 'ì±„ê´‘' },
+              { name: 'ìš”ë¦¬', value: 'ìš”ë¦¬' }
             )),
       new SlashCommandBuilder()
-        .setName('¼öÁ¤³»¿ª')
-        .setDescription('Àç°í ¹× Á¦ÀÛ ¼öÁ¤ ³»¿ªÀ» È®ÀÎÇÕ´Ï´Ù')
+        .setName('ìˆ˜ì •ë‚´ì—­')
+        .setDescription('ì¬ê³  ë° ì œì‘ ìˆ˜ì • ë‚´ì—­ì„ í™•ì¸í•©ë‹ˆë‹¤')
         .addIntegerOption(option =>
-          option.setName('°³¼ö')
-            .setDescription('È®ÀÎÇÒ ³»¿ª °³¼ö (±âº»: 10°³)')
+          option.setName('ê°œìˆ˜')
+            .setDescription('í™•ì¸í•  ë‚´ì—­ ê°œìˆ˜ (ê¸°ë³¸: 10ê°œ)')
             .setRequired(false)),
       new SlashCommandBuilder()
-        .setName('µµ¿ò¸»')
-        .setDescription('Àç°í °ü¸® º¿ »ç¿ë¹ıÀ» È®ÀÎÇÕ´Ï´Ù'),
+        .setName('ë„ì›€ë§')
+        .setDescription('ì¬ê³  ê´€ë¦¬ ë´‡ ì‚¬ìš©ë²•ì„ í™•ì¸í•©ë‹ˆë‹¤'),
       new SlashCommandBuilder()
-        .setName('Åë°è')
-        .setDescription('¸¶À» Àç°í ¹× Á¦ÀÛ Åë°è¸¦ È®ÀÎÇÕ´Ï´Ù')
+        .setName('í†µê³„')
+        .setDescription('ë§ˆì„ ì¬ê³  ë° ì œì‘ í†µê³„ë¥¼ í™•ì¸í•©ë‹ˆë‹¤')
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);
@@ -508,31 +508,31 @@ client.on('ready', async () => {
         : Routes.applicationCommands(clientId);
       
       await rest.put(route, { body: commands });
-      console.log('? ½½·¡½Ã Ä¿¸Çµå µî·Ï ¿Ï·á!');
+      console.log('âœ… ìŠ¬ë˜ì‹œ ì»¤ë§¨ë“œ ë“±ë¡ ì™„ë£Œ!');
     }
   } catch (error) {
-    console.error('½½·¡½Ã Ä¿¸Çµå µî·Ï ½ÇÆĞ:', error);
+    console.error('ìŠ¬ë˜ì‹œ ì»¤ë§¨ë“œ ë“±ë¡ ì‹¤íŒ¨:', error);
   }
 });
 
-// ½½·¡½Ã Ä¿¸Çµå Ã³¸®
+// ìŠ¬ë˜ì‹œ ì»¤ë§¨ë“œ ì²˜ë¦¬
 client.on('interactionCreate', async (interaction) => {
-  console.log('ÀÎÅÍ·¢¼Ç ¼ö½Å:', interaction.type, '/ customId:', interaction.customId || 'N/A');
+  console.log('ì¸í„°ë™ì…˜ ìˆ˜ì‹ :', interaction.type, '/ customId:', interaction.customId || 'N/A');
   
   if (interaction.isCommand()) {
     const { commandName } = interaction;
 
     try {
-      if (commandName === 'Àç°í') {
-        const category = interaction.options.getString('Ä«Å×°í¸®');
+      if (commandName === 'ì¬ê³ ') {
+        const category = interaction.options.getString('ì¹´í…Œê³ ë¦¬');
         const inventory = await loadInventory();
         const uiMode = inventory.settings?.uiMode || 'normal';
         const barLength = inventory.settings?.barLength || 15;
         const embed = createInventoryEmbed(inventory, category, uiMode, barLength);
-        const buttons = createButtons(category, true, 'inventory', uiMode, barLength); // Ç×»ó true·Î ¼³Á¤
+        const buttons = createButtons(category, true, 'inventory', uiMode, barLength); // í•­ìƒ trueë¡œ ì„¤ì •
         const reply = await interaction.reply({ embeds: [embed], components: buttons, fetchReply: true });
         
-        // ÀÚµ¿ »õ·Î°íÄ§ ½ÃÀÛ (5ÃÊ¸¶´Ù)
+        // ìë™ ìƒˆë¡œê³ ì¹¨ ì‹œì‘ (5ì´ˆë§ˆë‹¤)
         const messageId = reply.id;
         const refreshInterval = setInterval(async () => {
           try {
@@ -543,108 +543,108 @@ client.on('interactionCreate', async (interaction) => {
             const updatedButtons = createButtons(category, true, 'inventory', updatedUiMode, updatedBarLength);
             await interaction.editReply({ embeds: [updatedEmbed], components: updatedButtons });
           } catch (error) {
-            // ¸Ş½ÃÁö°¡ »èÁ¦µÇ¾ú°Å³ª ¿¡·¯ ¹ß»ı ½Ã Å¸ÀÌ¸Ó Á¤¸®
-            console.log('»õ·Î°íÄ§ Áß´Ü:', error.message);
+            // ë©”ì‹œì§€ê°€ ì‚­ì œë˜ì—ˆê±°ë‚˜ ì—ëŸ¬ ë°œìƒ ì‹œ íƒ€ì´ë¨¸ ì •ë¦¬
+            console.log('ìƒˆë¡œê³ ì¹¨ ì¤‘ë‹¨:', error.message);
             clearInterval(refreshInterval);
             autoRefreshTimers.delete(messageId);
           }
         }, 5000);
         
         autoRefreshTimers.set(messageId, refreshInterval);
-        console.log(`¢º? ÀÚµ¿ »õ·Î°íÄ§ ½ÃÀÛ: ${messageId} (Àç°í - ${category})`);
+        console.log(`â–¶ï¸ ìë™ ìƒˆë¡œê³ ì¹¨ ì‹œì‘: ${messageId} (ì¬ê³  - ${category})`);
       }
 
-      else if (commandName === 'µµ¿ò¸»') {
+      else if (commandName === 'ë„ì›€ë§') {
         const helpEmbed = new EmbedBuilder()
-          .setTitle('?? Àç°í °ü¸® º¿ »ç¿ë¹ı')
+          .setTitle('ğŸ“– ì¬ê³  ê´€ë¦¬ ë´‡ ì‚¬ìš©ë²•')
           .setColor(0x5865F2)
-          .setDescription('**Ä«Å×°í¸®:** ÇØ¾ç, Ã¤±¤, ¿ä¸®\n\n¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬')
+          .setDescription('**ì¹´í…Œê³ ë¦¬:** í•´ì–‘, ì±„ê´‘, ìš”ë¦¬\n\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”')
           .addFields(
             { 
-              name: '?? Àç°í °ü¸®', 
+              name: 'ğŸ“¦ ì¬ê³  ê´€ë¦¬', 
               value: [
-                '**`/Àç°í [Ä«Å×°í¸®]`**',
-                'Àç°í ÇöÈ²À» È®ÀÎÇÕ´Ï´Ù.',
-                '> ¿¹: `/Àç°í Ä«Å×°í¸®:ÇØ¾ç`',
+                '**`/ì¬ê³  [ì¹´í…Œê³ ë¦¬]`**',
+                'ì¬ê³  í˜„í™©ì„ í™•ì¸í•©ë‹ˆë‹¤.',
+                '> ì˜ˆ: `/ì¬ê³  ì¹´í…Œê³ ë¦¬:í•´ì–‘`',
                 '',
-                '**`/Àç°í¹°Ç°Ãß°¡`**',
-                '»õ·Î¿î ¾ÆÀÌÅÛÀ» Ãß°¡ÇÕ´Ï´Ù.',
-                '> ¿¹: `/Àç°í¹°Ç°Ãß°¡ Ä«Å×°í¸®:¿ä¸® ¾ÆÀÌÅÛ:±İ±« ÃÊ±â¼ö·®:20 ÃæÁ·¼ö·®:100`',
+                '**`/ì¬ê³ ë¬¼í’ˆì¶”ê°€`**',
+                'ìƒˆë¡œìš´ ì•„ì´í…œì„ ì¶”ê°€í•©ë‹ˆë‹¤.',
+                '> ì˜ˆ: `/ì¬ê³ ë¬¼í’ˆì¶”ê°€ ì¹´í…Œê³ ë¦¬:ìš”ë¦¬ ì•„ì´í…œ:ê¸ˆê´´ ì´ˆê¸°ìˆ˜ëŸ‰:20 ì¶©ì¡±ìˆ˜ëŸ‰:100`',
                 '',
-                '**`/Àç°í¹°Ç°Á¦°Å`**',
-                '¾ÆÀÌÅÛÀ» Á¦°ÅÇÕ´Ï´Ù.',
-                '> ¿¹: `/Àç°í¹°Ç°Á¦°Å Ä«Å×°í¸®:ÇØ¾ç ¾ÆÀÌÅÛ:±İ±«`'
+                '**`/ì¬ê³ ë¬¼í’ˆì œê±°`**',
+                'ì•„ì´í…œì„ ì œê±°í•©ë‹ˆë‹¤.',
+                '> ì˜ˆ: `/ì¬ê³ ë¬¼í’ˆì œê±° ì¹´í…Œê³ ë¦¬:í•´ì–‘ ì•„ì´í…œ:ê¸ˆê´´`'
               ].join('\n'),
               inline: false
             },
             { 
               name: '\u200B', 
-              value: '¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬',
+              value: 'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
               inline: false
             },
             { 
-              name: '?? Á¦ÀÛ °ü¸®', 
+              name: 'ğŸ”¨ ì œì‘ ê´€ë¦¬', 
               value: [
-                '**`/Á¦ÀÛ [Ä«Å×°í¸®]`**',
-                'Á¦ÀÛ ÇöÈ²À» È®ÀÎÇÕ´Ï´Ù.',
-                '> ¿¹: `/Á¦ÀÛ Ä«Å×°í¸®:ÇØ¾ç`',
+                '**`/ì œì‘ [ì¹´í…Œê³ ë¦¬]`**',
+                'ì œì‘ í˜„í™©ì„ í™•ì¸í•©ë‹ˆë‹¤.',
+                '> ì˜ˆ: `/ì œì‘ ì¹´í…Œê³ ë¦¬:í•´ì–‘`',
                 '',
-                '**`/Á¦ÀÛÇ°¸ñÃß°¡`**',
-                '»õ·Î¿î Á¦ÀÛÇ°À» Ãß°¡ÇÕ´Ï´Ù (·¹½ÃÇÇ Æ÷ÇÔ).',
-                '> ¿¹: `/Á¦ÀÛÇ°¸ñÃß°¡ Ä«Å×°í¸®:ÇØ¾ç Á¦ÀÛÇ°:³¬½Ë´ë ÃÊ±â¼ö·®:0 ÃæÁ·¼ö·®:10 Àç·á1:³ª¹« Àç·á1¼ö·®:5 Àç·á2:½Ç Àç·á2¼ö·®:2`',
+                '**`/ì œì‘í’ˆëª©ì¶”ê°€`**',
+                'ìƒˆë¡œìš´ ì œì‘í’ˆì„ ì¶”ê°€í•©ë‹ˆë‹¤ (ë ˆì‹œí”¼ í¬í•¨).',
+                '> ì˜ˆ: `/ì œì‘í’ˆëª©ì¶”ê°€ ì¹´í…Œê³ ë¦¬:í•´ì–‘ ì œì‘í’ˆ:ë‚šì‹¯ëŒ€ ì´ˆê¸°ìˆ˜ëŸ‰:0 ì¶©ì¡±ìˆ˜ëŸ‰:10 ì¬ë£Œ1:ë‚˜ë¬´ ì¬ë£Œ1ìˆ˜ëŸ‰:5 ì¬ë£Œ2:ì‹¤ ì¬ë£Œ2ìˆ˜ëŸ‰:2`',
                 '',
-                '**`/Á¦ÀÛÇ°¸ñÁ¦°Å`**',
-                'Á¦ÀÛÇ°À» Á¦°ÅÇÕ´Ï´Ù.',
-                '> ¿¹: `/Á¦ÀÛÇ°¸ñÁ¦°Å Ä«Å×°í¸®:Ã¤±¤ Á¦ÀÛÇ°:°î±ªÀÌ`'
+                '**`/ì œì‘í’ˆëª©ì œê±°`**',
+                'ì œì‘í’ˆì„ ì œê±°í•©ë‹ˆë‹¤.',
+                '> ì˜ˆ: `/ì œì‘í’ˆëª©ì œê±° ì¹´í…Œê³ ë¦¬:ì±„ê´‘ ì œì‘í’ˆ:ê³¡ê´­ì´`'
               ].join('\n'),
               inline: false
             },
             { 
               name: '\u200B', 
-              value: '¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬',
+              value: 'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
               inline: false
             },
             { 
-              name: '?? ·¹½ÃÇÇ °ü¸®', 
+              name: 'ğŸ“‹ ë ˆì‹œí”¼ ê´€ë¦¬', 
               value: [
-                '**`/·¹½ÃÇÇÁ¶È¸`**',
-                'Ä«Å×°í¸®ÀÇ ¸ğµç ·¹½ÃÇÇ¸¦ È®ÀÎÇÕ´Ï´Ù.',
-                '> ¿¹: `/·¹½ÃÇÇÁ¶È¸ Ä«Å×°í¸®:ÇØ¾ç`',
+                '**`/ë ˆì‹œí”¼ì¡°íšŒ`**',
+                'ì¹´í…Œê³ ë¦¬ì˜ ëª¨ë“  ë ˆì‹œí”¼ë¥¼ í™•ì¸í•©ë‹ˆë‹¤.',
+                '> ì˜ˆ: `/ë ˆì‹œí”¼ì¡°íšŒ ì¹´í…Œê³ ë¦¬:í•´ì–‘`',
                 '',
-                '**`/·¹½ÃÇÇ¼öÁ¤`**',
-                'Á¦ÀÛÇ°ÀÇ ·¹½ÃÇÇ¸¦ ¼öÁ¤ÇÕ´Ï´Ù.',
-                '> ¿¹: `/·¹½ÃÇÇ¼öÁ¤ Ä«Å×°í¸®:ÇØ¾ç Á¦ÀÛÇ°:³¬½Ë´ë Àç·á1:³ª¹« Àç·á1¼ö·®:10`',
+                '**`/ë ˆì‹œí”¼ìˆ˜ì •`**',
+                'ì œì‘í’ˆì˜ ë ˆì‹œí”¼ë¥¼ ìˆ˜ì •í•©ë‹ˆë‹¤.',
+                '> ì˜ˆ: `/ë ˆì‹œí”¼ìˆ˜ì • ì¹´í…Œê³ ë¦¬:í•´ì–‘ ì œì‘í’ˆ:ë‚šì‹¯ëŒ€ ì¬ë£Œ1:ë‚˜ë¬´ ì¬ë£Œ1ìˆ˜ëŸ‰:10`',
                 '',
-                '**`/·¹½ÃÇÇ»èÁ¦`**',
-                'Á¦ÀÛÇ°ÀÇ ·¹½ÃÇÇ¸¦ »èÁ¦ÇÕ´Ï´Ù.',
-                '> ¿¹: `/·¹½ÃÇÇ»èÁ¦ Ä«Å×°í¸®:ÇØ¾ç Á¦ÀÛÇ°:³¬½Ë´ë`'
+                '**`/ë ˆì‹œí”¼ì‚­ì œ`**',
+                'ì œì‘í’ˆì˜ ë ˆì‹œí”¼ë¥¼ ì‚­ì œí•©ë‹ˆë‹¤.',
+                '> ì˜ˆ: `/ë ˆì‹œí”¼ì‚­ì œ ì¹´í…Œê³ ë¦¬:í•´ì–‘ ì œì‘í’ˆ:ë‚šì‹¯ëŒ€`'
               ].join('\n'),
               inline: false
             },
             { 
               name: '\u200B', 
-              value: '¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬',
+              value: 'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
               inline: false
             },
             { 
-              name: '?? ±âÅ¸ ±â´É', 
+              name: 'ğŸ”§ ê¸°íƒ€ ê¸°ëŠ¥', 
               value: [
-                '**`/Åë°è`**',
-                '¸¶À» Àç°í ¹× Á¦ÀÛ Åë°è¸¦ È®ÀÎÇÕ´Ï´Ù.',
-                '> ÀüÃ¼ ÁøÇà·ü, Ä«Å×°í¸®º° ÇöÈ², È°µ¿ Åë°è, ÁÖÀÇ ÇÊ¿ä Ç×¸ñ',
+                '**`/í†µê³„`**',
+                'ë§ˆì„ ì¬ê³  ë° ì œì‘ í†µê³„ë¥¼ í™•ì¸í•©ë‹ˆë‹¤.',
+                '> ì „ì²´ ì§„í–‰ë¥ , ì¹´í…Œê³ ë¦¬ë³„ í˜„í™©, í™œë™ í†µê³„, ì£¼ì˜ í•„ìš” í•­ëª©',
                 '',
-                '**`/¼öÁ¤³»¿ª [°³¼ö]`**',
-                'Àç°í ¹× Á¦ÀÛ ¼öÁ¤ ³»¿ªÀ» È®ÀÎÇÕ´Ï´Ù.',
-                '> ¿¹: `/¼öÁ¤³»¿ª °³¼ö:20`',
+                '**`/ìˆ˜ì •ë‚´ì—­ [ê°œìˆ˜]`**',
+                'ì¬ê³  ë° ì œì‘ ìˆ˜ì • ë‚´ì—­ì„ í™•ì¸í•©ë‹ˆë‹¤.',
+                '> ì˜ˆ: `/ìˆ˜ì •ë‚´ì—­ ê°œìˆ˜:20`',
                 '',
-                '**¹öÆ° ±â´É**',
-                '? ?? ¼öÁıÁß / ?? Á¦ÀÛÁß: ÀÛ¾÷ÀÚ µî·Ï',
-                '? ?? ¼ö·®°ü¸®: Ãß°¡/¼öÁ¤/Â÷°¨ ÅëÇÕ °ü¸®',
-                '? ?? ÃÊ±âÈ­: °³º°/ÀÏ°ı ÃÊ±âÈ­',
-                '? ? ¹°Ç°°ü¸®: ¹°Ç°/Ç°¸ñ Ãß°¡ ¹× »èÁ¦',
-                '? ¢º? ÀÚµ¿»õ·Î°íÄ§: 5ÃÊ¸¶´Ù ÀÚµ¿ ¾÷µ¥ÀÌÆ®',
-                '? ?? UI ¸ğµå: ÀÏ¹İ/ÄÄÆÑÆ®/»ó¼¼ ÀüÈ¯',
-                '? ?? ¹Ù Å©±â: ÇÁ·Î±×·¹½º ¹Ù Å©±â Á¶Àı'
+                '**ë²„íŠ¼ ê¸°ëŠ¥**',
+                'â€¢ ğŸ“¦ ìˆ˜ì§‘ì¤‘ / ğŸ”¨ ì œì‘ì¤‘: ì‘ì—…ì ë“±ë¡',
+                'â€¢ ğŸ“Š ìˆ˜ëŸ‰ê´€ë¦¬: ì¶”ê°€/ìˆ˜ì •/ì°¨ê° í†µí•© ê´€ë¦¬',
+                'â€¢ ğŸ”„ ì´ˆê¸°í™”: ê°œë³„/ì¼ê´„ ì´ˆê¸°í™”',
+                'â€¢ ï¿½ ë¬¼í’ˆê´€ë¦¬: ë¬¼í’ˆ/í’ˆëª© ì¶”ê°€ ë° ì‚­ì œ',
+                'â€¢ â–¶ï¸ ìë™ìƒˆë¡œê³ ì¹¨: 5ì´ˆë§ˆë‹¤ ìë™ ì—…ë°ì´íŠ¸',
+                'â€¢ ğŸ“ UI ëª¨ë“œ: ì¼ë°˜/ì»´íŒ©íŠ¸/ìƒì„¸ ì „í™˜',
+                'â€¢ ğŸ“Š ë°” í¬ê¸°: í”„ë¡œê·¸ë ˆìŠ¤ ë°” í¬ê¸° ì¡°ì ˆ'
               ].join('\n'),
               inline: false
             }
@@ -652,22 +652,22 @@ client.on('interactionCreate', async (interaction) => {
         await sendTemporaryReply(interaction, { embeds: [helpEmbed] }, 30000);
       }
 
-      else if (commandName === 'Åë°è') {
+      else if (commandName === 'í†µê³„') {
         const inventory = await loadInventory();
         const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
         
-        // ÀüÃ¼ ÁøÇà·ü °è»ê
+        // ì „ì²´ ì§„í–‰ë¥  ê³„ì‚°
         let totalQuantity = 0, totalRequired = 0;
         let inventoryQuantity = 0, inventoryRequired = 0;
         let craftingQuantity = 0, craftingRequired = 0;
         
-        // Ä«Å×°í¸®º° Åë°è
+        // ì¹´í…Œê³ ë¦¬ë³„ í†µê³„
         const categoryStats = {
           inventory: {},
           crafting: {}
         };
         
-        // Àç°í Åë°è
+        // ì¬ê³  í†µê³„
         for (const [category, items] of Object.entries(inventory.categories || {})) {
           let catQty = 0, catReq = 0, completed = 0, total = 0;
           
@@ -682,7 +682,7 @@ client.on('interactionCreate', async (interaction) => {
           inventoryRequired += catReq;
           
           const percentage = catReq > 0 ? Math.round((catQty / catReq) * 100) : 0;
-          const emoji = percentage >= 90 ? '??' : percentage >= 25 ? '??' : '??';
+          const emoji = percentage >= 90 ? 'ğŸŸ¢' : percentage >= 25 ? 'ğŸŸ¡' : 'ğŸ”´';
           
           categoryStats.inventory[category] = {
             percentage,
@@ -692,7 +692,7 @@ client.on('interactionCreate', async (interaction) => {
           };
         }
         
-        // Á¦ÀÛ Åë°è
+        // ì œì‘ í†µê³„
         for (const [category, items] of Object.entries(inventory.crafting?.categories || {})) {
           let catQty = 0, catReq = 0, completed = 0, total = 0;
           
@@ -707,7 +707,7 @@ client.on('interactionCreate', async (interaction) => {
           craftingRequired += catReq;
           
           const percentage = catReq > 0 ? Math.round((catQty / catReq) * 100) : 0;
-          const emoji = percentage >= 90 ? '??' : percentage >= 25 ? '??' : '??';
+          const emoji = percentage >= 90 ? 'ğŸŸ¢' : percentage >= 25 ? 'ğŸŸ¡' : 'ğŸ”´';
           
           categoryStats.crafting[category] = {
             percentage,
@@ -724,7 +724,7 @@ client.on('interactionCreate', async (interaction) => {
         const inventoryPercentage = inventoryRequired > 0 ? Math.round((inventoryQuantity / inventoryRequired) * 100) : 0;
         const craftingPercentage = craftingRequired > 0 ? Math.round((craftingQuantity / craftingRequired) * 100) : 0;
         
-        // ÃÖ±Ù 7ÀÏ È°µ¿ Åë°è
+        // ìµœê·¼ 7ì¼ í™œë™ í†µê³„
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         
@@ -732,7 +732,7 @@ client.on('interactionCreate', async (interaction) => {
           new Date(h.timestamp) >= sevenDaysAgo
         );
         
-        // »ç¿ëÀÚº° È°µ¿
+        // ì‚¬ìš©ìë³„ í™œë™
         const userActivity = {};
         recentHistory.forEach(h => {
           userActivity[h.userName] = (userActivity[h.userName] || 0) + 1;
@@ -742,7 +742,7 @@ client.on('interactionCreate', async (interaction) => {
           .sort((a, b) => b[1] - a[1])
           .slice(0, 3);
         
-        // ¾ÆÀÌÅÛº° º¯°æ È½¼ö
+        // ì•„ì´í…œë³„ ë³€ê²½ íšŸìˆ˜
         const itemActivity = {};
         recentHistory.forEach(h => {
           itemActivity[h.itemName] = (itemActivity[h.itemName] || 0) + 1;
@@ -752,7 +752,7 @@ client.on('interactionCreate', async (interaction) => {
           .sort((a, b) => b[1] - a[1])
           .slice(0, 3);
         
-        // ºÎÁ·ÇÑ ¾ÆÀÌÅÛ (30% ¹Ì¸¸)
+        // ë¶€ì¡±í•œ ì•„ì´í…œ (30% ë¯¸ë§Œ)
         const lackingItems = [];
         for (const [category, items] of Object.entries(inventory.categories || {})) {
           for (const [itemName, itemData] of Object.entries(items)) {
@@ -770,7 +770,7 @@ client.on('interactionCreate', async (interaction) => {
         }
         lackingItems.sort((a, b) => (a.quantity / a.required) - (b.quantity / b.required));
         
-        // Á¦ÀÛ ºÒ°¡ ¾ÆÀÌÅÛ (Àç·á ºÎÁ·)
+        // ì œì‘ ë¶ˆê°€ ì•„ì´í…œ (ì¬ë£Œ ë¶€ì¡±)
         const cannotCraft = [];
         for (const [category, items] of Object.entries(inventory.crafting?.categories || {})) {
           for (const [itemName, itemData] of Object.entries(items)) {
@@ -799,85 +799,85 @@ client.on('interactionCreate', async (interaction) => {
           }
         }
         
-        // Embed »ı¼º
+        // Embed ìƒì„±
         const statsEmbed = new EmbedBuilder()
-          .setTitle(`?? ¸¶À» Àç°í Åë°è (${today})`)
+          .setTitle(`ğŸ“Š ë§ˆì„ ì¬ê³  í†µê³„ (${today})`)
           .setColor(0x5865F2)
           .setDescription([
-            '¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬',
-            `?? **ÀüÃ¼ ÁøÇà·ü: ${totalPercentage}%**`,
-            '¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬',
+            'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
+            `ğŸ“¦ **ì „ì²´ ì§„í–‰ë¥ : ${totalPercentage}%**`,
+            'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
             '',
-            '??? **Àç°í:** ' + inventoryPercentage + '%',
+            'ğŸ˜ï¸ **ì¬ê³ :** ' + inventoryPercentage + '%',
             ...Object.entries(categoryStats.inventory).map(([cat, stats]) => 
-              `${cat}: ${stats.percentage}% ${stats.emoji} (${stats.completed}/${stats.total} ¿Ï·á)`
+              `${cat}: ${stats.percentage}% ${stats.emoji} (${stats.completed}/${stats.total} ì™„ë£Œ)`
             ),
             '',
-            '?? **Á¦ÀÛ:** ' + craftingPercentage + '%',
+            'ğŸ”¨ **ì œì‘:** ' + craftingPercentage + '%',
             ...Object.entries(categoryStats.crafting).map(([cat, stats]) => 
-              `${cat}: ${stats.percentage}% ${stats.emoji} (${stats.completed}/${stats.total} ¿Ï·á)`
+              `${cat}: ${stats.percentage}% ${stats.emoji} (${stats.completed}/${stats.total} ì™„ë£Œ)`
             ),
-            '¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬'
+            'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”'
           ].join('\n'))
           .setTimestamp();
         
-        // È°µ¿ ÇöÈ² ÇÊµå
+        // í™œë™ í˜„í™© í•„ë“œ
         if (recentHistory.length > 0) {
           const activityText = [];
           
           if (topUsers.length > 0) {
-            activityText.push('**°¡Àå È°¹ßÇÑ »ç¿ëÀÚ:**');
-            const medals = ['??', '??', '??'];
+            activityText.push('**ê°€ì¥ í™œë°œí•œ ì‚¬ìš©ì:**');
+            const medals = ['ğŸ¥‡', 'ğŸ¥ˆ', 'ğŸ¥‰'];
             topUsers.forEach(([user, count], idx) => {
-              activityText.push(`${medals[idx] || '?'} ${user} - ${count}È¸ º¯°æ`);
+              activityText.push(`${medals[idx] || 'â€¢'} ${user} - ${count}íšŒ ë³€ê²½`);
             });
             activityText.push('');
           }
           
           if (topItems.length > 0) {
-            activityText.push('**°¡Àå ¸¹ÀÌ º¯°æµÈ ¾ÆÀÌÅÛ:**');
+            activityText.push('**ê°€ì¥ ë§ì´ ë³€ê²½ëœ ì•„ì´í…œ:**');
             topItems.forEach(([item, count], idx) => {
-              activityText.push(`${idx + 1}. ${item} (${count}È¸)`);
+              activityText.push(`${idx + 1}. ${item} (${count}íšŒ)`);
             });
           }
           
           if (activityText.length > 0) {
             statsEmbed.addFields({
-              name: '?? È°µ¿ ÇöÈ² (ÃÖ±Ù 7ÀÏ)',
-              value: '¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬\n' + activityText.join('\n') + '\n¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬',
+              name: 'ğŸ‘¥ í™œë™ í˜„í™© (ìµœê·¼ 7ì¼)',
+              value: 'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' + activityText.join('\n') + '\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
               inline: false
             });
           }
         }
         
-        // ÁÖÀÇ ÇÊ¿ä ÇÊµå
+        // ì£¼ì˜ í•„ìš” í•„ë“œ
         const warningText = [];
         
         if (lackingItems.length > 0) {
-          warningText.push(`?? **ºÎÁ·ÇÑ ¾ÆÀÌÅÛ (${lackingItems.length}°³):**`);
+          warningText.push(`ğŸ”´ **ë¶€ì¡±í•œ ì•„ì´í…œ (${lackingItems.length}ê°œ):**`);
           lackingItems.slice(0, 5).forEach(item => {
             warningText.push(`- ${item.category} > ${item.icon} ${item.name} (${item.quantity}/${item.required})`);
           });
           if (lackingItems.length > 5) {
-            warningText.push(`... ¿Ü ${lackingItems.length - 5}°³`);
+            warningText.push(`... ì™¸ ${lackingItems.length - 5}ê°œ`);
           }
           warningText.push('');
         }
         
         if (cannotCraft.length > 0) {
-          warningText.push(`? **Á¦ÀÛ ºÒ°¡ (Àç·á ºÎÁ·):**`);
+          warningText.push(`âŒ **ì œì‘ ë¶ˆê°€ (ì¬ë£Œ ë¶€ì¡±):**`);
           cannotCraft.slice(0, 5).forEach(item => {
-            warningText.push(`- ${item.icon} ${item.name} (${item.missing.join(', ')} ºÎÁ·)`);
+            warningText.push(`- ${item.icon} ${item.name} (${item.missing.join(', ')} ë¶€ì¡±)`);
           });
           if (cannotCraft.length > 5) {
-            warningText.push(`... ¿Ü ${cannotCraft.length - 5}°³`);
+            warningText.push(`... ì™¸ ${cannotCraft.length - 5}ê°œ`);
           }
         }
         
         if (warningText.length > 0) {
           statsEmbed.addFields({
-            name: '?? ÁÖÀÇ ÇÊ¿ä',
-            value: '¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬\n' + warningText.join('\n'),
+            name: 'âš ï¸ ì£¼ì˜ í•„ìš”',
+            value: 'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' + warningText.join('\n'),
             inline: false
           });
         }
@@ -885,25 +885,25 @@ client.on('interactionCreate', async (interaction) => {
         await sendTemporaryReply(interaction, { embeds: [statsEmbed] }, 30000);
       }
 
-      else if (commandName === '¼öÁ¤³»¿ª') {
-        const count = interaction.options.getInteger('°³¼ö') || 10;
+      else if (commandName === 'ìˆ˜ì •ë‚´ì—­') {
+        const count = interaction.options.getInteger('ê°œìˆ˜') || 10;
         const inventory = await loadInventory();
         
         if (!inventory.history || inventory.history.length === 0) {
-          return sendTemporaryReply(interaction, '?? ¼öÁ¤ ³»¿ªÀÌ ¾ø½À´Ï´Ù.');
+          return sendTemporaryReply(interaction, 'ğŸ“‹ ìˆ˜ì • ë‚´ì—­ì´ ì—†ìŠµë‹ˆë‹¤.');
         }
         
         const embed = new EmbedBuilder()
-          .setTitle('?? ¼öÁ¤ ³»¿ª')
+          .setTitle('ğŸ“‹ ìˆ˜ì • ë‚´ì—­')
           .setColor(0x5865F2)
           .setTimestamp();
         
-        const histories = inventory.history.slice(0, Math.min(count, 25)); // ÃÖ´ë 25°³
+        const histories = inventory.history.slice(0, Math.min(count, 25)); // ìµœëŒ€ 25ê°œ
         
         for (const history of histories) {
           const date = new Date(history.timestamp);
           
-          // ÇÑ±¹ ½Ã°£´ë(UTC+9)·Î º¯È¯
+          // í•œêµ­ ì‹œê°„ëŒ€(UTC+9)ë¡œ ë³€í™˜
           const kstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
           const month = String(kstDate.getUTCMonth() + 1).padStart(2, '0');
           const day = String(kstDate.getUTCDate()).padStart(2, '0');
@@ -911,13 +911,13 @@ client.on('interactionCreate', async (interaction) => {
           const minute = String(kstDate.getUTCMinutes()).padStart(2, '0');
           const timeStr = `${month}/${day} ${hour}:${minute}`;
           
-          const typeEmoji = history.type === 'inventory' ? '??' : '??';
+          const typeEmoji = history.type === 'inventory' ? 'ğŸ“¦' : 'ğŸ”¨';
           const actionText = {
-            'add': 'Ãß°¡',
-            'remove': 'Á¦°Å',
-            'update_quantity': 'ÇöÀç ¼ö·® º¯°æ',
-            'update_required': 'ÃæÁ· ¼ö·® º¯°æ',
-            'reset': 'ÃÊ±âÈ­'
+            'add': 'ì¶”ê°€',
+            'remove': 'ì œê±°',
+            'update_quantity': 'í˜„ì¬ ìˆ˜ëŸ‰ ë³€ê²½',
+            'update_required': 'ì¶©ì¡± ìˆ˜ëŸ‰ ë³€ê²½',
+            'reset': 'ì´ˆê¸°í™”'
           }[history.action] || history.action;
           
           const icon = getItemIcon(history.itemName, inventory);
@@ -930,32 +930,32 @@ client.on('interactionCreate', async (interaction) => {
         }
         
         if (inventory.history.length > count) {
-          embed.setFooter({ text: `ÃÑ ${inventory.history.length}°³ Áß ${count}°³ Ç¥½Ã` });
+          embed.setFooter({ text: `ì´ ${inventory.history.length}ê°œ ì¤‘ ${count}ê°œ í‘œì‹œ` });
         }
         
         const reply = await interaction.reply({ embeds: [embed], ephemeral: true, fetchReply: true });
         
-        // 30ÃÊ ÈÄ ÀÚµ¿ »èÁ¦
+        // 30ì´ˆ í›„ ìë™ ì‚­ì œ
         setTimeout(async () => {
           try {
             await interaction.deleteReply();
           } catch (error) {
-            // ÀÌ¹Ì »èÁ¦µÇ¾ú°Å³ª »èÁ¦ÇÒ ¼ö ¾ø´Â °æ¿ì ¹«½Ã
+            // ì´ë¯¸ ì‚­ì œë˜ì—ˆê±°ë‚˜ ì‚­ì œí•  ìˆ˜ ì—†ëŠ” ê²½ìš° ë¬´ì‹œ
           }
         }, 30000);
       }
 
-      else if (commandName === 'Á¦ÀÛ') {
-        const category = interaction.options.getString('Ä«Å×°í¸®');
+      else if (commandName === 'ì œì‘') {
+        const category = interaction.options.getString('ì¹´í…Œê³ ë¦¬');
         const inventory = await loadInventory();
         const crafting = inventory.crafting || { categories: {}, crafting: {} };
         const uiMode = inventory.settings?.uiMode || 'normal';
         const barLength = inventory.settings?.barLength || 15;
         const embed = createCraftingEmbed(crafting, category, uiMode, barLength);
-        const buttons = createButtons(category, true, 'crafting', uiMode, barLength); // Ç×»ó true·Î ¼³Á¤
+        const buttons = createButtons(category, true, 'crafting', uiMode, barLength); // í•­ìƒ trueë¡œ ì„¤ì •
         const reply = await interaction.reply({ embeds: [embed], components: buttons, fetchReply: true });
         
-        // ÀÚµ¿ »õ·Î°íÄ§ ½ÃÀÛ (5ÃÊ¸¶´Ù)
+        // ìë™ ìƒˆë¡œê³ ì¹¨ ì‹œì‘ (5ì´ˆë§ˆë‹¤)
         const messageId = reply.id;
         const refreshInterval = setInterval(async () => {
           try {
@@ -967,31 +967,31 @@ client.on('interactionCreate', async (interaction) => {
             const updatedButtons = createButtons(category, true, 'crafting', updatedUiMode, updatedBarLength);
             await interaction.editReply({ embeds: [updatedEmbed], components: updatedButtons });
           } catch (error) {
-            // ¸Ş½ÃÁö°¡ »èÁ¦µÇ¾ú°Å³ª ¿¡·¯ ¹ß»ı ½Ã Å¸ÀÌ¸Ó Á¤¸®
-            console.log('»õ·Î°íÄ§ Áß´Ü:', error.message);
+            // ë©”ì‹œì§€ê°€ ì‚­ì œë˜ì—ˆê±°ë‚˜ ì—ëŸ¬ ë°œìƒ ì‹œ íƒ€ì´ë¨¸ ì •ë¦¬
+            console.log('ìƒˆë¡œê³ ì¹¨ ì¤‘ë‹¨:', error.message);
             clearInterval(refreshInterval);
             autoRefreshTimers.delete(messageId);
           }
         }, 5000);
         
         autoRefreshTimers.set(messageId, refreshInterval);
-        console.log(`¢º? ÀÚµ¿ »õ·Î°íÄ§ ½ÃÀÛ: ${messageId} (Á¦ÀÛ - ${category})`);
+        console.log(`â–¶ï¸ ìë™ ìƒˆë¡œê³ ì¹¨ ì‹œì‘: ${messageId} (ì œì‘ - ${category})`);
       }
 
-      else if (commandName === 'Á¦ÀÛÇ°¸ñÃß°¡') {
-        const category = interaction.options.getString('Ä«Å×°í¸®');
-        const itemName = interaction.options.getString('Á¦ÀÛÇ°');
-        const requiredQuantity = interaction.options.getInteger('ÃæÁ·¼ö·®');
-        const initialQuantity = interaction.options.getInteger('ÃÊ±â¼ö·®');
-        const emoji = interaction.options.getString('ÀÌ¸ğÁö');
+      else if (commandName === 'ì œì‘í’ˆëª©ì¶”ê°€') {
+        const category = interaction.options.getString('ì¹´í…Œê³ ë¦¬');
+        const itemName = interaction.options.getString('ì œì‘í’ˆ');
+        const requiredQuantity = interaction.options.getInteger('ì¶©ì¡±ìˆ˜ëŸ‰');
+        const initialQuantity = interaction.options.getInteger('ì´ˆê¸°ìˆ˜ëŸ‰');
+        const emoji = interaction.options.getString('ì´ëª¨ì§€');
         
-        // ·¹½ÃÇÇ Á¤º¸
-        const material1 = interaction.options.getString('Àç·á1');
-        const material1Qty = interaction.options.getInteger('Àç·á1¼ö·®');
-        const material2 = interaction.options.getString('Àç·á2');
-        const material2Qty = interaction.options.getInteger('Àç·á2¼ö·®');
-        const material3 = interaction.options.getString('Àç·á3');
-        const material3Qty = interaction.options.getInteger('Àç·á3¼ö·®');
+        // ë ˆì‹œí”¼ ì •ë³´
+        const material1 = interaction.options.getString('ì¬ë£Œ1');
+        const material1Qty = interaction.options.getInteger('ì¬ë£Œ1ìˆ˜ëŸ‰');
+        const material2 = interaction.options.getString('ì¬ë£Œ2');
+        const material2Qty = interaction.options.getInteger('ì¬ë£Œ2ìˆ˜ëŸ‰');
+        const material3 = interaction.options.getString('ì¬ë£Œ3');
+        const material3Qty = interaction.options.getInteger('ì¬ë£Œ3ìˆ˜ëŸ‰');
 
         const inventory = await loadInventory();
         
@@ -1009,39 +1009,39 @@ client.on('interactionCreate', async (interaction) => {
         }
         
         if (inventory.crafting.categories[category][itemName]) {
-          return sendTemporaryReply(interaction, `? "${itemName}" Á¦ÀÛÇ°ÀÌ ÀÌ¹Ì Á¸ÀçÇÕ´Ï´Ù.`);
+          return sendTemporaryReply(interaction, `âŒ "${itemName}" ì œì‘í’ˆì´ ì´ë¯¸ ì¡´ì¬í•©ë‹ˆë‹¤.`);
         }
 
-        // Àç·á°¡ °°Àº Ä«Å×°í¸®¿¡ Á¸ÀçÇÏ´ÂÁö È®ÀÎ
+        // ì¬ë£Œê°€ ê°™ì€ ì¹´í…Œê³ ë¦¬ì— ì¡´ì¬í•˜ëŠ”ì§€ í™•ì¸
         if (!inventory.categories[category]) {
-          return sendTemporaryReply(interaction, `? "${category}" Ä«Å×°í¸®¿¡ Àç·á°¡ ¾ø½À´Ï´Ù. ¸ÕÀú Àç°í ¸ñ·Ï¿¡ Àç·á¸¦ Ãß°¡ÇØÁÖ¼¼¿ä.`);
+          return sendTemporaryReply(interaction, `âŒ "${category}" ì¹´í…Œê³ ë¦¬ì— ì¬ë£Œê°€ ì—†ìŠµë‹ˆë‹¤. ë¨¼ì € ì¬ê³  ëª©ë¡ì— ì¬ë£Œë¥¼ ì¶”ê°€í•´ì£¼ì„¸ìš”.`);
         }
 
         const materials = [];
         
-        // Àç·á1 È®ÀÎ
+        // ì¬ë£Œ1 í™•ì¸
         if (!inventory.categories[category][material1]) {
-          return sendTemporaryReply(interaction, `? "${material1}" Àç·á¸¦ "${category}" Ä«Å×°í¸®¿¡¼­ Ã£À» ¼ö ¾ø½À´Ï´Ù. ¸ÕÀú Àç°í ¸ñ·Ï¿¡ Ãß°¡ÇØÁÖ¼¼¿ä.`);
+          return sendTemporaryReply(interaction, `âŒ "${material1}" ì¬ë£Œë¥¼ "${category}" ì¹´í…Œê³ ë¦¬ì—ì„œ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤. ë¨¼ì € ì¬ê³  ëª©ë¡ì— ì¶”ê°€í•´ì£¼ì„¸ìš”.`);
         }
         materials.push({ name: material1, quantity: material1Qty, category: category });
 
-        // Àç·á2 È®ÀÎ (¼±ÅÃ»çÇ×)
+        // ì¬ë£Œ2 í™•ì¸ (ì„ íƒì‚¬í•­)
         if (material2 && material2Qty) {
           if (!inventory.categories[category][material2]) {
-            return sendTemporaryReply(interaction, `? "${material2}" Àç·á¸¦ "${category}" Ä«Å×°í¸®¿¡¼­ Ã£À» ¼ö ¾ø½À´Ï´Ù. ¸ÕÀú Àç°í ¸ñ·Ï¿¡ Ãß°¡ÇØÁÖ¼¼¿ä.`);
+            return sendTemporaryReply(interaction, `âŒ "${material2}" ì¬ë£Œë¥¼ "${category}" ì¹´í…Œê³ ë¦¬ì—ì„œ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤. ë¨¼ì € ì¬ê³  ëª©ë¡ì— ì¶”ê°€í•´ì£¼ì„¸ìš”.`);
           }
           materials.push({ name: material2, quantity: material2Qty, category: category });
         }
 
-        // Àç·á3 È®ÀÎ (¼±ÅÃ»çÇ×)
+        // ì¬ë£Œ3 í™•ì¸ (ì„ íƒì‚¬í•­)
         if (material3 && material3Qty) {
           if (!inventory.categories[category][material3]) {
-            return sendTemporaryReply(interaction, `? "${material3}" Àç·á¸¦ "${category}" Ä«Å×°í¸®¿¡¼­ Ã£À» ¼ö ¾ø½À´Ï´Ù. ¸ÕÀú Àç°í ¸ñ·Ï¿¡ Ãß°¡ÇØÁÖ¼¼¿ä.`);
+            return sendTemporaryReply(interaction, `âŒ "${material3}" ì¬ë£Œë¥¼ "${category}" ì¹´í…Œê³ ë¦¬ì—ì„œ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤. ë¨¼ì € ì¬ê³  ëª©ë¡ì— ì¶”ê°€í•´ì£¼ì„¸ìš”.`);
           }
           materials.push({ name: material3, quantity: material3Qty, category: category });
         }
 
-        // Á¦ÀÛÇ° Ãß°¡
+        // ì œì‘í’ˆ ì¶”ê°€
         inventory.crafting.categories[category][itemName] = {
           quantity: initialQuantity,
           required: requiredQuantity
@@ -1051,106 +1051,106 @@ client.on('interactionCreate', async (interaction) => {
           inventory.crafting.categories[category][itemName].emoji = emoji;
         }
         
-        // ·¹½ÃÇÇ ÀúÀå
+        // ë ˆì‹œí”¼ ì €ì¥
         inventory.crafting.recipes[category][itemName] = materials;
         
-        // ¼öÁ¤ ³»¿ª Ãß°¡
+        // ìˆ˜ì • ë‚´ì—­ ì¶”ê°€
         addHistory(inventory, 'crafting', category, itemName, 'add', 
-          `ÃÊ±â: ${initialQuantity}°³, ¸ñÇ¥: ${requiredQuantity}°³, ·¹½ÃÇÇ: ${materials.map(m => `${m.name} x${m.quantity}`).join(', ')}`, 
+          `ì´ˆê¸°: ${initialQuantity}ê°œ, ëª©í‘œ: ${requiredQuantity}ê°œ, ë ˆì‹œí”¼: ${materials.map(m => `${m.name} x${m.quantity}`).join(', ')}`, 
           interaction.user.displayName || interaction.user.username);
         
         await saveInventory(inventory);
 
-        // ·¹½ÃÇÇ Ç¥½Ã
+        // ë ˆì‹œí”¼ í‘œì‹œ
         const recipeText = materials.map(m => {
           const icon = getItemIcon(m.name, inventory);
-          return `${icon} **${m.name}** x${m.quantity}°³`;
+          return `${icon} **${m.name}** x${m.quantity}ê°œ`;
         }).join('\n');
 
         const icon = emoji || getItemIcon(itemName, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x57F287)
-          .setTitle('? Á¦ÀÛ ¸ñ·Ï Ãß°¡ ¿Ï·á')
-          .setDescription(`**Ä«Å×°í¸®:** ${category}\n${icon} **${itemName}**ÀÌ(°¡) Á¦ÀÛ ¸ñ·Ï¿¡ Ãß°¡µÇ¾ú½À´Ï´Ù!\n\n**ÃÊ±â ¼ö·®:** ${initialQuantity}°³\n**ÃæÁ· ¼ö·®:** ${requiredQuantity}°³\n\n**·¹½ÃÇÇ (1°³ Á¦ÀÛ ½Ã):**\n${recipeText}`);
+          .setTitle('âœ… ì œì‘ ëª©ë¡ ì¶”ê°€ ì™„ë£Œ')
+          .setDescription(`**ì¹´í…Œê³ ë¦¬:** ${category}\n${icon} **${itemName}**ì´(ê°€) ì œì‘ ëª©ë¡ì— ì¶”ê°€ë˜ì—ˆìŠµë‹ˆë‹¤!\n\n**ì´ˆê¸° ìˆ˜ëŸ‰:** ${initialQuantity}ê°œ\n**ì¶©ì¡± ìˆ˜ëŸ‰:** ${requiredQuantity}ê°œ\n\n**ë ˆì‹œí”¼ (1ê°œ ì œì‘ ì‹œ):**\n${recipeText}`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
-      else if (commandName === 'Á¦ÀÛÇ°¸ñÁ¦°Å') {
-        const category = interaction.options.getString('Ä«Å×°í¸®');
-        const itemName = interaction.options.getString('Á¦ÀÛÇ°');
+      else if (commandName === 'ì œì‘í’ˆëª©ì œê±°') {
+        const category = interaction.options.getString('ì¹´í…Œê³ ë¦¬');
+        const itemName = interaction.options.getString('ì œì‘í’ˆ');
 
         const inventory = await loadInventory();
         
         if (!inventory.crafting?.categories[category] || !inventory.crafting.categories[category][itemName]) {
-          return sendTemporaryReply(interaction, `? "${itemName}" Á¦ÀÛÇ°À» Ã£À» ¼ö ¾ø½À´Ï´Ù.`);
+          return sendTemporaryReply(interaction, `âŒ "${itemName}" ì œì‘í’ˆì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`);
         }
 
         const itemData = inventory.crafting.categories[category][itemName];
         delete inventory.crafting.categories[category][itemName];
         
-        // ¼öÁ¤ ³»¿ª Ãß°¡
+        // ìˆ˜ì • ë‚´ì—­ ì¶”ê°€
         addHistory(inventory, 'crafting', category, itemName, 'remove', 
-          `¼ö·®: ${itemData.quantity}/${itemData.required}`, 
+          `ìˆ˜ëŸ‰: ${itemData.quantity}/${itemData.required}`, 
           interaction.user.displayName || interaction.user.username);
         
         await saveInventory(inventory);
 
         const successEmbed = new EmbedBuilder()
           .setColor(0xED4245)
-          .setDescription(`### ? Á¦ÀÛ ¸ñ·Ï Á¦°Å ¿Ï·á\n**Ä«Å×°í¸®:** ${category}\n**${itemName}**ÀÌ(°¡) Á¦ÀÛ ¸ñ·Ï¿¡¼­ Á¦°ÅµÇ¾ú½À´Ï´Ù.`);
+          .setDescription(`### âœ… ì œì‘ ëª©ë¡ ì œê±° ì™„ë£Œ\n**ì¹´í…Œê³ ë¦¬:** ${category}\n**${itemName}**ì´(ê°€) ì œì‘ ëª©ë¡ì—ì„œ ì œê±°ë˜ì—ˆìŠµë‹ˆë‹¤.`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
-      else if (commandName === '·¹½ÃÇÇ¼öÁ¤') {
-        const category = interaction.options.getString('Ä«Å×°í¸®');
-        const craftItem = interaction.options.getString('Á¦ÀÛÇ°');
-        const material1 = interaction.options.getString('Àç·á1');
-        const material1Qty = interaction.options.getInteger('Àç·á1¼ö·®');
-        const material2 = interaction.options.getString('Àç·á2');
-        const material2Qty = interaction.options.getInteger('Àç·á2¼ö·®');
-        const material3 = interaction.options.getString('Àç·á3');
-        const material3Qty = interaction.options.getInteger('Àç·á3¼ö·®');
+      else if (commandName === 'ë ˆì‹œí”¼ìˆ˜ì •') {
+        const category = interaction.options.getString('ì¹´í…Œê³ ë¦¬');
+        const craftItem = interaction.options.getString('ì œì‘í’ˆ');
+        const material1 = interaction.options.getString('ì¬ë£Œ1');
+        const material1Qty = interaction.options.getInteger('ì¬ë£Œ1ìˆ˜ëŸ‰');
+        const material2 = interaction.options.getString('ì¬ë£Œ2');
+        const material2Qty = interaction.options.getInteger('ì¬ë£Œ2ìˆ˜ëŸ‰');
+        const material3 = interaction.options.getString('ì¬ë£Œ3');
+        const material3Qty = interaction.options.getInteger('ì¬ë£Œ3ìˆ˜ëŸ‰');
 
         const inventory = await loadInventory();
         
-        // Á¦ÀÛÇ° Á¸Àç È®ÀÎ
+        // ì œì‘í’ˆ ì¡´ì¬ í™•ì¸
         if (!inventory.crafting?.categories[category]?.[craftItem]) {
-          return sendTemporaryReply(interaction, `? "${craftItem}" Á¦ÀÛÇ°À» Ã£À» ¼ö ¾ø½À´Ï´Ù.`);
+          return sendTemporaryReply(interaction, `âŒ "${craftItem}" ì œì‘í’ˆì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`);
         }
 
-        // °°Àº Ä«Å×°í¸®ÀÇ Àç·á¸¸ »ç¿ë °¡´É
+        // ê°™ì€ ì¹´í…Œê³ ë¦¬ì˜ ì¬ë£Œë§Œ ì‚¬ìš© ê°€ëŠ¥
         if (!inventory.categories[category]) {
-          return sendTemporaryReply(interaction, `? "${category}" Ä«Å×°í¸®¿¡ Àç·á°¡ ¾ø½À´Ï´Ù.`);
+          return sendTemporaryReply(interaction, `âŒ "${category}" ì¹´í…Œê³ ë¦¬ì— ì¬ë£Œê°€ ì—†ìŠµë‹ˆë‹¤.`);
         }
 
-        // Àç·á°¡ °°Àº Ä«Å×°í¸®¿¡ Á¸ÀçÇÏ´ÂÁö È®ÀÎ
+        // ì¬ë£Œê°€ ê°™ì€ ì¹´í…Œê³ ë¦¬ì— ì¡´ì¬í•˜ëŠ”ì§€ í™•ì¸
         const materials = [];
         
-        // Àç·á1 È®ÀÎ
+        // ì¬ë£Œ1 í™•ì¸
         if (!inventory.categories[category][material1]) {
-          return sendTemporaryReply(interaction, `? "${material1}" Àç·á¸¦ "${category}" Ä«Å×°í¸®¿¡¼­ Ã£À» ¼ö ¾ø½À´Ï´Ù.`);
+          return sendTemporaryReply(interaction, `âŒ "${material1}" ì¬ë£Œë¥¼ "${category}" ì¹´í…Œê³ ë¦¬ì—ì„œ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`);
         }
         materials.push({ name: material1, quantity: material1Qty, category: category });
 
-        // Àç·á2 È®ÀÎ (¼±ÅÃ»çÇ×)
+        // ì¬ë£Œ2 í™•ì¸ (ì„ íƒì‚¬í•­)
         if (material2 && material2Qty) {
           if (!inventory.categories[category][material2]) {
-            return sendTemporaryReply(interaction, `? "${material2}" Àç·á¸¦ "${category}" Ä«Å×°í¸®¿¡¼­ Ã£À» ¼ö ¾ø½À´Ï´Ù.`);
+            return sendTemporaryReply(interaction, `âŒ "${material2}" ì¬ë£Œë¥¼ "${category}" ì¹´í…Œê³ ë¦¬ì—ì„œ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`);
           }
           materials.push({ name: material2, quantity: material2Qty, category: category });
         }
 
-        // Àç·á3 È®ÀÎ (¼±ÅÃ»çÇ×)
+        // ì¬ë£Œ3 í™•ì¸ (ì„ íƒì‚¬í•­)
         if (material3 && material3Qty) {
           if (!inventory.categories[category][material3]) {
-            return sendTemporaryReply(interaction, `? "${material3}" Àç·á¸¦ "${category}" Ä«Å×°í¸®¿¡¼­ Ã£À» ¼ö ¾ø½À´Ï´Ù.`);
+            return sendTemporaryReply(interaction, `âŒ "${material3}" ì¬ë£Œë¥¼ "${category}" ì¹´í…Œê³ ë¦¬ì—ì„œ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`);
           }
           materials.push({ name: material3, quantity: material3Qty, category: category });
         }
 
-        // ·¹½ÃÇÇ ÀúÀå
+        // ë ˆì‹œí”¼ ì €ì¥
         if (!inventory.crafting.recipes) {
           inventory.crafting.recipes = {};
         }
@@ -1161,37 +1161,37 @@ client.on('interactionCreate', async (interaction) => {
         inventory.crafting.recipes[category][craftItem] = materials;
         await saveInventory(inventory);
 
-        // ·¹½ÃÇÇ Ç¥½Ã
+        // ë ˆì‹œí”¼ í‘œì‹œ
         const recipeText = materials.map(m => {
           const icon = getItemIcon(m.name, inventory);
-          return `${icon} **${m.name}** x${m.quantity}°³`;
+          return `${icon} **${m.name}** x${m.quantity}ê°œ`;
         }).join('\n');
 
         const icon = getItemIcon(craftItem, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0x57F287)
-          .setTitle('? ·¹½ÃÇÇ ¼öÁ¤ ¿Ï·á')
-          .setDescription(`**Ä«Å×°í¸®:** ${category}\n${icon} **${craftItem}**\n\n**ÇÊ¿ä Àç·á:**\n${recipeText}`);
+          .setTitle('âœ… ë ˆì‹œí”¼ ìˆ˜ì • ì™„ë£Œ')
+          .setDescription(`**ì¹´í…Œê³ ë¦¬:** ${category}\n${icon} **${craftItem}**\n\n**í•„ìš” ì¬ë£Œ:**\n${recipeText}`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
-      else if (commandName === '·¹½ÃÇÇÁ¶È¸') {
-        const category = interaction.options.getString('Ä«Å×°í¸®');
+      else if (commandName === 'ë ˆì‹œí”¼ì¡°íšŒ') {
+        const category = interaction.options.getString('ì¹´í…Œê³ ë¦¬');
 
         const inventory = await loadInventory();
         
         const recipes = inventory.crafting?.recipes?.[category];
         
         if (!recipes || Object.keys(recipes).length === 0) {
-          return sendTemporaryReply(interaction, `? "${category}" Ä«Å×°í¸®¿¡ µî·ÏµÈ ·¹½ÃÇÇ°¡ ¾ø½À´Ï´Ù.`);
+          return sendTemporaryReply(interaction, `âŒ "${category}" ì¹´í…Œê³ ë¦¬ì— ë“±ë¡ëœ ë ˆì‹œí”¼ê°€ ì—†ìŠµë‹ˆë‹¤.`);
         }
 
         const embed = new EmbedBuilder()
           .setColor(0x5865F2)
-          .setTitle(`?? ${category} Ä«Å×°í¸® ·¹½ÃÇÇ ¸ñ·Ï`)
-          .setDescription(`**ÃÑ ${Object.keys(recipes).length}°³ÀÇ ·¹½ÃÇÇ**\n\n¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬`)
-          .setFooter({ text: '? = Àç·á ÃæºĞ | ? = Àç·á ºÎÁ·' });
+          .setTitle(`ğŸ“‹ ${category} ì¹´í…Œê³ ë¦¬ ë ˆì‹œí”¼ ëª©ë¡`)
+          .setDescription(`**ì´ ${Object.keys(recipes).length}ê°œì˜ ë ˆì‹œí”¼**\n\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”`)
+          .setFooter({ text: 'âœ… = ì¬ë£Œ ì¶©ë¶„ | âŒ = ì¬ë£Œ ë¶€ì¡±' });
 
         for (const [craftItem, recipe] of Object.entries(recipes)) {
           const icon = getItemIcon(craftItem, inventory);
@@ -1200,37 +1200,37 @@ client.on('interactionCreate', async (interaction) => {
             const matIcon = getItemIcon(m.name, inventory);
             const materialData = inventory.categories[m.category]?.[m.name];
             const currentQty = materialData?.quantity || 0;
-            const canCraft = currentQty >= m.quantity ? '?' : '?';
-            return `${matIcon} ${m.name} x${m.quantity}°³ (º¸À¯: ${currentQty}°³) ${canCraft}`;
+            const canCraft = currentQty >= m.quantity ? 'âœ…' : 'âŒ';
+            return `${matIcon} ${m.name} x${m.quantity}ê°œ (ë³´ìœ : ${currentQty}ê°œ) ${canCraft}`;
           }).join('\n');
 
           embed.addFields({
             name: `${icon} ${craftItem}`,
-            value: recipeText || 'Àç·á ¾øÀ½',
+            value: recipeText || 'ì¬ë£Œ ì—†ìŒ',
             inline: false
           });
         }
         
         const reply = await interaction.reply({ embeds: [embed], ephemeral: true, fetchReply: true });
         
-        // 30ÃÊ ÈÄ ÀÚµ¿ »èÁ¦
+        // 30ì´ˆ í›„ ìë™ ì‚­ì œ
         setTimeout(async () => {
           try {
             await interaction.deleteReply();
           } catch (error) {
-            // ÀÌ¹Ì »èÁ¦µÇ¾ú°Å³ª »èÁ¦ÇÒ ¼ö ¾ø´Â °æ¿ì ¹«½Ã
+            // ì´ë¯¸ ì‚­ì œë˜ì—ˆê±°ë‚˜ ì‚­ì œí•  ìˆ˜ ì—†ëŠ” ê²½ìš° ë¬´ì‹œ
           }
         }, 30000);
       }
 
-      else if (commandName === '·¹½ÃÇÇ»èÁ¦') {
-        const category = interaction.options.getString('Ä«Å×°í¸®');
-        const craftItem = interaction.options.getString('Á¦ÀÛÇ°');
+      else if (commandName === 'ë ˆì‹œí”¼ì‚­ì œ') {
+        const category = interaction.options.getString('ì¹´í…Œê³ ë¦¬');
+        const craftItem = interaction.options.getString('ì œì‘í’ˆ');
 
         const inventory = await loadInventory();
         
         if (!inventory.crafting?.recipes?.[category]?.[craftItem]) {
-          return sendTemporaryReply(interaction, `? "${craftItem}"ÀÇ ·¹½ÃÇÇ°¡ µî·ÏµÇÁö ¾Ê¾Ò½À´Ï´Ù.`);
+          return sendTemporaryReply(interaction, `âŒ "${craftItem}"ì˜ ë ˆì‹œí”¼ê°€ ë“±ë¡ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.`);
         }
 
         delete inventory.crafting.recipes[category][craftItem];
@@ -1239,20 +1239,20 @@ client.on('interactionCreate', async (interaction) => {
         const icon = getItemIcon(craftItem, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0xED4245)
-          .setDescription(`### ? ·¹½ÃÇÇ »èÁ¦ ¿Ï·á\n**Ä«Å×°í¸®:** ${category}\n${icon} **${craftItem}**ÀÇ ·¹½ÃÇÇ°¡ »èÁ¦µÇ¾ú½À´Ï´Ù.`);
+          .setDescription(`### âœ… ë ˆì‹œí”¼ ì‚­ì œ ì™„ë£Œ\n**ì¹´í…Œê³ ë¦¬:** ${category}\n${icon} **${craftItem}**ì˜ ë ˆì‹œí”¼ê°€ ì‚­ì œë˜ì—ˆìŠµë‹ˆë‹¤.`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
 
     } catch (error) {
-      console.error('Ä¿¸Çµå ½ÇÇà ¿¡·¯:', error);
-      await interaction.reply({ content: '? ¿¡·¯°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true });
+      console.error('ì»¤ë§¨ë“œ ì‹¤í–‰ ì—ëŸ¬:', error);
+      await interaction.reply({ content: 'âŒ ì—ëŸ¬ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true });
     }
   }
 
-  // ¹öÆ° ÀÎÅÍ·¢¼Ç Ã³¸®
+  // ë²„íŠ¼ ì¸í„°ë™ì…˜ ì²˜ë¦¬
   if (interaction.isButton()) {
-    console.log('¹öÆ° Å¬¸¯ °¨Áö! customId:', interaction.customId);
+    console.log('ë²„íŠ¼ í´ë¦­ ê°ì§€! customId:', interaction.customId);
     
     if (interaction.customId.startsWith('refresh')) {
       try {
@@ -1260,10 +1260,10 @@ client.on('interactionCreate', async (interaction) => {
         const type = parts[1]; // 'inventory' or 'crafting'
         const category = parts.length > 2 ? parts.slice(2).join('_') : null;
         
-        console.log('?? »õ·Î°íÄ§ ¹öÆ° Å¬¸¯');
+        console.log('ğŸ”„ ìƒˆë¡œê³ ì¹¨ ë²„íŠ¼ í´ë¦­');
         console.log('  - customId:', interaction.customId);
-        console.log('  - Å¸ÀÔ:', type);
-        console.log('  - Ä«Å×°í¸®:', category || 'ÀüÃ¼');
+        console.log('  - íƒ€ì…:', type);
+        console.log('  - ì¹´í…Œê³ ë¦¬:', category || 'ì „ì²´');
         
         const inventory = await loadInventory();
         const uiMode = inventory.settings?.uiMode || 'normal';
@@ -1277,16 +1277,16 @@ client.on('interactionCreate', async (interaction) => {
           embed = createInventoryEmbed(inventory, category, uiMode, barLength);
         }
         
-        // ÇöÀç ÀÚµ¿ »õ·Î°íÄ§ »óÅÂ È®ÀÎ
+        // í˜„ì¬ ìë™ ìƒˆë¡œê³ ì¹¨ ìƒíƒœ í™•ì¸
         const messageId = interaction.message.id;
         const isAutoRefreshing = autoRefreshTimers.has(messageId);
         buttons = createButtons(category, isAutoRefreshing, type || 'inventory', uiMode, barLength);
         
         await interaction.update({ embeds: [embed], components: buttons });
-        console.log('? »õ·Î°íÄ§ ¿Ï·á');
+        console.log('âœ… ìƒˆë¡œê³ ì¹¨ ì™„ë£Œ');
       } catch (error) {
-        console.error('? »õ·Î°íÄ§ ¿¡·¯:', error);
-        await interaction.reply({ content: '»õ·Î°íÄ§ Áß ¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+        console.error('âŒ ìƒˆë¡œê³ ì¹¨ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ìƒˆë¡œê³ ì¹¨ ì¤‘ ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
       }
     }
     
@@ -1299,15 +1299,15 @@ client.on('interactionCreate', async (interaction) => {
         const type = parts[1]; // 'inventory' or 'crafting'
         const category = parts.length > 2 ? parts.slice(2).join('_') : null;
         
-        console.log('?? ¼ö·®°ü¸® ¹öÆ° Å¬¸¯');
-        console.log('  - Å¸ÀÔ:', type);
-        console.log('  - Ä«Å×°í¸®:', category || 'ÀüÃ¼');
+        console.log('ğŸ“Š ìˆ˜ëŸ‰ê´€ë¦¬ ë²„íŠ¼ í´ë¦­');
+        console.log('  - íƒ€ì…:', type);
+        console.log('  - ì¹´í…Œê³ ë¦¬:', category || 'ì „ì²´');
         
         const inventory = await loadInventory();
         
         if (!category) {
           return await interaction.reply({ 
-            content: `? Æ¯Á¤ Ä«Å×°í¸®¸¦ ¼±ÅÃÇÑ ÈÄ ¼ö·®°ü¸® ¹öÆ°À» »ç¿ëÇØÁÖ¼¼¿ä.\n\`/${type === 'inventory' ? 'Àç°í' : 'Á¦ÀÛ'} Ä«Å×°í¸®:ÇØ¾ç\` Ã³·³ Ä«Å×°í¸®¸¦ ÁöÁ¤ÇØÁÖ¼¼¿ä.`, 
+            content: `âŒ íŠ¹ì • ì¹´í…Œê³ ë¦¬ë¥¼ ì„ íƒí•œ í›„ ìˆ˜ëŸ‰ê´€ë¦¬ ë²„íŠ¼ì„ ì‚¬ìš©í•´ì£¼ì„¸ìš”.\n\`/${type === 'inventory' ? 'ì¬ê³ ' : 'ì œì‘'} ì¹´í…Œê³ ë¦¬:í•´ì–‘\` ì²˜ëŸ¼ ì¹´í…Œê³ ë¦¬ë¥¼ ì§€ì •í•´ì£¼ì„¸ìš”.`, 
             ephemeral: true 
           });
         }
@@ -1316,17 +1316,17 @@ client.on('interactionCreate', async (interaction) => {
         
         if (!targetData.categories[category]) {
           return await interaction.reply({ 
-            content: `? "${category}" Ä«Å×°í¸®¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù.`, 
+            content: `âŒ "${category}" ì¹´í…Œê³ ë¦¬ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`, 
             ephemeral: true 
           });
         }
         
-        // ÇöÀç Ä«Å×°í¸®ÀÇ ¾ÆÀÌÅÛ ¸ñ·Ï »ı¼º
+        // í˜„ì¬ ì¹´í…Œê³ ë¦¬ì˜ ì•„ì´í…œ ëª©ë¡ ìƒì„±
         const items = Object.keys(targetData.categories[category]);
         
         if (items.length === 0) {
           return await interaction.reply({ 
-            content: `? "${category}" Ä«Å×°í¸®¿¡ ¾ÆÀÌÅÛÀÌ ¾ø½À´Ï´Ù.`, 
+            content: `âŒ "${category}" ì¹´í…Œê³ ë¦¬ì— ì•„ì´í…œì´ ì—†ìŠµë‹ˆë‹¤.`, 
             ephemeral: true 
           });
         }
@@ -1340,46 +1340,46 @@ client.on('interactionCreate', async (interaction) => {
             label: item,
             value: item,
             emoji: customEmoji || getItemIcon(item, inventory),
-            description: `ÇöÀç: ${sets}¼¼Æ®+${remainder}°³ (${itemData.quantity}°³) / ¸ñÇ¥: ${itemData.required}°³`
+            description: `í˜„ì¬: ${sets}ì„¸íŠ¸+${remainder}ê°œ (${itemData.quantity}ê°œ) / ëª©í‘œ: ${itemData.required}ê°œ`
           };
         });
         
-        // ¼±ÅÃ ¸Ş´º »ı¼º
+        // ì„ íƒ ë©”ë‰´ ìƒì„±
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_quantity_${type}_${category}`)
-          .setPlaceholder('¼ö·®À» °ü¸®ÇÒ ¾ÆÀÌÅÛÀ» ¼±ÅÃÇÏ¼¼¿ä')
+          .setPlaceholder('ìˆ˜ëŸ‰ì„ ê´€ë¦¬í•  ì•„ì´í…œì„ ì„ íƒí•˜ì„¸ìš”')
           .addOptions(itemOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
         const reply = await interaction.reply({
-          content: `?? **${category}** Ä«Å×°í¸®¿¡¼­ ¼ö·®À» °ü¸®ÇÒ ¾ÆÀÌÅÛÀ» ¼±ÅÃÇÏ¼¼¿ä:`,
+          content: `ğŸ“Š **${category}** ì¹´í…Œê³ ë¦¬ì—ì„œ ìˆ˜ëŸ‰ì„ ê´€ë¦¬í•  ì•„ì´í…œì„ ì„ íƒí•˜ì„¸ìš”:`,
           components: [row],
           ephemeral: true,
           fetchReply: true
         });
         
-        // 15ÃÊ ÈÄ ÀÚµ¿ »èÁ¦
+        // 15ì´ˆ í›„ ìë™ ì‚­ì œ
         setTimeout(async () => {
           try {
             await interaction.deleteReply();
           } catch (error) {
-            // ÀÌ¹Ì »èÁ¦µÇ¾ú°Å³ª »èÁ¦ÇÒ ¼ö ¾ø´Â °æ¿ì ¹«½Ã
+            // ì´ë¯¸ ì‚­ì œë˜ì—ˆê±°ë‚˜ ì‚­ì œí•  ìˆ˜ ì—†ëŠ” ê²½ìš° ë¬´ì‹œ
           }
         }, 15000);
         
       } catch (error) {
-        console.error('? ¹öÆ° ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true }).catch(() => {});
+        console.error('âŒ ë²„íŠ¼ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
     
     else if (interaction.customId.startsWith('reset') && !interaction.customId.startsWith('reset_individual') && !interaction.customId.startsWith('reset_batch')) {
       try {
-        // ÀÌ¹Ì ÀÀ´äÇß´ÂÁö È®ÀÎ
+        // ì´ë¯¸ ì‘ë‹µí–ˆëŠ”ì§€ í™•ì¸
         if (interaction.replied || interaction.deferred) {
-          console.log('?? ÀÌ¹Ì ÀÀ´äÇÑ ÀÎÅÍ·¢¼Ç, ¹«½Ã');
+          console.log('âš ï¸ ì´ë¯¸ ì‘ë‹µí•œ ì¸í„°ë™ì…˜, ë¬´ì‹œ');
           return;
         }
         
@@ -1387,38 +1387,38 @@ client.on('interactionCreate', async (interaction) => {
         const type = parts[1]; // 'inventory' or 'crafting'
         const category = parts.length > 2 ? parts.slice(2).join('_') : null;
         
-        console.log('?? ÃÊ±âÈ­ ¹öÆ° Å¬¸¯');
-        console.log('  - Å¸ÀÔ:', type);
-        console.log('  - Ä«Å×°í¸®:', category || 'ÀüÃ¼');
+        console.log('ğŸ”„ ì´ˆê¸°í™” ë²„íŠ¼ í´ë¦­');
+        console.log('  - íƒ€ì…:', type);
+        console.log('  - ì¹´í…Œê³ ë¦¬:', category || 'ì „ì²´');
         
         if (!category) {
           return await sendTemporaryReply(interaction, 
-            `? Æ¯Á¤ Ä«Å×°í¸®¸¦ ¼±ÅÃÇÑ ÈÄ ÃÊ±âÈ­ ¹öÆ°À» »ç¿ëÇØÁÖ¼¼¿ä.\n\`/${type === 'inventory' ? 'Àç°í' : 'Á¦ÀÛ'} Ä«Å×°í¸®:ÇØ¾ç\` Ã³·³ Ä«Å×°í¸®¸¦ ÁöÁ¤ÇØÁÖ¼¼¿ä.`
+            `âŒ íŠ¹ì • ì¹´í…Œê³ ë¦¬ë¥¼ ì„ íƒí•œ í›„ ì´ˆê¸°í™” ë²„íŠ¼ì„ ì‚¬ìš©í•´ì£¼ì„¸ìš”.\n\`/${type === 'inventory' ? 'ì¬ê³ ' : 'ì œì‘'} ì¹´í…Œê³ ë¦¬:í•´ì–‘\` ì²˜ëŸ¼ ì¹´í…Œê³ ë¦¬ë¥¼ ì§€ì •í•´ì£¼ì„¸ìš”.`
           );
         }
         
-        // ÃÊ±âÈ­ ¹æ½Ä ¼±ÅÃ ¹öÆ° »ı¼º
+        // ì´ˆê¸°í™” ë°©ì‹ ì„ íƒ ë²„íŠ¼ ìƒì„±
         const individualButton = new ButtonBuilder()
           .setCustomId(`reset_individual_${type}_${category}`)
-          .setLabel('°³º° ÃÊ±âÈ­')
+          .setLabel('ê°œë³„ ì´ˆê¸°í™”')
           .setStyle(ButtonStyle.Primary);
         
         const batchButton = new ButtonBuilder()
           .setCustomId(`reset_batch_${type}_${category}`)
-          .setLabel('ÀÏ°ı ÃÊ±âÈ­')
+          .setLabel('ì¼ê´„ ì´ˆê¸°í™”')
           .setStyle(ButtonStyle.Danger);
         
         const row = new ActionRowBuilder().addComponents(individualButton, batchButton);
         
         await sendTemporaryReply(interaction, {
-          content: `?? **${category}** Ä«Å×°í¸® ÃÊ±âÈ­ ¹æ½ÄÀ» ¼±ÅÃÇÏ¼¼¿ä:\n\n**°³º° ÃÊ±âÈ­**: Æ¯Á¤ ${type === 'inventory' ? '¾ÆÀÌÅÛ' : 'Á¦ÀÛÇ°'}¸¸ ¼±ÅÃÇÏ¿© ÃÊ±âÈ­\n**ÀÏ°ı ÃÊ±âÈ­**: Ä«Å×°í¸® ÀüÃ¼¸¦ 0À¸·Î ÃÊ±âÈ­`,
+          content: `ğŸ”„ **${category}** ì¹´í…Œê³ ë¦¬ ì´ˆê¸°í™” ë°©ì‹ì„ ì„ íƒí•˜ì„¸ìš”:\n\n**ê°œë³„ ì´ˆê¸°í™”**: íŠ¹ì • ${type === 'inventory' ? 'ì•„ì´í…œ' : 'ì œì‘í’ˆ'}ë§Œ ì„ íƒí•˜ì—¬ ì´ˆê¸°í™”\n**ì¼ê´„ ì´ˆê¸°í™”**: ì¹´í…Œê³ ë¦¬ ì „ì²´ë¥¼ 0ìœ¼ë¡œ ì´ˆê¸°í™”`,
           components: [row]
         }, 15000);
         
       } catch (error) {
-        console.error('? ÃÊ±âÈ­ ¹öÆ° ¿¡·¯:', error);
+        console.error('âŒ ì´ˆê¸°í™” ë²„íŠ¼ ì—ëŸ¬:', error);
         if (!interaction.replied && !interaction.deferred) {
-          await sendTemporaryReply(interaction, '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message).catch(() => {});
+          await sendTemporaryReply(interaction, 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message).catch(() => {});
         }
       }
     }
@@ -1435,13 +1435,13 @@ client.on('interactionCreate', async (interaction) => {
         
         if (!targetData.categories[category]) {
           return await interaction.update({ 
-            content: `? "${category}" Ä«Å×°í¸®¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù.`,
+            content: `âŒ "${category}" ì¹´í…Œê³ ë¦¬ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`,
             components: []
           });
         }
         
         if (resetType === 'batch') {
-          // ÀÏ°ı ÃÊ±âÈ­
+          // ì¼ê´„ ì´ˆê¸°í™”
           let resetCount = 0;
           let resetItems = [];
           
@@ -1450,17 +1450,17 @@ client.on('interactionCreate', async (interaction) => {
               const oldQuantity = data.quantity;
               data.quantity = 0;
               resetCount++;
-              resetItems.push(`${getItemIcon(itemName, inventory)} ${itemName} (${oldQuantity}°³)`);
+              resetItems.push(`${getItemIcon(itemName, inventory)} ${itemName} (${oldQuantity}ê°œ)`);
               
               addHistory(inventory, type, category, itemName, 'reset', 
-                `${oldQuantity}°³ ¡æ 0°³`, 
+                `${oldQuantity}ê°œ â†’ 0ê°œ`, 
                 interaction.user.displayName || interaction.user.username);
             }
           }
           
           if (resetCount === 0) {
             return await interaction.update({
-              content: '?? ÃÊ±âÈ­ÇÒ Ç×¸ñÀÌ ¾ø½À´Ï´Ù. (ÀÌ¹Ì ¸ğµÎ 0°³ÀÔ´Ï´Ù)',
+              content: 'âš ï¸ ì´ˆê¸°í™”í•  í•­ëª©ì´ ì—†ìŠµë‹ˆë‹¤. (ì´ë¯¸ ëª¨ë‘ 0ê°œì…ë‹ˆë‹¤)',
               components: []
             });
           }
@@ -1468,19 +1468,19 @@ client.on('interactionCreate', async (interaction) => {
           await saveInventory(inventory);
           
           const itemList = resetItems.slice(0, 10).join('\n');
-          const moreText = resetItems.length > 10 ? `\n... ¿Ü ${resetItems.length - 10}°³` : '';
+          const moreText = resetItems.length > 10 ? `\n... ì™¸ ${resetItems.length - 10}ê°œ` : '';
           
           const successEmbed = new EmbedBuilder()
             .setColor(0xFFA500)
-            .setTitle('?? ÀÏ°ı ÃÊ±âÈ­ ¿Ï·á')
-            .setDescription(`**${category}** Ä«Å×°í¸®ÀÇ ${type === 'inventory' ? '¾ÆÀÌÅÛ' : 'Á¦ÀÛÇ°'} **${resetCount}°³**°¡ ÃÊ±âÈ­µÇ¾ú½À´Ï´Ù.\n\n${itemList}${moreText}`);
+            .setTitle('ğŸ”„ ì¼ê´„ ì´ˆê¸°í™” ì™„ë£Œ')
+            .setDescription(`**${category}** ì¹´í…Œê³ ë¦¬ì˜ ${type === 'inventory' ? 'ì•„ì´í…œ' : 'ì œì‘í’ˆ'} **${resetCount}ê°œ**ê°€ ì´ˆê¸°í™”ë˜ì—ˆìŠµë‹ˆë‹¤.\n\n${itemList}${moreText}`);
           
           await interaction.update({
             embeds: [successEmbed],
             components: []
           });
           
-          // 15ÃÊ ÈÄ ÀÚµ¿ »èÁ¦
+          // 15ì´ˆ í›„ ìë™ ì‚­ì œ
           setTimeout(async () => {
             try {
               await interaction.deleteReply();
@@ -1488,12 +1488,12 @@ client.on('interactionCreate', async (interaction) => {
           }, 15000);
           
         } else {
-          // °³º° ÃÊ±âÈ­ - ¾ÆÀÌÅÛ ¼±ÅÃ ¸Ş´º Ç¥½Ã
+          // ê°œë³„ ì´ˆê¸°í™” - ì•„ì´í…œ ì„ íƒ ë©”ë‰´ í‘œì‹œ
           const items = Object.keys(targetData.categories[category]);
           
           if (items.length === 0) {
             return await interaction.update({
-              content: `? "${category}" Ä«Å×°í¸®¿¡ ${type === 'inventory' ? '¾ÆÀÌÅÛ' : 'Á¦ÀÛÇ°'}ÀÌ ¾ø½À´Ï´Ù.`,
+              content: `âŒ "${category}" ì¹´í…Œê³ ë¦¬ì— ${type === 'inventory' ? 'ì•„ì´í…œ' : 'ì œì‘í’ˆ'}ì´ ì—†ìŠµë‹ˆë‹¤.`,
               components: []
             });
           }
@@ -1505,37 +1505,37 @@ client.on('interactionCreate', async (interaction) => {
               label: item,
               value: item,
               emoji: customEmoji || getItemIcon(item, inventory),
-              description: `ÇöÀç: ${itemData.quantity}°³`
+              description: `í˜„ì¬: ${itemData.quantity}ê°œ`
             };
           });
           
           const { StringSelectMenuBuilder } = await import('discord.js');
           const selectMenu = new StringSelectMenuBuilder()
             .setCustomId(`select_reset_${type}_${category}`)
-            .setPlaceholder('ÃÊ±âÈ­ÇÒ Ç×¸ñÀ» ¼±ÅÃÇÏ¼¼¿ä')
+            .setPlaceholder('ì´ˆê¸°í™”í•  í•­ëª©ì„ ì„ íƒí•˜ì„¸ìš”')
             .addOptions(itemOptions);
           
           const row = new ActionRowBuilder().addComponents(selectMenu);
           
           await interaction.update({
-            content: `?? **${category}** Ä«Å×°í¸®¿¡¼­ ÃÊ±âÈ­ÇÒ ${type === 'inventory' ? '¾ÆÀÌÅÛ' : 'Á¦ÀÛÇ°'}À» ¼±ÅÃÇÏ¼¼¿ä:`,
+            content: `ğŸ”„ **${category}** ì¹´í…Œê³ ë¦¬ì—ì„œ ì´ˆê¸°í™”í•  ${type === 'inventory' ? 'ì•„ì´í…œ' : 'ì œì‘í’ˆ'}ì„ ì„ íƒí•˜ì„¸ìš”:`,
             components: [row]
           });
         }
         
       } catch (error) {
-        console.error('? ÃÊ±âÈ­ Å¸ÀÔ ¼±ÅÃ ¿¡·¯:', error);
+        console.error('âŒ ì´ˆê¸°í™” íƒ€ì… ì„ íƒ ì—ëŸ¬:', error);
         if (!interaction.replied && !interaction.deferred) {
-          await sendTemporaryReply(interaction, '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message).catch(() => {});
+          await sendTemporaryReply(interaction, 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message).catch(() => {});
         }
       }
     }
     
     else if (interaction.customId.startsWith('manage') && !interaction.customId.startsWith('manage_add') && !interaction.customId.startsWith('manage_remove')) {
       try {
-        // ÀÌ¹Ì ÀÀ´äÇß´ÂÁö È®ÀÎ
+        // ì´ë¯¸ ì‘ë‹µí–ˆëŠ”ì§€ í™•ì¸
         if (interaction.replied || interaction.deferred) {
-          console.log('?? ÀÌ¹Ì ÀÀ´äÇÑ ÀÎÅÍ·¢¼Ç, ¹«½Ã');
+          console.log('âš ï¸ ì´ë¯¸ ì‘ë‹µí•œ ì¸í„°ë™ì…˜, ë¬´ì‹œ');
           return;
         }
         
@@ -1544,31 +1544,31 @@ client.on('interactionCreate', async (interaction) => {
         const category = parts.length > 2 ? parts.slice(2).join('_') : null;
         
         if (!category) {
-          return await sendTemporaryReply(interaction, '? Ä«Å×°í¸®¸¦ ¼±ÅÃÇÑ ÈÄ »ç¿ëÇØÁÖ¼¼¿ä.');
+          return await sendTemporaryReply(interaction, 'âŒ ì¹´í…Œê³ ë¦¬ë¥¼ ì„ íƒí•œ í›„ ì‚¬ìš©í•´ì£¼ì„¸ìš”.');
         }
         
-        // Ãß°¡/»èÁ¦ ¼±ÅÃ ¹öÆ°
+        // ì¶”ê°€/ì‚­ì œ ì„ íƒ ë²„íŠ¼
         const addButton = new ButtonBuilder()
           .setCustomId(`manage_add_${type}_${category}`)
-          .setLabel(type === 'inventory' ? '? ¹°Ç° Ãß°¡' : '? Ç°¸ñ Ãß°¡')
+          .setLabel(type === 'inventory' ? 'â• ë¬¼í’ˆ ì¶”ê°€' : 'â• í’ˆëª© ì¶”ê°€')
           .setStyle(ButtonStyle.Success);
         
         const removeButton = new ButtonBuilder()
           .setCustomId(`manage_remove_${type}_${category}`)
-          .setLabel(type === 'inventory' ? '? ¹°Ç° »èÁ¦' : '? Ç°¸ñ »èÁ¦')
+          .setLabel(type === 'inventory' ? 'â– ë¬¼í’ˆ ì‚­ì œ' : 'â– í’ˆëª© ì‚­ì œ')
           .setStyle(ButtonStyle.Danger);
         
         const row = new ActionRowBuilder().addComponents(addButton, removeButton);
         
         await sendTemporaryReply(interaction, {
-          content: `?? **${category}** Ä«Å×°í¸® ${type === 'inventory' ? '¹°Ç°' : 'Ç°¸ñ'} °ü¸®\n\n¿øÇÏ´Â ÀÛ¾÷À» ¼±ÅÃÇÏ¼¼¿ä:`,
+          content: `ğŸ“ **${category}** ì¹´í…Œê³ ë¦¬ ${type === 'inventory' ? 'ë¬¼í’ˆ' : 'í’ˆëª©'} ê´€ë¦¬\n\nì›í•˜ëŠ” ì‘ì—…ì„ ì„ íƒí•˜ì„¸ìš”:`,
           components: [row]
         }, 15000);
         
       } catch (error) {
-        console.error('? °ü¸® ¹öÆ° ¿¡·¯:', error);
+        console.error('âŒ ê´€ë¦¬ ë²„íŠ¼ ì—ëŸ¬:', error);
         if (!interaction.replied && !interaction.deferred) {
-          await sendTemporaryReply(interaction, '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.').catch(() => {});
+          await sendTemporaryReply(interaction, 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.').catch(() => {});
         }
       }
     }
@@ -1579,29 +1579,29 @@ client.on('interactionCreate', async (interaction) => {
         const type = parts[1]; // 'crafting'
         const category = parts.slice(2).join('_');
         
-        // ·¹½ÃÇÇ °ü¸® ¹öÆ° »ı¼º
+        // ë ˆì‹œí”¼ ê´€ë¦¬ ë²„íŠ¼ ìƒì„±
         const viewButton = new ButtonBuilder()
           .setCustomId(`recipe_view_${category}`)
-          .setLabel('?? Á¶È¸')
+          .setLabel('ğŸ“– ì¡°íšŒ')
           .setStyle(ButtonStyle.Primary);
         
         const editButton = new ButtonBuilder()
           .setCustomId(`recipe_edit_${category}`)
-          .setLabel('?? ¼öÁ¤')
+          .setLabel('âœï¸ ìˆ˜ì •')
           .setStyle(ButtonStyle.Primary);
         
         const row = new ActionRowBuilder().addComponents(viewButton, editButton);
         
         await interaction.reply({
-          content: `?? **${category}** Ä«Å×°í¸® ·¹½ÃÇÇ °ü¸®\n\n¿øÇÏ´Â ÀÛ¾÷À» ¼±ÅÃÇÏ¼¼¿ä:`,
+          content: `ğŸ“‹ **${category}** ì¹´í…Œê³ ë¦¬ ë ˆì‹œí”¼ ê´€ë¦¬\n\nì›í•˜ëŠ” ì‘ì—…ì„ ì„ íƒí•˜ì„¸ìš”:`,
           components: [row],
           ephemeral: true
         });
         
       } catch (error) {
-        console.error('? ·¹½ÃÇÇ ¹öÆ° ¿¡·¯:', error);
+        console.error('âŒ ë ˆì‹œí”¼ ë²„íŠ¼ ì—ëŸ¬:', error);
         if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+          await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
         }
       }
     }
@@ -1613,7 +1613,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (!inventory.crafting?.recipes?.[category] || Object.keys(inventory.crafting.recipes[category]).length === 0) {
           return await interaction.update({
-            content: `? "${category}" Ä«Å×°í¸®¿¡ ·¹½ÃÇÇ°¡ ¾ø½À´Ï´Ù.`,
+            content: `âŒ "${category}" ì¹´í…Œê³ ë¦¬ì— ë ˆì‹œí”¼ê°€ ì—†ìŠµë‹ˆë‹¤.`,
             components: []
           });
         }
@@ -1622,16 +1622,16 @@ client.on('interactionCreate', async (interaction) => {
         const recipeCount = Object.keys(recipes).length;
         
         const embed = new EmbedBuilder()
-          .setTitle(`?? ${category} ·¹½ÃÇÇºÏ`)
-          .setDescription(`ÃÑ **${recipeCount}°³**ÀÇ ·¹½ÃÇÇ°¡ µî·ÏµÇ¾î ÀÖ½À´Ï´Ù.\n\n¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬`)
+          .setTitle(`ğŸ“‹ ${category} ë ˆì‹œí”¼ë¶`)
+          .setDescription(`ì´ **${recipeCount}ê°œ**ì˜ ë ˆì‹œí”¼ê°€ ë“±ë¡ë˜ì–´ ìˆìŠµë‹ˆë‹¤.\n\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”`)
           .setColor(0xFFA500)
           .setTimestamp()
-          .setFooter({ text: '? Á¦ÀÛ °¡´É | ?? Àç·á ºÎÁ·' });
+          .setFooter({ text: 'âœ… ì œì‘ ê°€ëŠ¥ | âš ï¸ ì¬ë£Œ ë¶€ì¡±' });
         
         for (const [itemName, materials] of Object.entries(recipes)) {
           const icon = getItemIcon(itemName, inventory);
           
-          // Á¦ÀÛ °¡´É ¿©ºÎ È®ÀÎ
+          // ì œì‘ ê°€ëŠ¥ ì—¬ë¶€ í™•ì¸
           let canCraft = true;
           const materialLines = materials.map(m => {
             const matIcon = getItemIcon(m.name, inventory);
@@ -1641,23 +1641,23 @@ client.on('interactionCreate', async (interaction) => {
             
             if (!hasEnough) canCraft = false;
             
-            const statusIcon = hasEnough ? '?' : '?';
+            const statusIcon = hasEnough ? 'âœ…' : 'âŒ';
             const qtyDisplay = hasEnough 
-              ? `**${m.quantity}°³**` 
-              : `**${m.quantity}°³** (º¸À¯: ${currentQty}°³)`;
+              ? `**${m.quantity}ê°œ**` 
+              : `**${m.quantity}ê°œ** (ë³´ìœ : ${currentQty}ê°œ)`;
             
-            return `${statusIcon} ${matIcon} ${m.name} ¡¿ ${qtyDisplay}`;
+            return `${statusIcon} ${matIcon} ${m.name} Ã— ${qtyDisplay}`;
           });
           
-          const statusEmoji = canCraft ? '?' : '??';
-          const statusText = canCraft ? 'Á¦ÀÛ °¡´É' : 'Àç·á ºÎÁ·';
+          const statusEmoji = canCraft ? 'âœ…' : 'âš ï¸';
+          const statusText = canCraft ? 'ì œì‘ ê°€ëŠ¥' : 'ì¬ë£Œ ë¶€ì¡±';
           
           const fieldValue = [
             `**${statusEmoji} ${statusText}**`,
             '',
             ...materialLines,
             '',
-            '¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬¦¬'
+            'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”'
           ].join('\n');
           
           embed.addFields({
@@ -1679,8 +1679,8 @@ client.on('interactionCreate', async (interaction) => {
         }, 20000);
         
       } catch (error) {
-        console.error('? ·¹½ÃÇÇ Á¶È¸ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+        console.error('âŒ ë ˆì‹œí”¼ ì¡°íšŒ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
       }
     }
     
@@ -1691,7 +1691,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (!inventory.crafting?.categories?.[category] || Object.keys(inventory.crafting.categories[category]).length === 0) {
           return await interaction.update({
-            content: `? "${category}" Ä«Å×°í¸®¿¡ Á¦ÀÛÇ°ÀÌ ¾ø½À´Ï´Ù.`,
+            content: `âŒ "${category}" ì¹´í…Œê³ ë¦¬ì— ì œì‘í’ˆì´ ì—†ìŠµë‹ˆë‹¤.`,
             components: []
           });
         }
@@ -1706,27 +1706,27 @@ client.on('interactionCreate', async (interaction) => {
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_recipe_edit_${category}`)
-          .setPlaceholder('·¹½ÃÇÇ¸¦ ¼öÁ¤ÇÒ Á¦ÀÛÇ°À» ¼±ÅÃÇÏ¼¼¿ä')
+          .setPlaceholder('ë ˆì‹œí”¼ë¥¼ ìˆ˜ì •í•  ì œì‘í’ˆì„ ì„ íƒí•˜ì„¸ìš”')
           .addOptions(itemOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
         await interaction.update({
-          content: `?? **${category}** Ä«Å×°í¸®¿¡¼­ ·¹½ÃÇÇ¸¦ ¼öÁ¤ÇÒ Á¦ÀÛÇ°À» ¼±ÅÃÇÏ¼¼¿ä:`,
+          content: `âœï¸ **${category}** ì¹´í…Œê³ ë¦¬ì—ì„œ ë ˆì‹œí”¼ë¥¼ ìˆ˜ì •í•  ì œì‘í’ˆì„ ì„ íƒí•˜ì„¸ìš”:`,
           components: [row]
         });
         
       } catch (error) {
-        console.error('? ·¹½ÃÇÇ ¼öÁ¤ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+        console.error('âŒ ë ˆì‹œí”¼ ìˆ˜ì • ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
       }
     }
     
     else if (interaction.customId.startsWith('manage_add')) {
       try {
-        // ÀÌ¹Ì ÀÀ´äÇß´ÂÁö È®ÀÎ
+        // ì´ë¯¸ ì‘ë‹µí–ˆëŠ”ì§€ í™•ì¸
         if (interaction.replied || interaction.deferred) {
-          console.log('?? ÀÌ¹Ì ÀÀ´äÇÑ ÀÎÅÍ·¢¼Ç, ¹«½Ã');
+          console.log('âš ï¸ ì´ë¯¸ ì‘ë‹µí•œ ì¸í„°ë™ì…˜, ë¬´ì‹œ');
           return;
         }
         
@@ -1738,43 +1738,43 @@ client.on('interactionCreate', async (interaction) => {
         
         const modal = new ModalBuilder()
           .setCustomId(`add_item_modal_${type}_${category}`)
-          .setTitle(`? ${type === 'inventory' ? '¹°Ç°' : 'Ç°¸ñ'} Ãß°¡ - ${category}`);
+          .setTitle(`â• ${type === 'inventory' ? 'ë¬¼í’ˆ' : 'í’ˆëª©'} ì¶”ê°€ - ${category}`);
         
         const nameInput = new TextInputBuilder()
           .setCustomId('item_name')
-          .setLabel(type === 'inventory' ? '¾ÆÀÌÅÛ ÀÌ¸§' : 'Á¦ÀÛÇ° ÀÌ¸§')
+          .setLabel(type === 'inventory' ? 'ì•„ì´í…œ ì´ë¦„' : 'ì œì‘í’ˆ ì´ë¦„')
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('¿¹: ´ÙÀÌ¾Æ¸óµå')
+          .setPlaceholder('ì˜ˆ: ë‹¤ì´ì•„ëª¬ë“œ')
           .setRequired(true);
         
         const initialSetsInput = new TextInputBuilder()
           .setCustomId('initial_sets')
-          .setLabel('ÃÊ±â ¼ö·® - ¼¼Æ® (1¼¼Æ® = 64°³)')
+          .setLabel('ì´ˆê¸° ìˆ˜ëŸ‰ - ì„¸íŠ¸ (1ì„¸íŠ¸ = 64ê°œ)')
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('¿¹: 0')
+          .setPlaceholder('ì˜ˆ: 0')
           .setValue('0')
           .setRequired(false);
         
         const initialItemsInput = new TextInputBuilder()
           .setCustomId('initial_items')
-          .setLabel('ÃÊ±â ¼ö·® - ³¹°³')
+          .setLabel('ì´ˆê¸° ìˆ˜ëŸ‰ - ë‚±ê°œ')
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('¿¹: 0')
+          .setPlaceholder('ì˜ˆ: 0')
           .setValue('0')
           .setRequired(false);
         
         const requiredSetsInput = new TextInputBuilder()
           .setCustomId('required_sets')
-          .setLabel('ÃæÁ· ¼ö·® - ¼¼Æ® (1¼¼Æ® = 64°³)')
+          .setLabel('ì¶©ì¡± ìˆ˜ëŸ‰ - ì„¸íŠ¸ (1ì„¸íŠ¸ = 64ê°œ)')
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('¿¹: 10')
+          .setPlaceholder('ì˜ˆ: 10')
           .setRequired(false);
         
         const requiredItemsInput = new TextInputBuilder()
           .setCustomId('required_items')
-          .setLabel('ÃæÁ· ¼ö·® - ³¹°³')
+          .setLabel('ì¶©ì¡± ìˆ˜ëŸ‰ - ë‚±ê°œ')
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('¿¹: 32')
+          .setPlaceholder('ì˜ˆ: 32')
           .setRequired(false);
         
         modal.addComponents(
@@ -1788,18 +1788,18 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.showModal(modal);
         
       } catch (error) {
-        console.error('? Ãß°¡ ¸ğ´Ş ¿¡·¯:', error);
+        console.error('âŒ ì¶”ê°€ ëª¨ë‹¬ ì—ëŸ¬:', error);
         if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+          await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
         }
       }
     }
     
     else if (interaction.customId.startsWith('manage_remove')) {
       try {
-        // ÀÌ¹Ì ÀÀ´äÇß´ÂÁö È®ÀÎ
+        // ì´ë¯¸ ì‘ë‹µí–ˆëŠ”ì§€ í™•ì¸
         if (interaction.replied || interaction.deferred) {
-          console.log('?? ÀÌ¹Ì ÀÀ´äÇÑ ÀÎÅÍ·¢¼Ç, ¹«½Ã');
+          console.log('âš ï¸ ì´ë¯¸ ì‘ë‹µí•œ ì¸í„°ë™ì…˜, ë¬´ì‹œ');
           return;
         }
         
@@ -1812,7 +1812,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (!targetData?.[category] || Object.keys(targetData[category]).length === 0) {
           return await interaction.update({
-            content: `? "${category}" Ä«Å×°í¸®¿¡ ${type === 'inventory' ? '¾ÆÀÌÅÛ' : 'Á¦ÀÛÇ°'}ÀÌ ¾ø½À´Ï´Ù.`,
+            content: `âŒ "${category}" ì¹´í…Œê³ ë¦¬ì— ${type === 'inventory' ? 'ì•„ì´í…œ' : 'ì œì‘í’ˆ'}ì´ ì—†ìŠµë‹ˆë‹¤.`,
             components: []
           });
         }
@@ -1821,26 +1821,26 @@ client.on('interactionCreate', async (interaction) => {
         const itemOptions = items.map(item => ({
           label: item,
           value: item,
-          description: `ÇöÀç: ${targetData[category][item].quantity}°³ / ¸ñÇ¥: ${targetData[category][item].required}°³`
+          description: `í˜„ì¬: ${targetData[category][item].quantity}ê°œ / ëª©í‘œ: ${targetData[category][item].required}ê°œ`
         }));
         
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_remove_${type}_${category}`)
-          .setPlaceholder('»èÁ¦ÇÒ Ç×¸ñÀ» ¼±ÅÃÇÏ¼¼¿ä')
+          .setPlaceholder('ì‚­ì œí•  í•­ëª©ì„ ì„ íƒí•˜ì„¸ìš”')
           .addOptions(itemOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
         await interaction.update({
-          content: `??? **${category}** Ä«Å×°í¸®¿¡¼­ »èÁ¦ÇÒ ${type === 'inventory' ? '¹°Ç°' : 'Ç°¸ñ'}À» ¼±ÅÃÇÏ¼¼¿ä:`,
+          content: `ğŸ—‘ï¸ **${category}** ì¹´í…Œê³ ë¦¬ì—ì„œ ì‚­ì œí•  ${type === 'inventory' ? 'ë¬¼í’ˆ' : 'í’ˆëª©'}ì„ ì„ íƒí•˜ì„¸ìš”:`,
           components: [row]
         });
         
       } catch (error) {
-        console.error('? »èÁ¦ ¼±ÅÃ ¿¡·¯:', error);
+        console.error('âŒ ì‚­ì œ ì„ íƒ ì—ëŸ¬:', error);
         if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+          await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
         }
       }
     }
@@ -1854,18 +1854,18 @@ client.on('interactionCreate', async (interaction) => {
         const inventory = await loadInventory();
         const currentLength = inventory.settings?.barLength || 15;
         
-        // ¸ğ´Ş »ı¼º
+        // ëª¨ë‹¬ ìƒì„±
         const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
         
         const modal = new ModalBuilder()
           .setCustomId(`bar_size_modal_${type}_${category || 'all'}`)
-          .setTitle('?? ÇÁ·Î±×·¹½º ¹Ù Å©±â ¼³Á¤');
+          .setTitle('ğŸ“Š í”„ë¡œê·¸ë ˆìŠ¤ ë°” í¬ê¸° ì„¤ì •');
         
         const barSizeInput = new TextInputBuilder()
           .setCustomId('bar_size_value')
-          .setLabel('¹Ù Å©±â (25% ~ 200%)')
+          .setLabel('ë°” í¬ê¸° (25% ~ 200%)')
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('¿¹: 100')
+          .setPlaceholder('ì˜ˆ: 100')
           .setValue(String(Math.round(currentLength * 10)))
           .setRequired(true)
           .setMinLength(2)
@@ -1875,10 +1875,10 @@ client.on('interactionCreate', async (interaction) => {
         modal.addComponents(row);
         
         await interaction.showModal(modal);
-        console.log(`?? ¹Ù Å©±â ¼³Á¤ ¸ğ´Ş Ç¥½Ã (ÇöÀç: ${Math.round(currentLength * 10)}%)`);
+        console.log(`ğŸ“Š ë°” í¬ê¸° ì„¤ì • ëª¨ë‹¬ í‘œì‹œ (í˜„ì¬: ${Math.round(currentLength * 10)}%)`);
       } catch (error) {
-        console.error('? ¹Ù Å©±â º¯°æ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+        console.error('âŒ ë°” í¬ê¸° ë³€ê²½ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
       }
     }
     
@@ -1890,14 +1890,14 @@ client.on('interactionCreate', async (interaction) => {
         
         const inventory = await loadInventory();
         
-        // UI ¸ğµå ¼øÈ¯: normal -> compact -> detailed -> normal
+        // UI ëª¨ë“œ ìˆœí™˜: normal -> compact -> detailed -> normal
         let currentMode = inventory.settings?.uiMode || 'normal';
         let newMode;
         if (currentMode === 'normal') newMode = 'compact';
         else if (currentMode === 'compact') newMode = 'detailed';
         else newMode = 'normal';
         
-        // ¼³Á¤ ÀúÀå
+        // ì„¤ì • ì €ì¥
         if (!inventory.settings) inventory.settings = {};
         inventory.settings.uiMode = newMode;
         await saveInventory(inventory);
@@ -1916,10 +1916,10 @@ client.on('interactionCreate', async (interaction) => {
         const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', newMode, barLength);
         
         await interaction.update({ embeds: [embed], components: buttons });
-        console.log(`?? UI ¸ğµå º¯°æ: ${currentMode} -> ${newMode}`);
+        console.log(`ğŸ“ UI ëª¨ë“œ ë³€ê²½: ${currentMode} -> ${newMode}`);
       } catch (error) {
-        console.error('? UI ¸ğµå º¯°æ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+        console.error('âŒ UI ëª¨ë“œ ë³€ê²½ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
       }
     }
     
@@ -1930,12 +1930,12 @@ client.on('interactionCreate', async (interaction) => {
         const category = parts.length > 3 ? parts.slice(3).join('_') : null;
         const messageId = interaction.message.id;
         
-        // ÀÚµ¿ »õ·Î°íÄ§ Åä±Û
+        // ìë™ ìƒˆë¡œê³ ì¹¨ í† ê¸€
         if (autoRefreshTimers.has(messageId)) {
-          // ÁßÁö
+          // ì¤‘ì§€
           clearInterval(autoRefreshTimers.get(messageId));
           autoRefreshTimers.delete(messageId);
-          console.log('?? ÀÚµ¿ »õ·Î°íÄ§ ÁßÁö:', messageId);
+          console.log('â¸ï¸ ìë™ ìƒˆë¡œê³ ì¹¨ ì¤‘ì§€:', messageId);
           
           const inventory = await loadInventory();
           let embed;
@@ -1953,8 +1953,8 @@ client.on('interactionCreate', async (interaction) => {
           
           await interaction.update({ embeds: [embed], components: buttons });
         } else {
-          // ½ÃÀÛ
-          console.log('¢º? ÀÚµ¿ »õ·Î°íÄ§ ½ÃÀÛ:', messageId, '/ Å¸ÀÔ:', type, '/ Ä«Å×°í¸®:', category || 'ÀüÃ¼');
+          // ì‹œì‘
+          console.log('â–¶ï¸ ìë™ ìƒˆë¡œê³ ì¹¨ ì‹œì‘:', messageId, '/ íƒ€ì…:', type, '/ ì¹´í…Œê³ ë¦¬:', category || 'ì „ì²´');
           
           const inventory = await loadInventory();
           let embed;
@@ -1972,13 +1972,13 @@ client.on('interactionCreate', async (interaction) => {
           
           await interaction.update({ embeds: [embed], components: buttons });
           
-          // 5ÃÊ¸¶´Ù ÀÚµ¿ »õ·Î°íÄ§
+          // 5ì´ˆë§ˆë‹¤ ìë™ ìƒˆë¡œê³ ì¹¨
           const timer = setInterval(async () => {
             try {
-              // ¸Ş½ÃÁö°¡ ¿©ÀüÈ÷ Á¸ÀçÇÏ´ÂÁö È®ÀÎ
+              // ë©”ì‹œì§€ê°€ ì—¬ì „íˆ ì¡´ì¬í•˜ëŠ”ì§€ í™•ì¸
               const message = await interaction.message.fetch().catch(() => null);
               if (!message) {
-                console.log('?? ¸Ş½ÃÁö°¡ »èÁ¦µÊ. ÀÚµ¿ »õ·Î°íÄ§ ÁßÁö:', messageId);
+                console.log('âš ï¸ ë©”ì‹œì§€ê°€ ì‚­ì œë¨. ìë™ ìƒˆë¡œê³ ì¹¨ ì¤‘ì§€:', messageId);
                 clearInterval(timer);
                 autoRefreshTimers.delete(messageId);
                 return;
@@ -1999,51 +1999,51 @@ client.on('interactionCreate', async (interaction) => {
               const btns = createButtons(category, true, type || 'inventory', uiMode, barLength);
               
               await interaction.message.edit({ embeds: [emb], components: btns });
-              console.log('?? ÀÚµ¿ »õ·Î°íÄ§ ½ÇÇà:', new Date().toLocaleTimeString());
+              console.log('ğŸ”„ ìë™ ìƒˆë¡œê³ ì¹¨ ì‹¤í–‰:', new Date().toLocaleTimeString());
             } catch (error) {
-              console.error('? ÀÚµ¿ »õ·Î°íÄ§ ¿¡·¯:', error);
-              // ¿¡·¯ ¹ß»ı ½Ã Å¸ÀÌ¸Ó ÁßÁö
+              console.error('âŒ ìë™ ìƒˆë¡œê³ ì¹¨ ì—ëŸ¬:', error);
+              // ì—ëŸ¬ ë°œìƒ ì‹œ íƒ€ì´ë¨¸ ì¤‘ì§€
               clearInterval(timer);
               autoRefreshTimers.delete(messageId);
             }
-          }, 5000); // 5ÃÊ
+          }, 5000); // 5ì´ˆ
           
           autoRefreshTimers.set(messageId, timer);
           
-          // 10ºĞ ÈÄ ÀÚµ¿ ÁßÁö (¾ÈÀüÀåÄ¡)
+          // 10ë¶„ í›„ ìë™ ì¤‘ì§€ (ì•ˆì „ì¥ì¹˜)
           setTimeout(() => {
             if (autoRefreshTimers.has(messageId)) {
-              console.log('? 10ºĞ °æ°ú. ÀÚµ¿ »õ·Î°íÄ§ ÀÚµ¿ ÁßÁö:', messageId);
+              console.log('â° 10ë¶„ ê²½ê³¼. ìë™ ìƒˆë¡œê³ ì¹¨ ìë™ ì¤‘ì§€:', messageId);
               clearInterval(timer);
               autoRefreshTimers.delete(messageId);
             }
-          }, 600000); // 10ºĞ
+          }, 600000); // 10ë¶„
         }
       } catch (error) {
-        console.error('? ÀÚµ¿ »õ·Î°íÄ§ Åä±Û ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+        console.error('âŒ ìë™ ìƒˆë¡œê³ ì¹¨ í† ê¸€ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
       }
     }
     
     else if (interaction.customId.startsWith('collecting') || interaction.customId.startsWith('crafting')) {
       try {
-        // crafting_°¡ ¾Æ´Ï¶ó craftingÀ¸·Î ½ÃÀÛÇÏ´ÂÁö È®ÀÎ (´Ü, crafting_stopÀº Á¦¿Ü)
+        // crafting_ê°€ ì•„ë‹ˆë¼ craftingìœ¼ë¡œ ì‹œì‘í•˜ëŠ”ì§€ í™•ì¸ (ë‹¨, crafting_stopì€ ì œì™¸)
         const isCrafting = interaction.customId.startsWith('crafting') && !interaction.customId.startsWith('crafting_stop');
         const isCollecting = interaction.customId.startsWith('collecting');
         
-        // µÑ ´Ù ¾Æ´Ï¸é ¹«½Ã
+        // ë‘˜ ë‹¤ ì•„ë‹ˆë©´ ë¬´ì‹œ
         if (!isCrafting && !isCollecting) return;
         
         let category;
         if (isCrafting) {
-          // crafting ¶Ç´Â crafting_Ä«Å×°í¸®
+          // crafting ë˜ëŠ” crafting_ì¹´í…Œê³ ë¦¬
           if (interaction.customId === 'crafting') {
             category = null;
           } else {
             category = interaction.customId.replace('crafting_', '');
           }
         } else {
-          // collecting ¶Ç´Â collecting_Ä«Å×°í¸®
+          // collecting ë˜ëŠ” collecting_ì¹´í…Œê³ ë¦¬
           if (interaction.customId === 'collecting') {
             category = null;
           } else {
@@ -2051,15 +2051,15 @@ client.on('interactionCreate', async (interaction) => {
           }
         }
         
-        console.log(isCrafting ? '?? Á¦ÀÛÁß ¹öÆ° Å¬¸¯' : '?? ¼öÁıÁß ¹öÆ° Å¬¸¯');
-        console.log('  - »ç¿ëÀÚ:', interaction.user.tag);
-        console.log('  - Ä«Å×°í¸®:', category || 'ÀüÃ¼');
+        console.log(isCrafting ? 'ğŸ”¨ ì œì‘ì¤‘ ë²„íŠ¼ í´ë¦­' : 'ğŸ“¦ ìˆ˜ì§‘ì¤‘ ë²„íŠ¼ í´ë¦­');
+        console.log('  - ì‚¬ìš©ì:', interaction.user.tag);
+        console.log('  - ì¹´í…Œê³ ë¦¬:', category || 'ì „ì²´');
         
         const inventory = await loadInventory();
         
         if (!category) {
           return await interaction.reply({ 
-            content: `? Æ¯Á¤ Ä«Å×°í¸®¸¦ ¼±ÅÃÇÑ ÈÄ ${isCrafting ? 'Á¦ÀÛÁß' : '¼öÁıÁß'} ¹öÆ°À» »ç¿ëÇØÁÖ¼¼¿ä.\n\`/${isCrafting ? 'Á¦ÀÛ' : 'Àç°í'} Ä«Å×°í¸®:${isCrafting ? 'ÇØ¾ç' : 'ÇØ¾ç'}\` Ã³·³ Ä«Å×°í¸®¸¦ ÁöÁ¤ÇØÁÖ¼¼¿ä.`, 
+            content: `âŒ íŠ¹ì • ì¹´í…Œê³ ë¦¬ë¥¼ ì„ íƒí•œ í›„ ${isCrafting ? 'ì œì‘ì¤‘' : 'ìˆ˜ì§‘ì¤‘'} ë²„íŠ¼ì„ ì‚¬ìš©í•´ì£¼ì„¸ìš”.\n\`/${isCrafting ? 'ì œì‘' : 'ì¬ê³ '} ì¹´í…Œê³ ë¦¬:${isCrafting ? 'í•´ì–‘' : 'í•´ì–‘'}\` ì²˜ëŸ¼ ì¹´í…Œê³ ë¦¬ë¥¼ ì§€ì •í•´ì£¼ì„¸ìš”.`, 
             ephemeral: true 
           });
         }
@@ -2068,12 +2068,12 @@ client.on('interactionCreate', async (interaction) => {
         
         if (!targetData.categories[category]) {
           return await interaction.reply({ 
-            content: `? "${category}" Ä«Å×°í¸®¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù.`, 
+            content: `âŒ "${category}" ì¹´í…Œê³ ë¦¬ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`, 
             ephemeral: true 
           });
         }
         
-        // ÀÛ¾÷ ÁßÀÎ »ç¶÷ Á¤º¸ ÃÊ±âÈ­
+        // ì‘ì—… ì¤‘ì¸ ì‚¬ëŒ ì •ë³´ ì´ˆê¸°í™”
         if (isCrafting) {
           if (!inventory.crafting.crafting) {
             inventory.crafting.crafting = {};
@@ -2090,14 +2090,14 @@ client.on('interactionCreate', async (interaction) => {
           }
         }
         
-        // ÇöÀç Ä«Å×°í¸®ÀÇ ¾ÆÀÌÅÛ ¸ñ·Ï »ı¼º
+        // í˜„ì¬ ì¹´í…Œê³ ë¦¬ì˜ ì•„ì´í…œ ëª©ë¡ ìƒì„±
         const items = Object.keys(targetData.categories[category]);
         const itemOptions = items.map(item => {
           const itemData = targetData.categories[category][item];
           const customEmoji = itemData?.emoji;
           const percentage = (itemData.quantity / itemData.required) * 100;
           
-          // ÀÛ¾÷ ÁßÀÎ »ç¶÷ È®ÀÎ
+          // ì‘ì—… ì¤‘ì¸ ì‚¬ëŒ í™•ì¸
           let workingUser = null;
           if (isCrafting) {
             workingUser = inventory.crafting?.crafting?.[category]?.[item];
@@ -2109,11 +2109,11 @@ client.on('interactionCreate', async (interaction) => {
           let description = undefined;
           
           if (percentage >= 100) {
-            label = `${item} (¿Ï·áµÊ ${Math.round(percentage)}%)`;
-            description = `? ÀÌ¹Ì ¸ñÇ¥ ¼ö·®À» ´Ş¼ºÇß½À´Ï´Ù (${Math.round(percentage)}%)`;
+            label = `${item} (ì™„ë£Œë¨ ${Math.round(percentage)}%)`;
+            description = `âœ… ì´ë¯¸ ëª©í‘œ ìˆ˜ëŸ‰ì„ ë‹¬ì„±í–ˆìŠµë‹ˆë‹¤ (${Math.round(percentage)}%)`;
           } else if (workingUser) {
-            label = `${item} (${workingUser.userName} ÀÛ¾÷Áß)`;
-            description = `?? ${workingUser.userName}´ÔÀÌ ${isCrafting ? 'Á¦ÀÛ' : '¼öÁı'} ÁßÀÔ´Ï´Ù`;
+            label = `${item} (${workingUser.userName} ì‘ì—…ì¤‘)`;
+            description = `âš ï¸ ${workingUser.userName}ë‹˜ì´ ${isCrafting ? 'ì œì‘' : 'ìˆ˜ì§‘'} ì¤‘ì…ë‹ˆë‹¤`;
           }
           
           return {
@@ -2124,24 +2124,24 @@ client.on('interactionCreate', async (interaction) => {
           };
         });
         
-        // ¼±ÅÃ ¸Ş´º »ı¼º
+        // ì„ íƒ ë©”ë‰´ ìƒì„±
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_item_${isCrafting ? 'crafting' : 'collecting'}_${category}`)
-          .setPlaceholder(`${isCrafting ? 'Á¦ÀÛ' : '¼öÁı'}ÇÒ ¾ÆÀÌÅÛÀ» ¼±ÅÃÇÏ¼¼¿ä`)
+          .setPlaceholder(`${isCrafting ? 'ì œì‘' : 'ìˆ˜ì§‘'}í•  ì•„ì´í…œì„ ì„ íƒí•˜ì„¸ìš”`)
           .addOptions(itemOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
         await interaction.reply({
-          content: `${isCrafting ? '??' : '??'} **${category}** Ä«Å×°í¸®¿¡¼­ ${isCrafting ? 'Á¦ÀÛ' : '¼öÁı'}ÇÒ ¾ÆÀÌÅÛÀ» ¼±ÅÃÇÏ¼¼¿ä:`,
+          content: `${isCrafting ? 'ğŸ”¨' : 'ğŸ“¦'} **${category}** ì¹´í…Œê³ ë¦¬ì—ì„œ ${isCrafting ? 'ì œì‘' : 'ìˆ˜ì§‘'}í•  ì•„ì´í…œì„ ì„ íƒí•˜ì„¸ìš”:`,
           components: [row],
           ephemeral: true
         });
         
       } catch (error) {
-        console.error('? ¹öÆ° ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true }).catch(() => {});
+        console.error('âŒ ë²„íŠ¼ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
     
@@ -2153,9 +2153,9 @@ client.on('interactionCreate', async (interaction) => {
         const category = parts[0];
         const itemName = parts.slice(1).join('_');
         
-        console.log(`${isCrafting ? '??' : '??'} Áß´Ü ¹öÆ° Å¬¸¯`);
-        console.log('  - Ä«Å×°í¸®:', category);
-        console.log('  - ¾ÆÀÌÅÛ:', itemName);
+        console.log(`${isCrafting ? 'ğŸ”¨' : 'ğŸ“¦'} ì¤‘ë‹¨ ë²„íŠ¼ í´ë¦­`);
+        console.log('  - ì¹´í…Œê³ ë¦¬:', category);
+        console.log('  - ì•„ì´í…œ:', itemName);
         
         const inventory = await loadInventory();
         
@@ -2165,25 +2165,25 @@ client.on('interactionCreate', async (interaction) => {
             await saveInventory(inventory);
             
             await interaction.update({
-              content: `? **${itemName}** Á¦ÀÛÀ» Áß´ÜÇß½À´Ï´Ù.`,
+              content: `âœ… **${itemName}** ì œì‘ì„ ì¤‘ë‹¨í–ˆìŠµë‹ˆë‹¤.`,
               components: []
             });
-            console.log(`? ${itemName} Á¦ÀÛ Áß´Ü ¿Ï·á`);
+            console.log(`âœ… ${itemName} ì œì‘ ì¤‘ë‹¨ ì™„ë£Œ`);
             
-            // 15ÃÊ ÈÄ ¸Ş½ÃÁö »èÁ¦
+            // 15ì´ˆ í›„ ë©”ì‹œì§€ ì‚­ì œ
             setTimeout(async () => {
               try {
                 await interaction.deleteReply();
               } catch (error) {
-                // ÀÌ¹Ì »èÁ¦µÇ¾ú°Å³ª »èÁ¦ÇÒ ¼ö ¾ø´Â °æ¿ì ¹«½Ã
+                // ì´ë¯¸ ì‚­ì œë˜ì—ˆê±°ë‚˜ ì‚­ì œí•  ìˆ˜ ì—†ëŠ” ê²½ìš° ë¬´ì‹œ
               }
             }, 15000);
           } else {
             await interaction.update({
-              content: `?? **${itemName}** Á¦ÀÛ Á¤º¸¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù.`,
+              content: `âš ï¸ **${itemName}** ì œì‘ ì •ë³´ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`,
               components: []
             });
-            console.log(`?? ${itemName} Á¦ÀÛ Á¤º¸ ¾øÀ½`);
+            console.log(`âš ï¸ ${itemName} ì œì‘ ì •ë³´ ì—†ìŒ`);
           }
         } else {
           if (inventory.collecting?.[category]?.[itemName]) {
@@ -2191,31 +2191,31 @@ client.on('interactionCreate', async (interaction) => {
             await saveInventory(inventory);
             
             await interaction.update({
-              content: `? **${itemName}** ¼öÁıÀ» Áß´ÜÇß½À´Ï´Ù.`,
+              content: `âœ… **${itemName}** ìˆ˜ì§‘ì„ ì¤‘ë‹¨í–ˆìŠµë‹ˆë‹¤.`,
               components: []
             });
-            console.log(`? ${itemName} ¼öÁı Áß´Ü ¿Ï·á`);
+            console.log(`âœ… ${itemName} ìˆ˜ì§‘ ì¤‘ë‹¨ ì™„ë£Œ`);
             
-            // 15ÃÊ ÈÄ ¸Ş½ÃÁö »èÁ¦
+            // 15ì´ˆ í›„ ë©”ì‹œì§€ ì‚­ì œ
             setTimeout(async () => {
               try {
                 await interaction.deleteReply();
               } catch (error) {
-                // ÀÌ¹Ì »èÁ¦µÇ¾ú°Å³ª »èÁ¦ÇÒ ¼ö ¾ø´Â °æ¿ì ¹«½Ã
+                // ì´ë¯¸ ì‚­ì œë˜ì—ˆê±°ë‚˜ ì‚­ì œí•  ìˆ˜ ì—†ëŠ” ê²½ìš° ë¬´ì‹œ
               }
             }, 15000);
           } else {
             await interaction.update({
-              content: `?? **${itemName}** ¼öÁı Á¤º¸¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù.`,
+              content: `âš ï¸ **${itemName}** ìˆ˜ì§‘ ì •ë³´ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`,
               components: []
             });
-            console.log(`?? ${itemName} ¼öÁı Á¤º¸ ¾øÀ½`);
+            console.log(`âš ï¸ ${itemName} ìˆ˜ì§‘ ì •ë³´ ì—†ìŒ`);
           }
         }
       } catch (error) {
-        console.error('? Áß´Ü ¿¡·¯:', error);
+        console.error('âŒ ì¤‘ë‹¨ ì—ëŸ¬:', error);
         await interaction.reply({ 
-          content: `? ¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ${error.message}`, 
+          content: `âŒ ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ${error.message}`, 
           ephemeral: true 
         }).catch(() => {});
       }
@@ -2223,11 +2223,11 @@ client.on('interactionCreate', async (interaction) => {
     
     else if (interaction.customId.startsWith('quantity_add_') || interaction.customId.startsWith('quantity_edit_') || interaction.customId.startsWith('quantity_subtract_')) {
       try {
-        console.log('?? ¼ö·® Ãß°¡/¼öÁ¤/Â÷°¨ ¹öÆ° Å¬¸¯');
+        console.log('ğŸ”˜ ìˆ˜ëŸ‰ ì¶”ê°€/ìˆ˜ì •/ì°¨ê° ë²„íŠ¼ í´ë¦­');
         console.log('  - customId:', interaction.customId);
         
-        // quantity_add_inventory_ÇØ¾ç_»êÈ£ Çü½Ä ÆÄ½Ì
-        // ¸¶Áö¸· _¸¦ ±âÁØÀ¸·Î ¾ÆÀÌÅÛ¸í ºĞ¸®
+        // quantity_add_inventory_í•´ì–‘_ì‚°í˜¸ í˜•ì‹ íŒŒì‹±
+        // ë§ˆì§€ë§‰ _ë¥¼ ê¸°ì¤€ìœ¼ë¡œ ì•„ì´í…œëª… ë¶„ë¦¬
         const lastUnderscoreIndex = interaction.customId.lastIndexOf('_');
         const selectedItem = interaction.customId.substring(lastUnderscoreIndex + 1);
         const prefix = interaction.customId.substring(0, lastUnderscoreIndex);
@@ -2247,17 +2247,17 @@ client.on('interactionCreate', async (interaction) => {
         console.log('  - targetData.categories:', Object.keys(targetData.categories || {}));
         
         if (!targetData.categories[category]) {
-          console.error('? Ä«Å×°í¸®¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù:', category);
+          console.error('âŒ ì¹´í…Œê³ ë¦¬ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤:', category);
           return await interaction.reply({ 
-            content: `? "${category}" Ä«Å×°í¸®¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù.`, 
+            content: `âŒ "${category}" ì¹´í…Œê³ ë¦¬ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`, 
             ephemeral: true 
           });
         }
         
         if (!targetData.categories[category][selectedItem]) {
-          console.error('? ¾ÆÀÌÅÛÀ» Ã£À» ¼ö ¾ø½À´Ï´Ù:', selectedItem);
+          console.error('âŒ ì•„ì´í…œì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤:', selectedItem);
           return await interaction.reply({ 
-            content: `? "${selectedItem}" ¾ÆÀÌÅÛÀ» "${category}" Ä«Å×°í¸®¿¡¼­ Ã£À» ¼ö ¾ø½À´Ï´Ù.`, 
+            content: `âŒ "${selectedItem}" ì•„ì´í…œì„ "${category}" ì¹´í…Œê³ ë¦¬ì—ì„œ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`, 
             ephemeral: true 
           });
         }
@@ -2267,36 +2267,36 @@ client.on('interactionCreate', async (interaction) => {
         const remainder = itemData.quantity % 64;
         
         console.log('  - itemData:', itemData);
-        console.log('? ¸ğ´Ş »ı¼º ½ÃÀÛ');
+        console.log('âœ… ëª¨ë‹¬ ìƒì„± ì‹œì‘');
         
-        // ¸ğ´Ş »ı¼º
+        // ëª¨ë‹¬ ìƒì„±
         const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
         
         let modalTitle, setsLabel, setsPlaceholder, setsDefault, itemsLabel, itemsPlaceholder, itemsDefault;
         
         if (action === 'add') {
-          modalTitle = `${selectedItem} Ãß°¡`;
-          setsLabel = 'Ãß°¡ÇÒ ¼¼Æ® ¼ö (1¼¼Æ® = 64°³)';
-          setsPlaceholder = '¿¹: 2';
+          modalTitle = `${selectedItem} ì¶”ê°€`;
+          setsLabel = 'ì¶”ê°€í•  ì„¸íŠ¸ ìˆ˜ (1ì„¸íŠ¸ = 64ê°œ)';
+          setsPlaceholder = 'ì˜ˆ: 2';
           setsDefault = '';
-          itemsLabel = 'Ãß°¡ÇÒ ³¹°³ ¼ö';
-          itemsPlaceholder = '¿¹: 32';
+          itemsLabel = 'ì¶”ê°€í•  ë‚±ê°œ ìˆ˜';
+          itemsPlaceholder = 'ì˜ˆ: 32';
           itemsDefault = '';
         } else if (action === 'subtract') {
-          modalTitle = `${selectedItem} Â÷°¨`;
-          setsLabel = 'Â÷°¨ÇÒ ¼¼Æ® ¼ö (1¼¼Æ® = 64°³)';
-          setsPlaceholder = '¿¹: 1';
+          modalTitle = `${selectedItem} ì°¨ê°`;
+          setsLabel = 'ì°¨ê°í•  ì„¸íŠ¸ ìˆ˜ (1ì„¸íŠ¸ = 64ê°œ)';
+          setsPlaceholder = 'ì˜ˆ: 1';
           setsDefault = '';
-          itemsLabel = 'Â÷°¨ÇÒ ³¹°³ ¼ö';
-          itemsPlaceholder = '¿¹: 32';
+          itemsLabel = 'ì°¨ê°í•  ë‚±ê°œ ìˆ˜';
+          itemsPlaceholder = 'ì˜ˆ: 32';
           itemsDefault = '';
         } else {
-          modalTitle = `${selectedItem} ¼öÁ¤ (ÇöÀç: ${currentSets}¼¼Æ® + ${remainder}°³)`;
-          setsLabel = '¼³Á¤ÇÒ ¼¼Æ® ¼ö (1¼¼Æ® = 64°³)';
-          setsPlaceholder = '¿¹: 5';
+          modalTitle = `${selectedItem} ìˆ˜ì • (í˜„ì¬: ${currentSets}ì„¸íŠ¸ + ${remainder}ê°œ)`;
+          setsLabel = 'ì„¤ì •í•  ì„¸íŠ¸ ìˆ˜ (1ì„¸íŠ¸ = 64ê°œ)';
+          setsPlaceholder = 'ì˜ˆ: 5';
           setsDefault = currentSets.toString();
-          itemsLabel = '¼³Á¤ÇÒ ³¹°³ ¼ö';
-          itemsPlaceholder = '¿¹: 32';
+          itemsLabel = 'ì„¤ì •í•  ë‚±ê°œ ìˆ˜';
+          itemsPlaceholder = 'ì˜ˆ: 32';
           itemsDefault = remainder.toString();
         }
         
@@ -2324,14 +2324,14 @@ client.on('interactionCreate', async (interaction) => {
         const row2 = new ActionRowBuilder().addComponents(itemsInput);
         modal.addComponents(row1, row2);
         
-        console.log('? ¸ğ´Ş Ç¥½Ã ½Ãµµ');
+        console.log('âœ… ëª¨ë‹¬ í‘œì‹œ ì‹œë„');
         await interaction.showModal(modal);
-        console.log('? ¸ğ´Ş Ç¥½Ã ¿Ï·á');
+        console.log('âœ… ëª¨ë‹¬ í‘œì‹œ ì™„ë£Œ');
         
       } catch (error) {
-        console.error('? ¼ö·®°ü¸® ¾×¼Ç ¿¡·¯:', error);
-        console.error('? ¿¡·¯ ½ºÅÃ:', error.stack);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true }).catch(() => {});
+        console.error('âŒ ìˆ˜ëŸ‰ê´€ë¦¬ ì•¡ì…˜ ì—ëŸ¬:', error);
+        console.error('âŒ ì—ëŸ¬ ìŠ¤íƒ:', error.stack);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
     
@@ -2345,7 +2345,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (isSkip) {
           await interaction.update({
-            content: `? **${itemName}** Á¦ÀÛÇ°ÀÌ Ãß°¡µÇ¾ú½À´Ï´Ù. ³ªÁß¿¡ \`/·¹½ÃÇÇ¼öÁ¤\` ¸í·É¾î·Î ·¹½ÃÇÇ¸¦ Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.`,
+            content: `âœ… **${itemName}** ì œì‘í’ˆì´ ì¶”ê°€ë˜ì—ˆìŠµë‹ˆë‹¤. ë‚˜ì¤‘ì— \`/ë ˆì‹œí”¼ìˆ˜ì •\` ëª…ë ¹ì–´ë¡œ ë ˆì‹œí”¼ë¥¼ ì¶”ê°€í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.`,
             embeds: [],
             components: []
           });
@@ -2358,13 +2358,13 @@ client.on('interactionCreate', async (interaction) => {
           return;
         }
         
-        // ·¹½ÃÇÇ Ãß°¡ - Àç·á ¼±ÅÃ ¸Ş´º Ç¥½Ã
+        // ë ˆì‹œí”¼ ì¶”ê°€ - ì¬ë£Œ ì„ íƒ ë©”ë‰´ í‘œì‹œ
         const inventory = await loadInventory();
         
-        // °°Àº Ä«Å×°í¸®ÀÇ Àç°í ¾ÆÀÌÅÛ ¸ñ·Ï °¡Á®¿À±â
+        // ê°™ì€ ì¹´í…Œê³ ë¦¬ì˜ ì¬ê³  ì•„ì´í…œ ëª©ë¡ ê°€ì ¸ì˜¤ê¸°
         if (!inventory.categories[category] || Object.keys(inventory.categories[category]).length === 0) {
           return await interaction.update({
-            content: `? "${category}" Ä«Å×°í¸®¿¡ Àç·á°¡ ¾ø½À´Ï´Ù. ¸ÕÀú Àç°í ¸ñ·Ï¿¡ Àç·á¸¦ Ãß°¡ÇØÁÖ¼¼¿ä.`,
+            content: `âŒ "${category}" ì¹´í…Œê³ ë¦¬ì— ì¬ë£Œê°€ ì—†ìŠµë‹ˆë‹¤. ë¨¼ì € ì¬ê³  ëª©ë¡ì— ì¬ë£Œë¥¼ ì¶”ê°€í•´ì£¼ì„¸ìš”.`,
             embeds: [],
             components: []
           });
@@ -2380,20 +2380,20 @@ client.on('interactionCreate', async (interaction) => {
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_recipe_material_${category}_${itemName}_1`)
-          .setPlaceholder('Àç·á 1À» ¼±ÅÃÇÏ¼¼¿ä (ÇÊ¼ö)')
+          .setPlaceholder('ì¬ë£Œ 1ì„ ì„ íƒí•˜ì„¸ìš” (í•„ìˆ˜)')
           .addOptions(materialOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
         await interaction.update({
-          content: `?? **${itemName}** ·¹½ÃÇÇ Ãß°¡\n\n**1´Ü°è:** Ã¹ ¹øÂ° Àç·á¸¦ ¼±ÅÃÇÏ¼¼¿ä`,
+          content: `ğŸ“ **${itemName}** ë ˆì‹œí”¼ ì¶”ê°€\n\n**1ë‹¨ê³„:** ì²« ë²ˆì§¸ ì¬ë£Œë¥¼ ì„ íƒí•˜ì„¸ìš”`,
           embeds: [],
           components: [row]
         });
         
       } catch (error) {
-        console.error('? ·¹½ÃÇÇ Ãß°¡ ¹öÆ° ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true }).catch(() => {});
+        console.error('âŒ ë ˆì‹œí”¼ ì¶”ê°€ ë²„íŠ¼ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
     
@@ -2414,7 +2414,7 @@ client.on('interactionCreate', async (interaction) => {
             .join('\n');
           
           await interaction.update({
-            content: `? **${itemName}** ·¹½ÃÇÇ ¼öÁ¤ ¿Ï·á!\n\n**»õ ·¹½ÃÇÇ:**\n${recipeText}`,
+            content: `âœ… **${itemName}** ë ˆì‹œí”¼ ìˆ˜ì • ì™„ë£Œ!\n\n**ìƒˆ ë ˆì‹œí”¼:**\n${recipeText}`,
             components: []
           });
           
@@ -2426,7 +2426,7 @@ client.on('interactionCreate', async (interaction) => {
           return;
         }
         
-        // ´ÙÀ½ Àç·á ¼±ÅÃ
+        // ë‹¤ìŒ ì¬ë£Œ ì„ íƒ
         const inventory = await loadInventory();
         const materials = Object.keys(inventory.categories[category]);
         const materialOptions = materials.map(mat => ({
@@ -2438,7 +2438,7 @@ client.on('interactionCreate', async (interaction) => {
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_recipe_material_edit_${category}_${itemName}_${step}`)
-          .setPlaceholder(`Àç·á ${step}À» ¼±ÅÃÇÏ¼¼¿ä`)
+          .setPlaceholder(`ì¬ë£Œ ${step}ì„ ì„ íƒí•˜ì„¸ìš”`)
           .addOptions(materialOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
@@ -2448,13 +2448,13 @@ client.on('interactionCreate', async (interaction) => {
           .join('\n');
         
         await interaction.update({
-          content: `?? **${itemName}** ·¹½ÃÇÇ ¼öÁ¤\n\n**ÇöÀç ·¹½ÃÇÇ:**\n${currentRecipe}\n\n**${step}´Ü°è:** ${step}¹øÂ° Àç·á¸¦ ¼±ÅÃÇÏ¼¼¿ä`,
+          content: `âœï¸ **${itemName}** ë ˆì‹œí”¼ ìˆ˜ì •\n\n**í˜„ì¬ ë ˆì‹œí”¼:**\n${currentRecipe}\n\n**${step}ë‹¨ê³„:** ${step}ë²ˆì§¸ ì¬ë£Œë¥¼ ì„ íƒí•˜ì„¸ìš”`,
           components: [row]
         });
         
       } catch (error) {
-        console.error('? ·¹½ÃÇÇ ¼öÁ¤ ¹öÆ° ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true }).catch(() => {});
+        console.error('âŒ ë ˆì‹œí”¼ ìˆ˜ì • ë²„íŠ¼ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
     
@@ -2475,7 +2475,7 @@ client.on('interactionCreate', async (interaction) => {
             .join('\n');
           
           await interaction.update({
-            content: `? **${itemName}** ·¹½ÃÇÇ Ãß°¡ ¿Ï·á!\n\n**·¹½ÃÇÇ:**\n${recipeText}`,
+            content: `âœ… **${itemName}** ë ˆì‹œí”¼ ì¶”ê°€ ì™„ë£Œ!\n\n**ë ˆì‹œí”¼:**\n${recipeText}`,
             components: []
           });
           
@@ -2487,7 +2487,7 @@ client.on('interactionCreate', async (interaction) => {
           return;
         }
         
-        // ´ÙÀ½ Àç·á ¼±ÅÃ
+        // ë‹¤ìŒ ì¬ë£Œ ì„ íƒ
         const inventory = await loadInventory();
         const materials = Object.keys(inventory.categories[category]);
         const materialOptions = materials.map(mat => ({
@@ -2499,7 +2499,7 @@ client.on('interactionCreate', async (interaction) => {
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_recipe_material_${category}_${itemName}_${step}`)
-          .setPlaceholder(`Àç·á ${step}À» ¼±ÅÃÇÏ¼¼¿ä`)
+          .setPlaceholder(`ì¬ë£Œ ${step}ì„ ì„ íƒí•˜ì„¸ìš”`)
           .addOptions(materialOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
@@ -2509,18 +2509,18 @@ client.on('interactionCreate', async (interaction) => {
           .join('\n');
         
         await interaction.update({
-          content: `?? **${itemName}** ·¹½ÃÇÇ Ãß°¡\n\n**ÇöÀç ·¹½ÃÇÇ:**\n${currentRecipe}\n\n**${step}´Ü°è:** ${step}¹øÂ° Àç·á¸¦ ¼±ÅÃÇÏ¼¼¿ä`,
+          content: `ğŸ“ **${itemName}** ë ˆì‹œí”¼ ì¶”ê°€\n\n**í˜„ì¬ ë ˆì‹œí”¼:**\n${currentRecipe}\n\n**${step}ë‹¨ê³„:** ${step}ë²ˆì§¸ ì¬ë£Œë¥¼ ì„ íƒí•˜ì„¸ìš”`,
           components: [row]
         });
         
       } catch (error) {
-        console.error('? ·¹½ÃÇÇ ¹öÆ° ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true }).catch(() => {});
+        console.error('âŒ ë ˆì‹œí”¼ ë²„íŠ¼ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
   }
   
-  // ¼±ÅÃ ¸Ş´º ÀÎÅÍ·¢¼Ç Ã³¸®
+  // ì„ íƒ ë©”ë‰´ ì¸í„°ë™ì…˜ ì²˜ë¦¬
   if (interaction.isStringSelectMenu()) {
     if (interaction.customId.startsWith('select_recipe_edit_')) {
       try {
@@ -2528,17 +2528,17 @@ client.on('interactionCreate', async (interaction) => {
         const selectedItem = interaction.values[0];
         const inventory = await loadInventory();
         
-        // ÇöÀç ·¹½ÃÇÇ Ç¥½Ã
+        // í˜„ì¬ ë ˆì‹œí”¼ í‘œì‹œ
         const currentRecipe = inventory.crafting.recipes?.[category]?.[selectedItem] || [];
         const recipeText = currentRecipe.length > 0
           ? currentRecipe.map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`).join('\n')
-          : '·¹½ÃÇÇ ¾øÀ½';
+          : 'ë ˆì‹œí”¼ ì—†ìŒ';
         
-        // Àç·á ¼±ÅÃ ¸Ş´º »ı¼º
+        // ì¬ë£Œ ì„ íƒ ë©”ë‰´ ìƒì„±
         const materials = Object.keys(inventory.categories[category] || {});
         if (materials.length === 0) {
           return await interaction.update({
-            content: `? "${category}" Ä«Å×°í¸®¿¡ Àç·á°¡ ¾ø½À´Ï´Ù.`,
+            content: `âŒ "${category}" ì¹´í…Œê³ ë¦¬ì— ì¬ë£Œê°€ ì—†ìŠµë‹ˆë‹¤.`,
             components: []
           });
         }
@@ -2552,19 +2552,19 @@ client.on('interactionCreate', async (interaction) => {
         const { StringSelectMenuBuilder } = await import('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`select_recipe_material_edit_${category}_${selectedItem}_1`)
-          .setPlaceholder('Àç·á 1À» ¼±ÅÃÇÏ¼¼¿ä')
+          .setPlaceholder('ì¬ë£Œ 1ì„ ì„ íƒí•˜ì„¸ìš”')
           .addOptions(materialOptions);
         
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
         await interaction.update({
-          content: `?? **${selectedItem}** ·¹½ÃÇÇ ¼öÁ¤\n\n**ÇöÀç ·¹½ÃÇÇ:**\n${recipeText}\n\n**»õ ·¹½ÃÇÇ ÀÔ·Â - 1´Ü°è:** Ã¹ ¹øÂ° Àç·á¸¦ ¼±ÅÃÇÏ¼¼¿ä`,
+          content: `âœï¸ **${selectedItem}** ë ˆì‹œí”¼ ìˆ˜ì •\n\n**í˜„ì¬ ë ˆì‹œí”¼:**\n${recipeText}\n\n**ìƒˆ ë ˆì‹œí”¼ ì…ë ¥ - 1ë‹¨ê³„:** ì²« ë²ˆì§¸ ì¬ë£Œë¥¼ ì„ íƒí•˜ì„¸ìš”`,
           components: [row]
         });
         
       } catch (error) {
-        console.error('? ·¹½ÃÇÇ ¼öÁ¤ ¼±ÅÃ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+        console.error('âŒ ë ˆì‹œí”¼ ìˆ˜ì • ì„ íƒ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
       }
     }
     
@@ -2576,36 +2576,36 @@ client.on('interactionCreate', async (interaction) => {
         const itemName = parts.slice(1, -1).join('_');
         const selectedMaterial = interaction.values[0];
         
-        // ¼ö·® ÀÔ·Â ¸ğ´Ş Ç¥½Ã
+        // ìˆ˜ëŸ‰ ì…ë ¥ ëª¨ë‹¬ í‘œì‹œ
         const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
         
         const modal = new ModalBuilder()
           .setCustomId(`recipe_edit_quantity_modal_${category}_${itemName}_${step}_${selectedMaterial}`)
-          .setTitle(`Àç·á ${step}: ${selectedMaterial}`);
+          .setTitle(`ì¬ë£Œ ${step}: ${selectedMaterial}`);
         
         const quantityInput = new TextInputBuilder()
           .setCustomId('material_quantity')
-          .setLabel(`${selectedMaterial} ÇÊ¿ä ¼ö·®`)
+          .setLabel(`${selectedMaterial} í•„ìš” ìˆ˜ëŸ‰`)
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('¿¹: 5')
+          .setPlaceholder('ì˜ˆ: 5')
           .setRequired(true);
         
         modal.addComponents(new ActionRowBuilder().addComponents(quantityInput));
         
         await interaction.showModal(modal);
         
-        // ¸ğ´Ş Ç¥½Ã ÈÄ ¿ø·¡ ¸Ş½ÃÁö »èÁ¦
+        // ëª¨ë‹¬ í‘œì‹œ í›„ ì›ë˜ ë©”ì‹œì§€ ì‚­ì œ
         setTimeout(async () => {
           try {
             await interaction.message.delete();
           } catch (error) {
-            // ÀÌ¹Ì »èÁ¦µÇ¾ú°Å³ª »èÁ¦ÇÒ ¼ö ¾ø´Â °æ¿ì ¹«½Ã
+            // ì´ë¯¸ ì‚­ì œë˜ì—ˆê±°ë‚˜ ì‚­ì œí•  ìˆ˜ ì—†ëŠ” ê²½ìš° ë¬´ì‹œ
           }
         }, 500);
         
       } catch (error) {
-        console.error('? ·¹½ÃÇÇ ¼öÁ¤ Àç·á ¼±ÅÃ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+        console.error('âŒ ë ˆì‹œí”¼ ìˆ˜ì • ì¬ë£Œ ì„ íƒ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
       }
     }
     
@@ -2617,36 +2617,36 @@ client.on('interactionCreate', async (interaction) => {
         const itemName = parts.slice(1, -1).join('_');
         const selectedMaterial = interaction.values[0];
         
-        // ¼ö·® ÀÔ·Â ¸ğ´Ş Ç¥½Ã
+        // ìˆ˜ëŸ‰ ì…ë ¥ ëª¨ë‹¬ í‘œì‹œ
         const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
         
         const modal = new ModalBuilder()
           .setCustomId(`recipe_quantity_modal_${category}_${itemName}_${step}_${selectedMaterial}`)
-          .setTitle(`Àç·á ${step}: ${selectedMaterial}`);
+          .setTitle(`ì¬ë£Œ ${step}: ${selectedMaterial}`);
         
         const quantityInput = new TextInputBuilder()
           .setCustomId('material_quantity')
-          .setLabel(`${selectedMaterial} ÇÊ¿ä ¼ö·®`)
+          .setLabel(`${selectedMaterial} í•„ìš” ìˆ˜ëŸ‰`)
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('¿¹: 5')
+          .setPlaceholder('ì˜ˆ: 5')
           .setRequired(true);
         
         modal.addComponents(new ActionRowBuilder().addComponents(quantityInput));
         
         await interaction.showModal(modal);
         
-        // ¸ğ´Ş Ç¥½Ã ÈÄ ¿ø·¡ ¸Ş½ÃÁö »èÁ¦
+        // ëª¨ë‹¬ í‘œì‹œ í›„ ì›ë˜ ë©”ì‹œì§€ ì‚­ì œ
         setTimeout(async () => {
           try {
             await interaction.message.delete();
           } catch (error) {
-            // ÀÌ¹Ì »èÁ¦µÇ¾ú°Å³ª »èÁ¦ÇÒ ¼ö ¾ø´Â °æ¿ì ¹«½Ã
+            // ì´ë¯¸ ì‚­ì œë˜ì—ˆê±°ë‚˜ ì‚­ì œí•  ìˆ˜ ì—†ëŠ” ê²½ìš° ë¬´ì‹œ
           }
         }, 500);
         
       } catch (error) {
-        console.error('? Àç·á ¼±ÅÃ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+        console.error('âŒ ì¬ë£Œ ì„ íƒ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
       }
     }
     
@@ -2662,7 +2662,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (!targetData?.[category]?.[selectedItem]) {
           return await interaction.update({
-            content: `? "${selectedItem}"À»(¸¦) Ã£À» ¼ö ¾ø½À´Ï´Ù.`,
+            content: `âŒ "${selectedItem}"ì„(ë¥¼) ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`,
             components: []
           });
         }
@@ -2670,7 +2670,7 @@ client.on('interactionCreate', async (interaction) => {
         const itemData = targetData[category][selectedItem];
         delete targetData[category][selectedItem];
         
-        // Á¦ÀÛÇ° »èÁ¦ ½Ã ·¹½ÃÇÇµµ ÇÔ²² »èÁ¦
+        // ì œì‘í’ˆ ì‚­ì œ ì‹œ ë ˆì‹œí”¼ë„ í•¨ê»˜ ì‚­ì œ
         let recipeDeleted = false;
         if (type === 'crafting' && inventory.crafting?.recipes?.[category]?.[selectedItem]) {
           delete inventory.crafting.recipes[category][selectedItem];
@@ -2683,7 +2683,7 @@ client.on('interactionCreate', async (interaction) => {
           category, 
           selectedItem, 
           'remove', 
-          `¼ö·®: ${itemData.quantity}/${itemData.required}${recipeDeleted ? ' (·¹½ÃÇÇ Æ÷ÇÔ)' : ''}`, 
+          `ìˆ˜ëŸ‰: ${itemData.quantity}/${itemData.required}${recipeDeleted ? ' (ë ˆì‹œí”¼ í¬í•¨)' : ''}`, 
           interaction.user.displayName || interaction.user.username
         );
         
@@ -2691,15 +2691,15 @@ client.on('interactionCreate', async (interaction) => {
         
         const successEmbed = new EmbedBuilder()
           .setColor(0xED4245)
-          .setTitle('? »èÁ¦ ¿Ï·á')
-          .setDescription(`**Ä«Å×°í¸®:** ${category}\n**${selectedItem}**ÀÌ(°¡) »èÁ¦µÇ¾ú½À´Ï´Ù.${recipeDeleted ? '\n??? ¿¬°áµÈ ·¹½ÃÇÇµµ ÇÔ²² »èÁ¦µÇ¾ú½À´Ï´Ù.' : ''}`);
+          .setTitle('âœ… ì‚­ì œ ì™„ë£Œ')
+          .setDescription(`**ì¹´í…Œê³ ë¦¬:** ${category}\n**${selectedItem}**ì´(ê°€) ì‚­ì œë˜ì—ˆìŠµë‹ˆë‹¤.${recipeDeleted ? '\nğŸ—‘ï¸ ì—°ê²°ëœ ë ˆì‹œí”¼ë„ í•¨ê»˜ ì‚­ì œë˜ì—ˆìŠµë‹ˆë‹¤.' : ''}`);
         
         await interaction.update({
           embeds: [successEmbed],
           components: []
         });
         
-        // 15ÃÊ ÈÄ ÀÚµ¿ »èÁ¦
+        // 15ì´ˆ í›„ ìë™ ì‚­ì œ
         setTimeout(async () => {
           try {
             await interaction.deleteReply();
@@ -2707,8 +2707,8 @@ client.on('interactionCreate', async (interaction) => {
         }, 15000);
         
       } catch (error) {
-        console.error('? »èÁ¦ ¼±ÅÃ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true }).catch(() => {});
+        console.error('âŒ ì‚­ì œ ì„ íƒ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
     
@@ -2719,20 +2719,20 @@ client.on('interactionCreate', async (interaction) => {
         const category = parts.slice(3).join('_');
         const selectedItem = interaction.values[0];
         
-        // Ãß°¡/¼öÁ¤/Â÷°¨ ¼±ÅÃ ¹öÆ° »ı¼º
+        // ì¶”ê°€/ìˆ˜ì •/ì°¨ê° ì„ íƒ ë²„íŠ¼ ìƒì„±
         const addButton = new ButtonBuilder()
           .setCustomId(`quantity_add_${type}_${category}_${selectedItem}`)
-          .setLabel('? Ãß°¡')
+          .setLabel('â• ì¶”ê°€')
           .setStyle(ButtonStyle.Success);
         
         const editButton = new ButtonBuilder()
           .setCustomId(`quantity_edit_${type}_${category}_${selectedItem}`)
-          .setLabel('?? ¼öÁ¤')
+          .setLabel('âœï¸ ìˆ˜ì •')
           .setStyle(ButtonStyle.Primary);
         
         const subtractButton = new ButtonBuilder()
           .setCustomId(`quantity_subtract_${type}_${category}_${selectedItem}`)
-          .setLabel('? Â÷°¨')
+          .setLabel('â– ì°¨ê°')
           .setStyle(ButtonStyle.Danger);
         
         const row = new ActionRowBuilder().addComponents(addButton, editButton, subtractButton);
@@ -2745,13 +2745,13 @@ client.on('interactionCreate', async (interaction) => {
         const icon = getItemIcon(selectedItem, inventory);
         
         await interaction.update({
-          content: `?? ${icon} **${selectedItem}** ¼ö·®°ü¸®\n\n**ÇöÀç ¼ö·®:** ${sets}¼¼Æ® + ${remainder}°³ (ÃÑ ${itemData.quantity}°³)\n**¸ñÇ¥ ¼ö·®:** ${itemData.required}°³\n\n¿øÇÏ´Â ÀÛ¾÷À» ¼±ÅÃÇÏ¼¼¿ä:`,
+          content: `ğŸ“Š ${icon} **${selectedItem}** ìˆ˜ëŸ‰ê´€ë¦¬\n\n**í˜„ì¬ ìˆ˜ëŸ‰:** ${sets}ì„¸íŠ¸ + ${remainder}ê°œ (ì´ ${itemData.quantity}ê°œ)\n**ëª©í‘œ ìˆ˜ëŸ‰:** ${itemData.required}ê°œ\n\nì›í•˜ëŠ” ì‘ì—…ì„ ì„ íƒí•˜ì„¸ìš”:`,
           components: [row]
         });
         
       } catch (error) {
-        console.error('? ¼ö·®°ü¸® ¼±ÅÃ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+        console.error('âŒ ìˆ˜ëŸ‰ê´€ë¦¬ ì„ íƒ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
       }
     }
     
@@ -2767,7 +2767,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (!targetData.categories[category][selectedItem]) {
           return await interaction.update({
-            content: `? "${selectedItem}"À»(¸¦) Ã£À» ¼ö ¾ø½À´Ï´Ù.`,
+            content: `âŒ "${selectedItem}"ì„(ë¥¼) ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`,
             components: []
           });
         }
@@ -2776,7 +2776,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (oldQuantity === 0) {
           return await interaction.update({
-            content: `?? **${selectedItem}**Àº(´Â) ÀÌ¹Ì 0°³ÀÔ´Ï´Ù.`,
+            content: `âš ï¸ **${selectedItem}**ì€(ëŠ”) ì´ë¯¸ 0ê°œì…ë‹ˆë‹¤.`,
             components: []
           });
         }
@@ -2784,7 +2784,7 @@ client.on('interactionCreate', async (interaction) => {
         targetData.categories[category][selectedItem].quantity = 0;
         
         addHistory(inventory, type, category, selectedItem, 'reset', 
-          `${oldQuantity}°³ ¡æ 0°³`, 
+          `${oldQuantity}ê°œ â†’ 0ê°œ`, 
           interaction.user.displayName || interaction.user.username);
         
         await saveInventory(inventory);
@@ -2792,26 +2792,26 @@ client.on('interactionCreate', async (interaction) => {
         const icon = getItemIcon(selectedItem, inventory);
         const successEmbed = new EmbedBuilder()
           .setColor(0xFFA500)
-          .setTitle('?? °³º° ÃÊ±âÈ­ ¿Ï·á')
-          .setDescription(`**Ä«Å×°í¸®:** ${category}\n${icon} **${selectedItem}**\n${oldQuantity}°³ ¡æ 0°³`);
+          .setTitle('ğŸ”„ ê°œë³„ ì´ˆê¸°í™” ì™„ë£Œ')
+          .setDescription(`**ì¹´í…Œê³ ë¦¬:** ${category}\n${icon} **${selectedItem}**\n${oldQuantity}ê°œ â†’ 0ê°œ`);
         
         await interaction.update({
           embeds: [successEmbed],
           components: []
         });
         
-        // 15ÃÊ ÈÄ ÀÚµ¿ »èÁ¦
+        // 15ì´ˆ í›„ ìë™ ì‚­ì œ
         setTimeout(async () => {
           try {
             await interaction.deleteReply();
           } catch (error) {}
         }, 15000);
         
-        console.log(`?? ${interaction.user.displayName}´ÔÀÌ ${category} - ${selectedItem} ÃÊ±âÈ­: ${oldQuantity} -> 0`);
+        console.log(`ğŸ”„ ${interaction.user.displayName}ë‹˜ì´ ${category} - ${selectedItem} ì´ˆê¸°í™”: ${oldQuantity} -> 0`);
         
       } catch (error) {
-        console.error('? ÃÊ±âÈ­ ¼±ÅÃ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+        console.error('âŒ ì´ˆê¸°í™” ì„ íƒ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
       }
     }
     
@@ -2826,21 +2826,21 @@ client.on('interactionCreate', async (interaction) => {
         
         const inventory = await loadInventory();
         
-        // ¸ñÇ¥ ¼ö·® ´Ş¼º ¿©ºÎ È®ÀÎ
+        // ëª©í‘œ ìˆ˜ëŸ‰ ë‹¬ì„± ì—¬ë¶€ í™•ì¸
         const targetData = isCrafting ? inventory.crafting : inventory;
         const itemData = targetData.categories[category][selectedItem];
         const percentage = (itemData.quantity / itemData.required) * 100;
         
         if (percentage >= 100) {
-          // ÀÌ¹Ì 100% ÀÌ»ó ´Ş¼º
+          // ì´ë¯¸ 100% ì´ìƒ ë‹¬ì„±
           const icon = getItemIcon(selectedItem, inventory);
           return await interaction.update({
-            content: `? ${icon} **${selectedItem}**Àº(´Â) ÀÌ¹Ì ¸ñÇ¥ ¼ö·®À» ´Ş¼ºÇß½À´Ï´Ù! (${Math.round(percentage)}%)\n${isCrafting ? 'Á¦ÀÛ' : '¼öÁı'}ÇÒ ÇÊ¿ä°¡ ¾ø½À´Ï´Ù.`,
+            content: `âœ… ${icon} **${selectedItem}**ì€(ëŠ”) ì´ë¯¸ ëª©í‘œ ìˆ˜ëŸ‰ì„ ë‹¬ì„±í–ˆìŠµë‹ˆë‹¤! (${Math.round(percentage)}%)\n${isCrafting ? 'ì œì‘' : 'ìˆ˜ì§‘'}í•  í•„ìš”ê°€ ì—†ìŠµë‹ˆë‹¤.`,
             components: []
           });
         }
         
-        // ÀÌ¹Ì ´Ù¸¥ »ç¶÷ÀÌ ÀÛ¾÷ ÁßÀÎÁö È®ÀÎ
+        // ì´ë¯¸ ë‹¤ë¥¸ ì‚¬ëŒì´ ì‘ì—… ì¤‘ì¸ì§€ í™•ì¸
         let existingWorker = null;
         if (isCrafting) {
           existingWorker = inventory.crafting?.crafting?.[category]?.[selectedItem];
@@ -2849,10 +2849,10 @@ client.on('interactionCreate', async (interaction) => {
         }
         
         if (existingWorker && existingWorker.userId !== userId) {
-          // ´Ù¸¥ »ç¶÷ÀÌ ÀÌ¹Ì ÀÛ¾÷ Áß
+          // ë‹¤ë¥¸ ì‚¬ëŒì´ ì´ë¯¸ ì‘ì—… ì¤‘
           const icon = getItemIcon(selectedItem, inventory);
           return await interaction.update({
-            content: `? ${icon} **${selectedItem}**Àº(´Â) ÀÌ¹Ì **${existingWorker.userName}**´ÔÀÌ ${isCrafting ? 'Á¦ÀÛ' : '¼öÁı'} ÁßÀÔ´Ï´Ù.\n´Ù¸¥ ¾ÆÀÌÅÛÀ» ¼±ÅÃÇØÁÖ¼¼¿ä.`,
+            content: `âŒ ${icon} **${selectedItem}**ì€(ëŠ”) ì´ë¯¸ **${existingWorker.userName}**ë‹˜ì´ ${isCrafting ? 'ì œì‘' : 'ìˆ˜ì§‘'} ì¤‘ì…ë‹ˆë‹¤.\në‹¤ë¥¸ ì•„ì´í…œì„ ì„ íƒí•´ì£¼ì„¸ìš”.`,
             components: []
           });
         }
@@ -2865,7 +2865,7 @@ client.on('interactionCreate', async (interaction) => {
             inventory.crafting.crafting[category] = {};
           }
           
-          // Á¦ÀÛ ÁßÀÎ »ç¶÷ Ãß°¡
+          // ì œì‘ ì¤‘ì¸ ì‚¬ëŒ ì¶”ê°€
           inventory.crafting.crafting[category][selectedItem] = {
             userId: userId,
             userName: userName,
@@ -2879,7 +2879,7 @@ client.on('interactionCreate', async (interaction) => {
             inventory.collecting[category] = {};
           }
           
-          // ¼öÁı ÁßÀÎ »ç¶÷ Ãß°¡
+          // ìˆ˜ì§‘ ì¤‘ì¸ ì‚¬ëŒ ì¶”ê°€
           inventory.collecting[category][selectedItem] = {
             userId: userId,
             userName: userName,
@@ -2891,29 +2891,29 @@ client.on('interactionCreate', async (interaction) => {
         
         const icon = getItemIcon(selectedItem, inventory);
         
-        // Áß´Ü ¹öÆ° »ı¼º
+        // ì¤‘ë‹¨ ë²„íŠ¼ ìƒì„±
         const stopButton = new ButtonBuilder()
           .setCustomId(`stop_${isCrafting ? 'crafting' : 'collecting'}_${category}_${selectedItem}`)
-          .setLabel(`${isCrafting ? 'Á¦ÀÛ' : '¼öÁı'} Áß´Ü`)
+          .setLabel(`${isCrafting ? 'ì œì‘' : 'ìˆ˜ì§‘'} ì¤‘ë‹¨`)
           .setStyle(ButtonStyle.Danger);
         
         const row = new ActionRowBuilder().addComponents(stopButton);
         
         await interaction.update({
-          content: `? ${icon} **${selectedItem}** ${isCrafting ? 'Á¦ÀÛ' : '¼öÁı'}À» ½ÃÀÛÇß½À´Ï´Ù!\n´Ù¸¥ »ç¶÷µéÀÌ ${isCrafting ? 'Á¦ÀÛ' : 'Àç°í'}À» È®ÀÎÇÒ ¶§ ´ç½ÅÀÌ ${isCrafting ? 'Á¦ÀÛ' : '¼öÁı'} ÁßÀÓÀ» º¼ ¼ö ÀÖ½À´Ï´Ù.`,
+          content: `âœ… ${icon} **${selectedItem}** ${isCrafting ? 'ì œì‘' : 'ìˆ˜ì§‘'}ì„ ì‹œì‘í–ˆìŠµë‹ˆë‹¤!\në‹¤ë¥¸ ì‚¬ëŒë“¤ì´ ${isCrafting ? 'ì œì‘' : 'ì¬ê³ '}ì„ í™•ì¸í•  ë•Œ ë‹¹ì‹ ì´ ${isCrafting ? 'ì œì‘' : 'ìˆ˜ì§‘'} ì¤‘ì„ì„ ë³¼ ìˆ˜ ìˆìŠµë‹ˆë‹¤.`,
           components: [row]
         });
         
-        console.log(`${isCrafting ? '??' : '??'} ${userName}´ÔÀÌ ${category} - ${selectedItem} ${isCrafting ? 'Á¦ÀÛ' : '¼öÁı'} ½ÃÀÛ`);
+        console.log(`${isCrafting ? 'ğŸ”¨' : 'ğŸ“¦'} ${userName}ë‹˜ì´ ${category} - ${selectedItem} ${isCrafting ? 'ì œì‘' : 'ìˆ˜ì§‘'} ì‹œì‘`);
         
       } catch (error) {
-        console.error('? ¾ÆÀÌÅÛ ¼±ÅÃ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.', ephemeral: true }).catch(() => {});
+        console.error('âŒ ì•„ì´í…œ ì„ íƒ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.', ephemeral: true }).catch(() => {});
       }
     }
   }
   
-  // ¸ğ´Ş Á¦Ãâ Ã³¸®
+  // ëª¨ë‹¬ ì œì¶œ ì²˜ë¦¬
   if (interaction.isModalSubmit()) {
     if (interaction.customId.startsWith('recipe_edit_quantity_modal_')) {
       try {
@@ -2927,19 +2927,19 @@ client.on('interactionCreate', async (interaction) => {
         
         if (isNaN(quantity) || quantity <= 0) {
           return await interaction.reply({
-            content: '? ¿Ã¹Ù¸¥ ¼ö·®À» ÀÔ·ÂÇØÁÖ¼¼¿ä. (1 ÀÌ»óÀÇ ¼ıÀÚ)',
+            content: 'âŒ ì˜¬ë°”ë¥¸ ìˆ˜ëŸ‰ì„ ì…ë ¥í•´ì£¼ì„¸ìš”. (1 ì´ìƒì˜ ìˆ«ì)',
             ephemeral: true
           });
         }
         
         const inventory = await loadInventory();
         
-        // Ã¹ ¹øÂ° Àç·á¸é ·¹½ÃÇÇ ÃÊ±âÈ­
+        // ì²« ë²ˆì§¸ ì¬ë£Œë©´ ë ˆì‹œí”¼ ì´ˆê¸°í™”
         if (step === 1) {
           inventory.crafting.recipes[category][itemName] = [];
         }
         
-        // Àç·á Ãß°¡
+        // ì¬ë£Œ ì¶”ê°€
         inventory.crafting.recipes[category][itemName].push({
           name: materialName,
           quantity: quantity,
@@ -2950,16 +2950,16 @@ client.on('interactionCreate', async (interaction) => {
         
         const icon = getItemIcon(materialName, inventory);
         
-        // ´ÙÀ½ Àç·á Ãß°¡ ¶Ç´Â ¿Ï·á
+        // ë‹¤ìŒ ì¬ë£Œ ì¶”ê°€ ë˜ëŠ” ì™„ë£Œ
         if (step < 3) {
           const addMoreButton = new ButtonBuilder()
             .setCustomId(`add_more_recipe_edit_${category}_${itemName}_${step + 1}`)
-            .setLabel(`? Àç·á ${step + 1} Ãß°¡`)
+            .setLabel(`â• ì¬ë£Œ ${step + 1} ì¶”ê°€`)
             .setStyle(ButtonStyle.Primary);
           
           const finishButton = new ButtonBuilder()
             .setCustomId(`finish_recipe_edit_${category}_${itemName}`)
-            .setLabel('? ¿Ï·á')
+            .setLabel('âœ… ì™„ë£Œ')
             .setStyle(ButtonStyle.Success);
           
           const row = new ActionRowBuilder().addComponents(addMoreButton, finishButton);
@@ -2969,7 +2969,7 @@ client.on('interactionCreate', async (interaction) => {
             .join('\n');
           
           await interaction.reply({
-            content: `? Àç·á ${step} Ãß°¡ ¿Ï·á: ${icon} ${materialName} x${quantity}\n\n**ÇöÀç ·¹½ÃÇÇ:**\n${currentRecipe}\n\n´õ Ãß°¡ÇÏ½Ã°Ú½À´Ï±î?`,
+            content: `âœ… ì¬ë£Œ ${step} ì¶”ê°€ ì™„ë£Œ: ${icon} ${materialName} x${quantity}\n\n**í˜„ì¬ ë ˆì‹œí”¼:**\n${currentRecipe}\n\në” ì¶”ê°€í•˜ì‹œê² ìŠµë‹ˆê¹Œ?`,
             components: [row],
             ephemeral: true
           });
@@ -2979,7 +2979,7 @@ client.on('interactionCreate', async (interaction) => {
             .join('\n');
           
           await interaction.reply({
-            content: `? **${itemName}** ·¹½ÃÇÇ ¼öÁ¤ ¿Ï·á!\n\n**»õ ·¹½ÃÇÇ:**\n${currentRecipe}`,
+            content: `âœ… **${itemName}** ë ˆì‹œí”¼ ìˆ˜ì • ì™„ë£Œ!\n\n**ìƒˆ ë ˆì‹œí”¼:**\n${currentRecipe}`,
             ephemeral: true
           });
           
@@ -2991,8 +2991,8 @@ client.on('interactionCreate', async (interaction) => {
         }
         
       } catch (error) {
-        console.error('? ·¹½ÃÇÇ ¼öÁ¤ ¸ğ´Ş Á¦Ãâ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true }).catch(() => {});
+        console.error('âŒ ë ˆì‹œí”¼ ìˆ˜ì • ëª¨ë‹¬ ì œì¶œ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
     
@@ -3015,7 +3015,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (!itemName || isNaN(initialSetsNum) || isNaN(initialItemsNum) || isNaN(requiredSetsNum) || isNaN(requiredItemsNum)) {
           return await interaction.reply({ 
-            content: '? ¸ğµç Ç×¸ñÀ» ¿Ã¹Ù¸£°Ô ÀÔ·ÂÇØÁÖ¼¼¿ä. (¼ıÀÚ¸¸ ÀÔ·Â)', 
+            content: 'âŒ ëª¨ë“  í•­ëª©ì„ ì˜¬ë°”ë¥´ê²Œ ì…ë ¥í•´ì£¼ì„¸ìš”. (ìˆ«ìë§Œ ì…ë ¥)', 
             ephemeral: true 
           });
         }
@@ -3025,7 +3025,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (requiredQty === 0) {
           return await interaction.reply({ 
-            content: '? ÃæÁ· ¼ö·®Àº 0º¸´Ù Ä¿¾ß ÇÕ´Ï´Ù.', 
+            content: 'âŒ ì¶©ì¡± ìˆ˜ëŸ‰ì€ 0ë³´ë‹¤ ì»¤ì•¼ í•©ë‹ˆë‹¤.', 
             ephemeral: true 
           });
         }
@@ -3039,7 +3039,7 @@ client.on('interactionCreate', async (interaction) => {
           
           if (inventory.categories[category][itemName]) {
             return await interaction.reply({ 
-              content: `? "${itemName}" ¾ÆÀÌÅÛÀÌ ÀÌ¹Ì Á¸ÀçÇÕ´Ï´Ù.`, 
+              content: `âŒ "${itemName}" ì•„ì´í…œì´ ì´ë¯¸ ì¡´ì¬í•©ë‹ˆë‹¤.`, 
               ephemeral: true 
             });
           }
@@ -3050,7 +3050,7 @@ client.on('interactionCreate', async (interaction) => {
           };
           
           addHistory(inventory, 'inventory', category, itemName, 'add', 
-            `ÃÊ±â: ${initialQty}°³, ¸ñÇ¥: ${requiredQty}°³`, 
+            `ì´ˆê¸°: ${initialQty}ê°œ, ëª©í‘œ: ${requiredQty}ê°œ`, 
             interaction.user.displayName || interaction.user.username);
           
         } else {
@@ -3063,7 +3063,7 @@ client.on('interactionCreate', async (interaction) => {
           
           if (inventory.crafting.categories[category][itemName]) {
             return await interaction.reply({ 
-              content: `? "${itemName}" Á¦ÀÛÇ°ÀÌ ÀÌ¹Ì Á¸ÀçÇÕ´Ï´Ù.`, 
+              content: `âŒ "${itemName}" ì œì‘í’ˆì´ ì´ë¯¸ ì¡´ì¬í•©ë‹ˆë‹¤.`, 
               ephemeral: true 
             });
           }
@@ -3074,7 +3074,7 @@ client.on('interactionCreate', async (interaction) => {
           };
           
           addHistory(inventory, 'crafting', category, itemName, 'add', 
-            `ÃÊ±â: ${initialQty}°³, ¸ñÇ¥: ${requiredQty}°³`, 
+            `ì´ˆê¸°: ${initialQty}ê°œ, ëª©í‘œ: ${requiredQty}ê°œ`, 
             interaction.user.displayName || interaction.user.username);
         }
         
@@ -3086,47 +3086,47 @@ client.on('interactionCreate', async (interaction) => {
         const requiredSetsDisplay = Math.floor(requiredQty / 64);
         const requiredRemainderDisplay = requiredQty % 64;
         
-        // Á¦ÀÛ Ç°¸ñÀÎ °æ¿ì ·¹½ÃÇÇ ÀÔ·Â ¹öÆ° Ãß°¡
+        // ì œì‘ í’ˆëª©ì¸ ê²½ìš° ë ˆì‹œí”¼ ì…ë ¥ ë²„íŠ¼ ì¶”ê°€
         if (type === 'crafting') {
           const addRecipeButton = new ButtonBuilder()
             .setCustomId(`add_recipe_${category}_${itemName}`)
-            .setLabel('?? ·¹½ÃÇÇ Ãß°¡')
+            .setLabel('ğŸ“ ë ˆì‹œí”¼ ì¶”ê°€')
             .setStyle(ButtonStyle.Primary);
           
           const skipButton = new ButtonBuilder()
             .setCustomId(`skip_recipe_${category}_${itemName}`)
-            .setLabel('?? ³ªÁß¿¡ Ãß°¡')
+            .setLabel('â­ï¸ ë‚˜ì¤‘ì— ì¶”ê°€')
             .setStyle(ButtonStyle.Secondary);
           
           const row = new ActionRowBuilder().addComponents(addRecipeButton, skipButton);
           
           const successEmbed = new EmbedBuilder()
             .setColor(0x57F287)
-            .setTitle('? Á¦ÀÛÇ° Ãß°¡ ¿Ï·á')
-            .setDescription(`**Ä«Å×°í¸®:** ${category}\n${icon} **${itemName}**ÀÌ(°¡) Ãß°¡µÇ¾ú½À´Ï´Ù!\n\n**ÃÊ±â ¼ö·®:** ${initialQty}°³ (${initialSetsDisplay}¼¼Æ® + ${initialRemainderDisplay}°³)\n**ÃæÁ· ¼ö·®:** ${requiredQty}°³ (${requiredSetsDisplay}¼¼Æ® + ${requiredRemainderDisplay}°³)\n\n·¹½ÃÇÇ¸¦ Ãß°¡ÇÏ½Ã°Ú½À´Ï±î?`);
+            .setTitle('âœ… ì œì‘í’ˆ ì¶”ê°€ ì™„ë£Œ')
+            .setDescription(`**ì¹´í…Œê³ ë¦¬:** ${category}\n${icon} **${itemName}**ì´(ê°€) ì¶”ê°€ë˜ì—ˆìŠµë‹ˆë‹¤!\n\n**ì´ˆê¸° ìˆ˜ëŸ‰:** ${initialQty}ê°œ (${initialSetsDisplay}ì„¸íŠ¸ + ${initialRemainderDisplay}ê°œ)\n**ì¶©ì¡± ìˆ˜ëŸ‰:** ${requiredQty}ê°œ (${requiredSetsDisplay}ì„¸íŠ¸ + ${requiredRemainderDisplay}ê°œ)\n\në ˆì‹œí”¼ë¥¼ ì¶”ê°€í•˜ì‹œê² ìŠµë‹ˆê¹Œ?`);
           
           await interaction.reply({ embeds: [successEmbed], components: [row], ephemeral: true });
         } else {
           const successEmbed = new EmbedBuilder()
             .setColor(0x57F287)
-            .setTitle('? Ãß°¡ ¿Ï·á')
-            .setDescription(`**Ä«Å×°í¸®:** ${category}\n${icon} **${itemName}**ÀÌ(°¡) Ãß°¡µÇ¾ú½À´Ï´Ù!\n\n**ÃÊ±â ¼ö·®:** ${initialQty}°³ (${initialSetsDisplay}¼¼Æ® + ${initialRemainderDisplay}°³)\n**ÃæÁ· ¼ö·®:** ${requiredQty}°³ (${requiredSetsDisplay}¼¼Æ® + ${requiredRemainderDisplay}°³)`);
+            .setTitle('âœ… ì¶”ê°€ ì™„ë£Œ')
+            .setDescription(`**ì¹´í…Œê³ ë¦¬:** ${category}\n${icon} **${itemName}**ì´(ê°€) ì¶”ê°€ë˜ì—ˆìŠµë‹ˆë‹¤!\n\n**ì´ˆê¸° ìˆ˜ëŸ‰:** ${initialQty}ê°œ (${initialSetsDisplay}ì„¸íŠ¸ + ${initialRemainderDisplay}ê°œ)\n**ì¶©ì¡± ìˆ˜ëŸ‰:** ${requiredQty}ê°œ (${requiredSetsDisplay}ì„¸íŠ¸ + ${requiredRemainderDisplay}ê°œ)`);
           
           const reply = await interaction.reply({ embeds: [successEmbed], ephemeral: true, fetchReply: true });
           
-          // 15ÃÊ ÈÄ ÀÚµ¿ »èÁ¦
+          // 15ì´ˆ í›„ ìë™ ì‚­ì œ
           setTimeout(async () => {
             try {
               await interaction.deleteReply();
             } catch (error) {
-              // ÀÌ¹Ì »èÁ¦µÇ¾ú°Å³ª »èÁ¦ÇÒ ¼ö ¾ø´Â °æ¿ì ¹«½Ã
+              // ì´ë¯¸ ì‚­ì œë˜ì—ˆê±°ë‚˜ ì‚­ì œí•  ìˆ˜ ì—†ëŠ” ê²½ìš° ë¬´ì‹œ
             }
           }, 15000);
         }
         
       } catch (error) {
-        console.error('? ¾ÆÀÌÅÛ Ãß°¡ ¸ğ´Ş Á¦Ãâ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true }).catch(() => {});
+        console.error('âŒ ì•„ì´í…œ ì¶”ê°€ ëª¨ë‹¬ ì œì¶œ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
     
@@ -3142,15 +3142,15 @@ client.on('interactionCreate', async (interaction) => {
         
         if (isNaN(quantity) || quantity <= 0) {
           return await interaction.reply({
-            content: '? ¿Ã¹Ù¸¥ ¼ö·®À» ÀÔ·ÂÇØÁÖ¼¼¿ä. (1 ÀÌ»óÀÇ ¼ıÀÚ)',
+            content: 'âŒ ì˜¬ë°”ë¥¸ ìˆ˜ëŸ‰ì„ ì…ë ¥í•´ì£¼ì„¸ìš”. (1 ì´ìƒì˜ ìˆ«ì)',
             ephemeral: true
           });
         }
         
         const inventory = await loadInventory();
         
-        // ·¹½ÃÇÇ ÀÓ½Ã ÀúÀå (interaction.message.content¿¡ ÀúÀåÇÏ°Å³ª º°µµ °ü¸®)
-        // ¿©±â¼­´Â °£´ÜÇÏ°Ô ¹Ù·Î ÀúÀåÇÏ´Â ¹æ½ÄÀ¸·Î ±¸Çö
+        // ë ˆì‹œí”¼ ì„ì‹œ ì €ì¥ (interaction.message.contentì— ì €ì¥í•˜ê±°ë‚˜ ë³„ë„ ê´€ë¦¬)
+        // ì—¬ê¸°ì„œëŠ” ê°„ë‹¨í•˜ê²Œ ë°”ë¡œ ì €ì¥í•˜ëŠ” ë°©ì‹ìœ¼ë¡œ êµ¬í˜„
         
         if (!inventory.crafting.recipes) {
           inventory.crafting.recipes = {};
@@ -3162,7 +3162,7 @@ client.on('interactionCreate', async (interaction) => {
           inventory.crafting.recipes[category][itemName] = [];
         }
         
-        // Àç·á Ãß°¡
+        // ì¬ë£Œ ì¶”ê°€
         inventory.crafting.recipes[category][itemName].push({
           name: materialName,
           quantity: quantity,
@@ -3173,16 +3173,16 @@ client.on('interactionCreate', async (interaction) => {
         
         const icon = getItemIcon(materialName, inventory);
         
-        // ´ÙÀ½ Àç·á Ãß°¡ ¶Ç´Â ¿Ï·á
+        // ë‹¤ìŒ ì¬ë£Œ ì¶”ê°€ ë˜ëŠ” ì™„ë£Œ
         if (step < 3) {
           const addMoreButton = new ButtonBuilder()
             .setCustomId(`add_more_recipe_${category}_${itemName}_${step + 1}`)
-            .setLabel(`? Àç·á ${step + 1} Ãß°¡`)
+            .setLabel(`â• ì¬ë£Œ ${step + 1} ì¶”ê°€`)
             .setStyle(ButtonStyle.Primary);
           
           const finishButton = new ButtonBuilder()
             .setCustomId(`finish_recipe_${category}_${itemName}`)
-            .setLabel('? ¿Ï·á')
+            .setLabel('âœ… ì™„ë£Œ')
             .setStyle(ButtonStyle.Success);
           
           const row = new ActionRowBuilder().addComponents(addMoreButton, finishButton);
@@ -3192,18 +3192,18 @@ client.on('interactionCreate', async (interaction) => {
             .join('\n');
           
           await interaction.reply({
-            content: `? Àç·á ${step} Ãß°¡ ¿Ï·á: ${icon} ${materialName} x${quantity}\n\n**ÇöÀç ·¹½ÃÇÇ:**\n${currentRecipe}\n\n´õ Ãß°¡ÇÏ½Ã°Ú½À´Ï±î?`,
+            content: `âœ… ì¬ë£Œ ${step} ì¶”ê°€ ì™„ë£Œ: ${icon} ${materialName} x${quantity}\n\n**í˜„ì¬ ë ˆì‹œí”¼:**\n${currentRecipe}\n\në” ì¶”ê°€í•˜ì‹œê² ìŠµë‹ˆê¹Œ?`,
             components: [row],
             ephemeral: true
           });
         } else {
-          // 3°³ Àç·á ¸ğµÎ Ãß°¡ ¿Ï·á
+          // 3ê°œ ì¬ë£Œ ëª¨ë‘ ì¶”ê°€ ì™„ë£Œ
           const currentRecipe = inventory.crafting.recipes[category][itemName]
             .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
             .join('\n');
           
           await interaction.reply({
-            content: `? **${itemName}** ·¹½ÃÇÇ Ãß°¡ ¿Ï·á!\n\n**·¹½ÃÇÇ:**\n${currentRecipe}`,
+            content: `âœ… **${itemName}** ë ˆì‹œí”¼ ì¶”ê°€ ì™„ë£Œ!\n\n**ë ˆì‹œí”¼:**\n${currentRecipe}`,
             ephemeral: true
           });
           
@@ -3215,8 +3215,8 @@ client.on('interactionCreate', async (interaction) => {
         }
         
       } catch (error) {
-        console.error('? ·¹½ÃÇÇ ¼ö·® ¸ğ´Ş Á¦Ãâ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true }).catch(() => {});
+        console.error('âŒ ë ˆì‹œí”¼ ìˆ˜ëŸ‰ ëª¨ë‹¬ ì œì¶œ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
     
@@ -3231,7 +3231,7 @@ client.on('interactionCreate', async (interaction) => {
         
         if (isNaN(percentage) || percentage < 25 || percentage > 200) {
           return await interaction.reply({ 
-            content: `? 25% ~ 200% »çÀÌÀÇ ¼ıÀÚ¸¦ ÀÔ·ÂÇØÁÖ¼¼¿ä. (ÀÔ·Â°ª: ${barSizeValue})`, 
+            content: `âŒ 25% ~ 200% ì‚¬ì´ì˜ ìˆ«ìë¥¼ ì…ë ¥í•´ì£¼ì„¸ìš”. (ì…ë ¥ê°’: ${barSizeValue})`, 
             ephemeral: true 
           });
         }
@@ -3257,17 +3257,17 @@ client.on('interactionCreate', async (interaction) => {
         const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', uiMode, newLength);
         
         await interaction.update({ embeds: [embed], components: buttons });
-        console.log(`?? ¹Ù Å©±â º¯°æ: ${percentage}% (±æÀÌ: ${newLength})`);
+        console.log(`ğŸ“Š ë°” í¬ê¸° ë³€ê²½: ${percentage}% (ê¸¸ì´: ${newLength})`);
       } catch (error) {
-        console.error('? ¹Ù Å©±â ¸ğ´Ş Á¦Ãâ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true }).catch(() => {});
+        console.error('âŒ ë°” í¬ê¸° ëª¨ë‹¬ ì œì¶œ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
     
     else if (interaction.customId.startsWith('modal_add_') || interaction.customId.startsWith('modal_edit_') || interaction.customId.startsWith('modal_subtract_')) {
       try {
-        // modal_add_inventory_ÇØ¾ç_»êÈ£ Çü½Ä ÆÄ½Ì
-        // ¸¶Áö¸· _¸¦ ±âÁØÀ¸·Î ¾ÆÀÌÅÛ¸í ºĞ¸®
+        // modal_add_inventory_í•´ì–‘_ì‚°í˜¸ í˜•ì‹ íŒŒì‹±
+        // ë§ˆì§€ë§‰ _ë¥¼ ê¸°ì¤€ìœ¼ë¡œ ì•„ì´í…œëª… ë¶„ë¦¬
         const lastUnderscoreIndex = interaction.customId.lastIndexOf('_');
         const itemName = interaction.customId.substring(lastUnderscoreIndex + 1);
         const prefix = interaction.customId.substring(0, lastUnderscoreIndex);
@@ -3276,7 +3276,7 @@ client.on('interactionCreate', async (interaction) => {
         const type = parts[2]; // 'inventory' or 'crafting'
         const category = parts.slice(3).join('_');
         
-        console.log('?? ¸ğ´Ş Á¦Ãâ - ¼ö·® °ü¸®');
+        console.log('ğŸ“ ëª¨ë‹¬ ì œì¶œ - ìˆ˜ëŸ‰ ê´€ë¦¬');
         console.log('  - customId:', interaction.customId);
         console.log('  - action:', action);
         console.log('  - type:', type);
@@ -3292,19 +3292,19 @@ client.on('interactionCreate', async (interaction) => {
         console.log('  - targetData.categories:', Object.keys(targetData.categories || {}));
         
         if (!targetData.categories[category]) {
-          console.error(`? Ä«Å×°í¸® "${category}"¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù.`);
-          console.error('  - »ç¿ë °¡´ÉÇÑ Ä«Å×°í¸®:', Object.keys(targetData.categories || {}));
+          console.error(`âŒ ì¹´í…Œê³ ë¦¬ "${category}"ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`);
+          console.error('  - ì‚¬ìš© ê°€ëŠ¥í•œ ì¹´í…Œê³ ë¦¬:', Object.keys(targetData.categories || {}));
           return await interaction.reply({ 
-            content: `? "${category}" Ä«Å×°í¸®¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù. (Å¸ÀÔ: ${type})\n»ç¿ë °¡´ÉÇÑ Ä«Å×°í¸®: ${Object.keys(targetData.categories || {}).join(', ')}`, 
+            content: `âŒ "${category}" ì¹´í…Œê³ ë¦¬ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤. (íƒ€ì…: ${type})\nì‚¬ìš© ê°€ëŠ¥í•œ ì¹´í…Œê³ ë¦¬: ${Object.keys(targetData.categories || {}).join(', ')}`, 
             ephemeral: true 
           });
         }
         
         if (!targetData.categories[category][itemName]) {
-          console.error(`? ¾ÆÀÌÅÛ "${itemName}"À» Ä«Å×°í¸® "${category}"¿¡¼­ Ã£À» ¼ö ¾ø½À´Ï´Ù.`);
-          console.error('  - »ç¿ë °¡´ÉÇÑ ¾ÆÀÌÅÛ:', Object.keys(targetData.categories[category] || {}));
+          console.error(`âŒ ì•„ì´í…œ "${itemName}"ì„ ì¹´í…Œê³ ë¦¬ "${category}"ì—ì„œ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.`);
+          console.error('  - ì‚¬ìš© ê°€ëŠ¥í•œ ì•„ì´í…œ:', Object.keys(targetData.categories[category] || {}));
           return await interaction.reply({ 
-            content: `? "${itemName}" ¾ÆÀÌÅÛÀ» "${category}" Ä«Å×°í¸®¿¡¼­ Ã£À» ¼ö ¾ø½À´Ï´Ù.\n»ç¿ë °¡´ÉÇÑ ¾ÆÀÌÅÛ: ${Object.keys(targetData.categories[category] || {}).join(', ')}`, 
+            content: `âŒ "${itemName}" ì•„ì´í…œì„ "${category}" ì¹´í…Œê³ ë¦¬ì—ì„œ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.\nì‚¬ìš© ê°€ëŠ¥í•œ ì•„ì´í…œ: ${Object.keys(targetData.categories[category] || {}).join(', ')}`, 
             ephemeral: true 
           });
         }
@@ -3315,29 +3315,29 @@ client.on('interactionCreate', async (interaction) => {
         const oldRemainder = oldQuantity % 64;
         let newQuantity;
         
-        // ÀÔ·Â°ª Ã³¸® (ºó °ªÀº 0À¸·Î)
+        // ì…ë ¥ê°’ ì²˜ë¦¬ (ë¹ˆ ê°’ì€ 0ìœ¼ë¡œ)
         const sets = setsInput === '' ? 0 : parseFloat(setsInput);
         const items = itemsInput === '' ? 0 : parseFloat(itemsInput);
         
         if (isNaN(sets) || sets < 0 || isNaN(items) || items < 0) {
           return await interaction.reply({ 
-            content: `? ¿Ã¹Ù¸¥ ¼ıÀÚ¸¦ ÀÔ·ÂÇØÁÖ¼¼¿ä. (0 ÀÌ»óÀÇ ¼ıÀÚ)`, 
+            content: `âŒ ì˜¬ë°”ë¥¸ ìˆ«ìë¥¼ ì…ë ¥í•´ì£¼ì„¸ìš”. (0 ì´ìƒì˜ ìˆ«ì)`, 
             ephemeral: true 
           });
         }
         
-        // ¼¼Æ®¿Í ³¹°³¸¦ ÇÕÃÄ¼­ ÃÑ °³¼ö °è»ê
+        // ì„¸íŠ¸ì™€ ë‚±ê°œë¥¼ í•©ì³ì„œ ì´ ê°œìˆ˜ ê³„ì‚°
         const totalChange = Math.round(sets * 64) + Math.round(items);
         
         if (action === 'add') {
-          // Ãß°¡
+          // ì¶”ê°€
           newQuantity = oldQuantity + totalChange;
           
-          // Á¦ÀÛÇ° Ãß°¡ ½Ã ·¹½ÃÇÇ°¡ ÀÖÀ¸¸é Àç·á Â÷°¨
+          // ì œì‘í’ˆ ì¶”ê°€ ì‹œ ë ˆì‹œí”¼ê°€ ìˆìœ¼ë©´ ì¬ë£Œ ì°¨ê°
           if (type === 'crafting' && totalChange > 0) {
             const recipe = inventory.crafting?.recipes?.[category]?.[itemName];
             if (recipe) {
-              // Àç·á ÃæºĞÇÑÁö È®ÀÎ
+              // ì¬ë£Œ ì¶©ë¶„í•œì§€ í™•ì¸
               let canCraft = true;
               const materialCheck = [];
               
@@ -3360,69 +3360,69 @@ client.on('interactionCreate', async (interaction) => {
               }
               
               if (!canCraft) {
-                // Àç·á ºÎÁ·
+                // ì¬ë£Œ ë¶€ì¡±
                 const lackingMaterials = materialCheck
                   .filter(m => !m.enough)
                   .map(m => {
                     const icon = getItemIcon(m.name, inventory);
-                    return `${icon} **${m.name}**: ${m.current}°³ / ${m.required}°³ ÇÊ¿ä (${m.required - m.current}°³ ºÎÁ·)`;
+                    return `${icon} **${m.name}**: ${m.current}ê°œ / ${m.required}ê°œ í•„ìš” (${m.required - m.current}ê°œ ë¶€ì¡±)`;
                   })
                   .join('\n');
                 
                 return await interaction.reply({
-                  content: `? **${itemName}** ${totalChange}°³¸¦ Á¦ÀÛÇÏ±â À§ÇÑ Àç·á°¡ ºÎÁ·ÇÕ´Ï´Ù!\n\n**ºÎÁ·ÇÑ Àç·á:**\n${lackingMaterials}`,
+                  content: `âŒ **${itemName}** ${totalChange}ê°œë¥¼ ì œì‘í•˜ê¸° ìœ„í•œ ì¬ë£Œê°€ ë¶€ì¡±í•©ë‹ˆë‹¤!\n\n**ë¶€ì¡±í•œ ì¬ë£Œ:**\n${lackingMaterials}`,
                   ephemeral: true
                 });
               }
               
-              // Àç·á Â÷°¨
+              // ì¬ë£Œ ì°¨ê°
               for (const material of recipe) {
                 const requiredQty = material.quantity * totalChange;
                 inventory.categories[material.category][material.name].quantity -= requiredQty;
                 
-                // Àç·á Â÷°¨ ³»¿ª Ãß°¡
+                // ì¬ë£Œ ì°¨ê° ë‚´ì—­ ì¶”ê°€
                 addHistory(inventory, 'inventory', material.category, material.name, 'update_quantity',
-                  `[Á¦ÀÛ Àç·á ¼Ò¸ğ] ${itemName} ${totalChange}°³ Á¦ÀÛÀ¸·Î ${requiredQty}°³ ¼Ò¸ğ`,
+                  `[ì œì‘ ì¬ë£Œ ì†Œëª¨] ${itemName} ${totalChange}ê°œ ì œì‘ìœ¼ë¡œ ${requiredQty}ê°œ ì†Œëª¨`,
                   interaction.user.displayName || interaction.user.username);
               }
             }
           }
         } else if (action === 'subtract') {
-          // Â÷°¨
+          // ì°¨ê°
           newQuantity = Math.max(0, oldQuantity - totalChange);
           
-          // Á¦ÀÛÇ° Â÷°¨ ½Ã ·¹½ÃÇÇ°¡ ÀÖÀ¸¸é Àç·á ¹İÈ¯
+          // ì œì‘í’ˆ ì°¨ê° ì‹œ ë ˆì‹œí”¼ê°€ ìˆìœ¼ë©´ ì¬ë£Œ ë°˜í™˜
           if (type === 'crafting' && totalChange > 0) {
             const recipe = inventory.crafting?.recipes?.[category]?.[itemName];
             if (recipe) {
-              // Àç·á ¹İÈ¯
+              // ì¬ë£Œ ë°˜í™˜
               for (const material of recipe) {
                 const returnQty = material.quantity * totalChange;
                 
-                // Àç°í Ä«Å×°í¸®¿¡ Àç·á°¡ ÀÖ´ÂÁö È®ÀÎ
+                // ì¬ê³  ì¹´í…Œê³ ë¦¬ì— ì¬ë£Œê°€ ìˆëŠ”ì§€ í™•ì¸
                 if (inventory.categories[material.category]?.[material.name]) {
                   inventory.categories[material.category][material.name].quantity += returnQty;
                   
-                  // Àç·á ¹İÈ¯ ³»¿ª Ãß°¡
+                  // ì¬ë£Œ ë°˜í™˜ ë‚´ì—­ ì¶”ê°€
                   addHistory(inventory, 'inventory', material.category, material.name, 'update_quantity',
-                    `[Á¦ÀÛ Ãë¼Ò] ${itemName} ${totalChange}°³ Â÷°¨À¸·Î ${returnQty}°³ ¹İÈ¯`,
+                    `[ì œì‘ ì·¨ì†Œ] ${itemName} ${totalChange}ê°œ ì°¨ê°ìœ¼ë¡œ ${returnQty}ê°œ ë°˜í™˜`,
                     interaction.user.displayName || interaction.user.username);
                 }
               }
             }
           }
         } else {
-          // ¼öÁ¤ (Á÷Á¢ ¼³Á¤)
+          // ìˆ˜ì • (ì§ì ‘ ì„¤ì •)
           newQuantity = Math.max(0, totalChange);
           
-          // Á¦ÀÛÇ° ¼öÁ¤ ½Ã ·¹½ÃÇÇ°¡ ÀÖÀ¸¸é Àç·á Á¶Á¤
+          // ì œì‘í’ˆ ìˆ˜ì • ì‹œ ë ˆì‹œí”¼ê°€ ìˆìœ¼ë©´ ì¬ë£Œ ì¡°ì •
           if (type === 'crafting') {
             const recipe = inventory.crafting?.recipes?.[category]?.[itemName];
             if (recipe) {
-              const quantityDiff = newQuantity - oldQuantity; // ¾ç¼ö¸é Áõ°¡, À½¼ö¸é °¨¼Ò
+              const quantityDiff = newQuantity - oldQuantity; // ì–‘ìˆ˜ë©´ ì¦ê°€, ìŒìˆ˜ë©´ ê°ì†Œ
               
               if (quantityDiff > 0) {
-                // ¼ö·® Áõ°¡ - Àç·á Â÷°¨ ÇÊ¿ä
+                // ìˆ˜ëŸ‰ ì¦ê°€ - ì¬ë£Œ ì°¨ê° í•„ìš”
                 let canCraft = true;
                 const materialCheck = [];
                 
@@ -3445,32 +3445,32 @@ client.on('interactionCreate', async (interaction) => {
                 }
                 
                 if (!canCraft) {
-                  // Àç·á ºÎÁ·
+                  // ì¬ë£Œ ë¶€ì¡±
                   const lackingMaterials = materialCheck
                     .filter(m => !m.enough)
                     .map(m => {
                       const icon = getItemIcon(m.name, inventory);
-                      return `${icon} **${m.name}**: ${m.current}°³ / ${m.required}°³ ÇÊ¿ä (${m.required - m.current}°³ ºÎÁ·)`;
+                      return `${icon} **${m.name}**: ${m.current}ê°œ / ${m.required}ê°œ í•„ìš” (${m.required - m.current}ê°œ ë¶€ì¡±)`;
                     })
                     .join('\n');
                   
                   return await interaction.reply({
-                    content: `? **${itemName}**À»(¸¦) ${newQuantity}°³·Î ¼öÁ¤ÇÏ·Á¸é ${quantityDiff}°³¸¦ Ãß°¡ Á¦ÀÛÇØ¾ß ÇÏ´Âµ¥ Àç·á°¡ ºÎÁ·ÇÕ´Ï´Ù!\n\n**ºÎÁ·ÇÑ Àç·á:**\n${lackingMaterials}`,
+                    content: `âŒ **${itemName}**ì„(ë¥¼) ${newQuantity}ê°œë¡œ ìˆ˜ì •í•˜ë ¤ë©´ ${quantityDiff}ê°œë¥¼ ì¶”ê°€ ì œì‘í•´ì•¼ í•˜ëŠ”ë° ì¬ë£Œê°€ ë¶€ì¡±í•©ë‹ˆë‹¤!\n\n**ë¶€ì¡±í•œ ì¬ë£Œ:**\n${lackingMaterials}`,
                     ephemeral: true
                   });
                 }
                 
-                // Àç·á Â÷°¨
+                // ì¬ë£Œ ì°¨ê°
                 for (const material of recipe) {
                   const requiredQty = material.quantity * quantityDiff;
                   inventory.categories[material.category][material.name].quantity -= requiredQty;
                   
                   addHistory(inventory, 'inventory', material.category, material.name, 'update_quantity',
-                    `[Á¦ÀÛ Àç·á ¼Ò¸ğ] ${itemName} ${quantityDiff}°³ Ãß°¡ Á¦ÀÛÀ¸·Î ${requiredQty}°³ ¼Ò¸ğ`,
+                    `[ì œì‘ ì¬ë£Œ ì†Œëª¨] ${itemName} ${quantityDiff}ê°œ ì¶”ê°€ ì œì‘ìœ¼ë¡œ ${requiredQty}ê°œ ì†Œëª¨`,
                     interaction.user.displayName || interaction.user.username);
                 }
               } else if (quantityDiff < 0) {
-                // ¼ö·® °¨¼Ò - Àç·á ¹İÈ¯
+                // ìˆ˜ëŸ‰ ê°ì†Œ - ì¬ë£Œ ë°˜í™˜
                 const returnAmount = Math.abs(quantityDiff);
                 
                 for (const material of recipe) {
@@ -3480,7 +3480,7 @@ client.on('interactionCreate', async (interaction) => {
                     inventory.categories[material.category][material.name].quantity += returnQty;
                     
                     addHistory(inventory, 'inventory', material.category, material.name, 'update_quantity',
-                      `[Á¦ÀÛ Ãë¼Ò] ${itemName} ${returnAmount}°³ °¨¼Ò·Î ${returnQty}°³ ¹İÈ¯`,
+                      `[ì œì‘ ì·¨ì†Œ] ${itemName} ${returnAmount}ê°œ ê°ì†Œë¡œ ${returnQty}ê°œ ë°˜í™˜`,
                       interaction.user.displayName || interaction.user.username);
                   }
                 }
@@ -3494,13 +3494,13 @@ client.on('interactionCreate', async (interaction) => {
         const newSets = Math.floor(newQuantity / 64);
         const newRemainder = newQuantity % 64;
         
-        // ¼öÁ¤ ³»¿ª Ãß°¡
+        // ìˆ˜ì • ë‚´ì—­ ì¶”ê°€
         const actionLabels = {
-          'add': 'Ãß°¡',
-          'edit': '¼öÁ¤',
-          'subtract': 'Â÷°¨'
+          'add': 'ì¶”ê°€',
+          'edit': 'ìˆ˜ì •',
+          'subtract': 'ì°¨ê°'
         };
-        const changeDetail = `${oldSets}¼¼Æ®+${oldRemainder}°³ (${oldQuantity}°³) ¡æ ${newSets}¼¼Æ®+${newRemainder}°³ (${newQuantity}°³)`;
+        const changeDetail = `${oldSets}ì„¸íŠ¸+${oldRemainder}ê°œ (${oldQuantity}ê°œ) â†’ ${newSets}ì„¸íŠ¸+${newRemainder}ê°œ (${newQuantity}ê°œ)`;
         addHistory(inventory, type, category, itemName, 'update_quantity', 
           `[${actionLabels[action]}] ${changeDetail}`, 
           interaction.user.displayName || interaction.user.username);
@@ -3509,12 +3509,12 @@ client.on('interactionCreate', async (interaction) => {
         
         const icon = getItemIcon(itemName, inventory);
         const actionEmojis = {
-          'add': '?',
-          'edit': '??',
-          'subtract': '?'
+          'add': 'â•',
+          'edit': 'âœï¸',
+          'subtract': 'â–'
         };
         
-        // Àç·á ¼Ò¸ğ Á¤º¸ Ãß°¡ (Á¦ÀÛÇ° Ãß°¡ ½Ã)
+        // ì¬ë£Œ ì†Œëª¨ ì •ë³´ ì¶”ê°€ (ì œì‘í’ˆ ì¶”ê°€ ì‹œ)
         let materialInfo = '';
         if (type === 'crafting' && action === 'add' && totalChange > 0) {
           const recipe = inventory.crafting?.recipes?.[category]?.[itemName];
@@ -3522,37 +3522,37 @@ client.on('interactionCreate', async (interaction) => {
             const materialList = recipe.map(m => {
               const matIcon = getItemIcon(m.name, inventory);
               const consumed = m.quantity * totalChange;
-              return `${matIcon} ${m.name} -${consumed}°³`;
+              return `${matIcon} ${m.name} -${consumed}ê°œ`;
             }).join(', ');
-            materialInfo = `\n\n**¼Ò¸ğµÈ Àç·á:** ${materialList}`;
+            materialInfo = `\n\n**ì†Œëª¨ëœ ì¬ë£Œ:** ${materialList}`;
           }
         }
         
         const successEmbed = new EmbedBuilder()
           .setColor(action === 'add' ? 0x57F287 : action === 'subtract' ? 0xED4245 : 0x5865F2)
-          .setDescription(`### ${actionEmojis[action]} ${actionLabels[action]} ¿Ï·á\n**Ä«Å×°í¸®:** ${category}\n${icon} **${itemName}**\n${oldSets}¼¼Æ®+${oldRemainder}°³ (${oldQuantity}°³)\n¡é\n${newSets}¼¼Æ®+${newRemainder}°³ (${newQuantity}°³)${materialInfo}`);
+          .setDescription(`### ${actionEmojis[action]} ${actionLabels[action]} ì™„ë£Œ\n**ì¹´í…Œê³ ë¦¬:** ${category}\n${icon} **${itemName}**\n${oldSets}ì„¸íŠ¸+${oldRemainder}ê°œ (${oldQuantity}ê°œ)\nâ†“\n${newSets}ì„¸íŠ¸+${newRemainder}ê°œ (${newQuantity}ê°œ)${materialInfo}`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
         
-        console.log(`${actionEmojis[action]} ${interaction.user.displayName}´ÔÀÌ ${category} - ${itemName} ${actionLabels[action]}: ${oldQuantity} -> ${newQuantity}`);
+        console.log(`${actionEmojis[action]} ${interaction.user.displayName}ë‹˜ì´ ${category} - ${itemName} ${actionLabels[action]}: ${oldQuantity} -> ${newQuantity}`);
         
       } catch (error) {
-        console.error('? ¸ğ´Ş Á¦Ãâ ¿¡·¯:', error);
-        await interaction.reply({ content: '¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù: ' + error.message, ephemeral: true }).catch(() => {});
+        console.error('âŒ ëª¨ë‹¬ ì œì¶œ ì—ëŸ¬:', error);
+        await interaction.reply({ content: 'ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
   }
 });
 
-// È¯°æ º¯¼ö¿¡¼­ ÅäÅ« °¡Á®¿À±â
+// í™˜ê²½ ë³€ìˆ˜ì—ì„œ í† í° ê°€ì ¸ì˜¤ê¸°
 const token = process.env.DISCORD_TOKEN;
 if (!token) {
-  console.error('? DISCORD_TOKENÀÌ ¼³Á¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.');
-  console.log('.env ÆÄÀÏ¿¡ DISCORD_TOKENÀ» ¼³Á¤ÇÏ¼¼¿ä.');
+  console.error('âŒ DISCORD_TOKENì´ ì„¤ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.');
+  console.log('.env íŒŒì¼ì— DISCORD_TOKENì„ ì„¤ì •í•˜ì„¸ìš”.');
   process.exit(1);
 }
 
 client.login(token).catch(error => {
-  console.error('? º¿ ·Î±×ÀÎ ½ÇÆĞ:', error.message);
-  console.log('ÅäÅ«À» È®ÀÎÇÏ¼¼¿ä. Discord Developer Portal¿¡¼­ »õ ÅäÅ«À» ¹ß±Ş¹Ş¾Æ¾ß ÇÒ ¼ö ÀÖ½À´Ï´Ù.');
+  console.error('âŒ ë´‡ ë¡œê·¸ì¸ ì‹¤íŒ¨:', error.message);
+  console.log('í† í°ì„ í™•ì¸í•˜ì„¸ìš”. Discord Developer Portalì—ì„œ ìƒˆ í† í°ì„ ë°œê¸‰ë°›ì•„ì•¼ í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.');
 });
