@@ -165,10 +165,7 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
       
       let fieldValue;
       
-      if (uiMode === 'compact') {
-        // 컴팩트 모드: 최소 정보만 한 줄로
-        fieldValue = `${status} ${currentSets}세트/${currentRemainder}개 │ ${requiredSets}세트/${requiredRemainder}개 (${percentage}%)${craftingInfo ? ` 🔨 ${craftingInfo.userName}` : ''}`;
-      } else if (uiMode === 'detailed') {
+      if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
           `**현재 수량:** ${currentSets}세트/${currentRemainder}개 (총 ${data.quantity}개)`,
@@ -184,19 +181,15 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
         ].join('\n');
       }
       
-      // 마지막 아이템이 아니면 구분선 추가 (컴팩트 모드는 구분선 없음)
-      if (index < items.length - 1 && uiMode !== 'compact') {
-        if (uiMode === 'compact') {
-          fieldValue += '\n━━━━━━━━━━';
-        } else {
-          fieldValue += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
-        }
+      // 마지막 아이템이 아니면 구분선 추가
+      if (index < items.length - 1) {
+        fieldValue += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       }
 
       embed.addFields({
         name: `${icon} **${itemName}**`,
         value: fieldValue,
-        inline: false  // 모든 모드에서 세로로 나열
+        inline: false
       });
     });
   } else {
@@ -223,9 +216,7 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
         const craftingInfo = crafting.crafting?.[catName]?.[itemName];
         const craftingText = craftingInfo ? ` 🔨 **${craftingInfo.userName}**` : '';
         
-        if (uiMode === 'compact') {
-          categoryText += `${icon} ${itemName}: ${data.quantity}/${data.required} (${percentage}%) ${status}${craftingText}\n`;
-        } else if (uiMode === 'detailed') {
+        if (uiMode === 'detailed') {
           categoryText += `### ${icon} ${itemName}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${craftingText}\n`;
         } else {
           categoryText += `### ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${craftingText}\n`;
@@ -285,10 +276,7 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
       
       let fieldValue;
       
-      if (uiMode === 'compact') {
-        // 컴팩트 모드: 최소 정보만 한 줄로
-        fieldValue = `${status} ${currentSets}세트/${currentRemainder}개 │ ${requiredSets}세트/${requiredRemainder}개 (${percentage}%)${collectingInfo ? ` 👤 ${collectingInfo.userName}` : ''}`;
-      } else if (uiMode === 'detailed') {
+      if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
           `**현재 수량:** ${currentSets}세트/${currentRemainder}개 (총 ${data.quantity}개)`,
@@ -304,19 +292,15 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
         ].join('\n');
       }
       
-      // 마지막 아이템이 아니면 구분선 추가 (컴팩트 모드는 짧게)
+      // 마지막 아이템이 아니면 구분선 추가
       if (index < items.length - 1) {
-        if (uiMode === 'compact') {
-          fieldValue += '\n━━━━━━━━━━';
-        } else {
-          fieldValue += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
-        }
+        fieldValue += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       }
 
       embed.addFields({
         name: `${icon} **${itemName}**`,
         value: fieldValue,
-        inline: uiMode === 'compact'
+        inline: false
       });
     });
   } else {
@@ -341,9 +325,7 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
         const collectingInfo = inventory.collecting?.[catName]?.[itemName];
         const collectingText = collectingInfo ? ` 👤 **${collectingInfo.userName}**` : '';
         
-        if (uiMode === 'compact') {
-          categoryText += `${icon} ${itemName}: ${data.quantity}/${data.required} (${percentage}%) ${status}${collectingText}\n`;
-        } else if (uiMode === 'detailed') {
+        if (uiMode === 'detailed') {
           categoryText += `### ${icon} ${itemName}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${collectingText}\n`;
         } else {
           categoryText += `### ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${collectingText}\n`;
@@ -397,8 +379,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   
   // UI 모드 버튼 라벨
   let uiModeLabel = '📏 일반';
-  if (uiMode === 'compact') uiModeLabel = '📏 컴팩트';
-  else if (uiMode === 'detailed') uiModeLabel = '📏 상세';
+  if (uiMode === 'detailed') uiModeLabel = '📏 상세';
   
   const row1Buttons = [
     new ButtonBuilder()
@@ -1898,11 +1879,10 @@ client.on('interactionCreate', async (interaction) => {
         
         const inventory = await loadInventory();
         
-        // UI 모드 순환: normal -> compact -> detailed -> normal
+        // UI 모드 순환: normal -> detailed -> normal
         let currentMode = inventory.settings?.uiMode || 'normal';
         let newMode;
-        if (currentMode === 'normal') newMode = 'compact';
-        else if (currentMode === 'compact') newMode = 'detailed';
+        if (currentMode === 'normal') newMode = 'detailed';
         else newMode = 'normal';
         
         // 설정 저장
