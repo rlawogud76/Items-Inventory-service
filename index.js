@@ -419,7 +419,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
       .setCustomId(actionId)
       .setLabel(isWorking 
         ? (type === 'inventory' ? '⏹️ 수집중단' : '⏹️ 제작중단')
-        : (type === 'inventory' ? '📦 수집중' : '🔨 제작중'))
+        : (type === 'inventory' ? '📦 수집하기' : '🔨 제작하기'))
       .setStyle(isWorking ? ButtonStyle.Danger : ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId(quantityId)
@@ -680,7 +680,7 @@ client.on('interactionCreate', async (interaction) => {
                 '> 💡 변경사항이 자동으로 업데이트됩니다!',
                 '',
                 '**버튼 기능:**',
-                '• 📦 수집중: 작업자 등록 (다른 사람에게 표시)',
+                '• 📦 수집하기: 작업자 등록 (다른 사람에게 표시)',
                 '• 📊 수량관리: 추가/수정/차감/목표 수정',
                 '• 📋 물품관리: 물품 추가 및 삭제',
                 '• ♻️ 초기화: 개별 또는 일괄 초기화',
@@ -703,7 +703,7 @@ client.on('interactionCreate', async (interaction) => {
                 '> 💡 변경사항이 자동으로 업데이트됩니다!',
                 '',
                 '**버튼 기능:**',
-                '• 🔨 제작중: 작업자 등록 (다른 사람에게 표시)',
+                '• 🔨 제작하기: 작업자 등록 (다른 사람에게 표시)',
                 '• 📊 수량관리: 추가/수정/차감/목표 수정',
                 '• 📦 품목관리: 품목 추가 및 삭제',
                 '• 📋 레시피: 레시피 조회 및 수정',
@@ -762,7 +762,7 @@ client.on('interactionCreate', async (interaction) => {
               name: '💡 팁', 
               value: [
                 '• **실시간 업데이트**: 누군가 수량을 변경하면 모든 화면이 자동으로 업데이트됩니다.',
-                '• **작업자 표시**: 수집중/제작중 버튼으로 작업자를 등록하면 다른 사람들이 볼 수 있습니다.',
+                '• **작업자 표시**: 수집하기/제작하기 버튼으로 작업자를 등록하면 다른 사람들이 볼 수 있습니다.',
                 '• **자동 삭제**: 선택 메뉴는 30초 후 자동으로 사라집니다.',
                 '• **세트 단위**: 수량은 세트(64개) + 낱개로 표시됩니다.',
                 '• **진행률 표시**: 🔴(25%↓) 🟡(25-90%) 🟢(90%↑)'
