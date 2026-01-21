@@ -2837,6 +2837,13 @@ client.on('interactionCreate', async (interaction) => {
           components: [row]
         });
         
+        // 30초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 30000);
+        
       } catch (error) {
         console.error('❌ 수량관리 선택 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
