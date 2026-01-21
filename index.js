@@ -4017,6 +4017,151 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
       }
     }
+    
+    else if (interaction.customId.startsWith('select_tag_items_')) {
+      try {
+        // 먼저 응답 지연 처리
+        await interaction.deferUpdate();
+        
+        const parts = interaction.customId.replace('select_tag_items_', '').split('_');
+        const tagName = parts[parts.length - 1];
+        const type = parts[0];
+        const category = parts.slice(1, -1).join('_');
+        
+        const selectedItems = interaction.values;
+        
+        if (!selectedItems || selectedItems.length === 0) {
+          return await interaction.editReply({ 
+            content: '❌ 항목을 선택해주세요.', 
+            components: []
+          });
+        }
+        
+        const inventory = await loadInventory();
+        
+        // 태그 구조 초기화
+        if (!inventory.tags) inventory.tags = { inventory: {}, crafting: {} };
+        if (!inventory.tags[type]) inventory.tags[type] = {};
+        if (!inventory.tags[type][category]) inventory.tags[type][category] = {};
+        
+        // 선택된 항목들을 태그에 추가
+        if (!inventory.tags[type][category][tagName]) {
+          inventory.tags[type][category][tagName] = [];
+        }
+        
+        let addedCount = 0;
+        let movedCount = 0;
+        
+        for (const itemName of selectedItems) {
+          // 기존 태그에서 제거
+          const oldTag = getItemTag(itemName, category, type, inventory);
+          if (oldTag && oldTag !== tagName && inventory.tags[type][category][oldTag]) {
+            inventory.tags[type][category][oldTag] = inventory.tags[type][category][oldTag].filter(item => item !== itemName);
+            // 빈 태그 삭제
+            if (inventory.tags[type][category][oldTag].length === 0) {
+              delete inventory.tags[type][category][oldTag];
+            }
+            movedCount++;
+          }
+          
+          // 새 태그에 추가 (중복 방지)
+          if (!inventory.tags[type][category][tagName].includes(itemName)) {
+            inventory.tags[type][category][tagName].push(itemName);
+            addedCount++;
+          }
+        }
+        
+        await saveInventory(inventory);
+        
+        const successEmbed = new EmbedBuilder()
+          .setColor(0x57F287)
+          .setTitle('✅ 태그 설정 완료')
+          .setDescription([
+            `**카테고리:** ${category}`,
+            `🏷️ **태그:** ${tagName}`,
+            ``,
+            `📦 **추가된 항목:** ${addedCount}개`,
+            movedCount > 0 ? `🔄 **이동된 항목:** ${movedCount}개 (기존 태그에서 제거됨)` : '',
+            ``,
+            `**항목 목록:**`,
+            selectedItems.map(item => `• ${getItemIcon(item, inventory)} ${item}`).join('\n')
+          ].filter(Boolean).join('\n'));
+        
+        await interaction.editReply({ 
+          content: '✅ 태그 설정이 완료되었습니다!',
+          embeds: [successEmbed], 
+          components: [] 
+        });
+        
+        // 15초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 15000);
+        
+      } catch (error) {
+        console.error('❌ 태그 항목 선택 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('confirm_tag_remove_')) {
+      try {
+        // 먼저 응답 지연 처리
+        await interaction.deferUpdate();
+        
+        const parts = interaction.customId.replace('confirm_tag_remove_', '').split('_');
+        const type = parts[0];
+        const category = parts.slice(1).join('_');
+        
+        const tagName = interaction.values[0];
+        
+        const inventory = await loadInventory();
+        
+        if (!inventory.tags?.[type]?.[category]?.[tagName]) {
+          return await interaction.editReply({ 
+            content: `❌ 태그 "${tagName}"을 찾을 수 없습니다.`,
+            components: []
+          });
+        }
+        
+        const itemCount = inventory.tags[type][category][tagName].length;
+        
+        // 태그 제거
+        delete inventory.tags[type][category][tagName];
+        
+        await saveInventory(inventory);
+        
+        const successEmbed = new EmbedBuilder()
+          .setColor(0x57F287)
+          .setTitle('✅ 태그 제거 완료')
+          .setDescription([
+            `**카테고리:** ${category}`,
+            `🏷️ **제거된 태그:** ${tagName}`,
+            `📦 **영향받은 항목:** ${itemCount}개`,
+            ``,
+            `⚠️ 항목은 유지되며, 태그만 제거되었습니다.`
+          ].join('\n'));
+        
+        await interaction.editReply({ 
+          content: '✅ 태그가 제거되었습니다!',
+          embeds: [successEmbed], 
+          components: [] 
+        });
+        
+        // 15초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 15000);
+        
+      } catch (error) {
+        console.error('❌ 태그 제거 확인 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
   }
   
   // 모달 제출 처리
@@ -4424,204 +4569,6 @@ client.on('interactionCreate', async (interaction) => {
         
       } catch (error) {
         console.error('❌ 태그 이름 입력 모달 제출 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
-      }
-    }
-    
-    else if (interaction.customId.startsWith('select_tag_items_')) {
-      try {
-        // 먼저 응답 지연 처리
-        await interaction.deferUpdate();
-        
-        const parts = interaction.customId.replace('select_tag_items_', '').split('_');
-        const tagName = parts[parts.length - 1];
-        const type = parts[0];
-        const category = parts.slice(1, -1).join('_');
-        
-        const selectedItems = interaction.values;
-        
-        if (!selectedItems || selectedItems.length === 0) {
-          return await interaction.editReply({ 
-            content: '❌ 항목을 선택해주세요.', 
-            components: []
-          });
-        }
-        
-        const inventory = await loadInventory();
-        
-        // 태그 구조 초기화
-        if (!inventory.tags) inventory.tags = { inventory: {}, crafting: {} };
-        if (!inventory.tags[type]) inventory.tags[type] = {};
-        if (!inventory.tags[type][category]) inventory.tags[type][category] = {};
-        
-        // 선택된 항목들을 태그에 추가
-        if (!inventory.tags[type][category][tagName]) {
-          inventory.tags[type][category][tagName] = [];
-        }
-        
-        let addedCount = 0;
-        let movedCount = 0;
-        
-        for (const itemName of selectedItems) {
-          // 기존 태그에서 제거
-          const oldTag = getItemTag(itemName, category, type, inventory);
-          if (oldTag && oldTag !== tagName && inventory.tags[type][category][oldTag]) {
-            inventory.tags[type][category][oldTag] = inventory.tags[type][category][oldTag].filter(item => item !== itemName);
-            // 빈 태그 삭제
-            if (inventory.tags[type][category][oldTag].length === 0) {
-              delete inventory.tags[type][category][oldTag];
-            }
-            movedCount++;
-          }
-          
-          // 새 태그에 추가 (중복 방지)
-          if (!inventory.tags[type][category][tagName].includes(itemName)) {
-            inventory.tags[type][category][tagName].push(itemName);
-            addedCount++;
-          }
-        }
-        
-        await saveInventory(inventory);
-        
-        const successEmbed = new EmbedBuilder()
-          .setColor(0x57F287)
-          .setTitle('✅ 태그 설정 완료')
-          .setDescription([
-            `**카테고리:** ${category}`,
-            `🏷️ **태그:** ${tagName}`,
-            ``,
-            `📦 **추가된 항목:** ${addedCount}개`,
-            movedCount > 0 ? `🔄 **이동된 항목:** ${movedCount}개 (기존 태그에서 제거됨)` : '',
-            ``,
-            `**항목 목록:**`,
-            selectedItems.map(item => `• ${getItemIcon(item, inventory)} ${item}`).join('\n')
-          ].filter(Boolean).join('\n'));
-        
-        await interaction.editReply({ 
-          content: '✅ 태그 설정이 완료되었습니다!',
-          embeds: [successEmbed], 
-          components: [] 
-        });
-        
-        // 15초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 15000);
-        
-      } catch (error) {
-        console.error('❌ 태그 항목 선택 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
-      }
-    }
-    
-    else if (interaction.customId.startsWith('tag_remove_')) {
-      try {
-        const parts = interaction.customId.replace('tag_remove_', '').split('_');
-        const type = parts[0];
-        const category = parts.slice(1).join('_');
-        
-        const inventory = await loadInventory();
-        const tags = inventory.tags?.[type]?.[category];
-        
-        if (!tags || Object.keys(tags).length === 0) {
-          return await interaction.reply({ 
-            content: `❌ "${category}" 카테고리에 태그가 없습니다.`, 
-            ephemeral: true 
-          });
-        }
-        
-        // 태그 선택 메뉴 생성
-        const tagOptions = Object.entries(tags).map(([tagName, items]) => ({
-          label: tagName,
-          value: tagName,
-          description: `${items.length}개 항목`,
-          emoji: '🏷️'
-        }));
-        
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`confirm_tag_remove_${type}_${category}`)
-          .setPlaceholder('제거할 태그를 선택하세요')
-          .setMinValues(1)
-          .setMaxValues(1)
-          .addOptions(tagOptions);
-        
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-        
-        await interaction.reply({
-          content: `🗑️ **태그 제거**\n\n제거할 태그를 선택하세요.\n⚠️ 태그만 제거되며, 항목은 유지됩니다.`,
-          components: [row],
-          ephemeral: true
-        });
-        
-        // 30초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 30000);
-        
-      } catch (error) {
-        console.error('❌ 태그 제거 버튼 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
-      }
-    }
-    
-    else if (interaction.customId.startsWith('confirm_tag_remove_')) {
-      try {
-        // 먼저 응답 지연 처리
-        await interaction.deferUpdate();
-        
-        const parts = interaction.customId.replace('confirm_tag_remove_', '').split('_');
-        const type = parts[0];
-        const category = parts.slice(1).join('_');
-        
-        const tagName = interaction.values[0];
-        
-        const inventory = await loadInventory();
-        
-        if (!inventory.tags?.[type]?.[category]?.[tagName]) {
-          return await interaction.editReply({ 
-            content: `❌ 태그 "${tagName}"을 찾을 수 없습니다.`,
-            components: []
-          });
-        }
-        
-        const itemCount = inventory.tags[type][category][tagName].length;
-        
-        // 태그 제거
-        delete inventory.tags[type][category][tagName];
-        
-        await saveInventory(inventory);
-        
-        const successEmbed = new EmbedBuilder()
-          .setColor(0x57F287)
-          .setTitle('✅ 태그 제거 완료')
-          .setDescription([
-            `**카테고리:** ${category}`,
-            `🏷️ **제거된 태그:** ${tagName}`,
-            `📦 **영향받은 항목:** ${itemCount}개`,
-            ``,
-            `⚠️ 항목은 유지되며, 태그만 제거되었습니다.`
-          ].join('\n'));
-        
-        await interaction.editReply({ 
-          content: '✅ 태그가 제거되었습니다!',
-          embeds: [successEmbed], 
-          components: [] 
-        });
-        
-        // 15초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 15000);
-        
-      } catch (error) {
-        console.error('❌ 태그 제거 확인 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
       }
     }
