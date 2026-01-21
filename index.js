@@ -153,7 +153,9 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
       
       // 세트 계산
       const currentSets = Math.floor(data.quantity / 64);
+      const currentRemainder = data.quantity % 64;
       const requiredSets = Math.floor(data.required / 64);
+      const requiredRemainder = data.required % 64;
       
       // 제작 중인 사람 확인
       const craftingInfo = crafting.crafting?.[categoryName]?.[itemName];
@@ -165,19 +167,19 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
       
       if (uiMode === 'compact') {
         // 컴팩트 모드: 한 줄로 표시
-        fieldValue = `${data.quantity}(${currentSets}세트)/${data.required}(${requiredSets}세트) ${progressBar} ${percentage}% ${status}${craftingInfo ? ` 🔨 ${craftingInfo.userName}` : ''}`;
+        fieldValue = `${currentSets}세트-${currentRemainder}개/${requiredSets}세트-${requiredRemainder}개 ${progressBar} ${percentage}% ${status}${craftingInfo ? ` 🔨 ${craftingInfo.userName}` : ''}`;
       } else if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
-          `**현재 수량:** ${data.quantity}개 (${currentSets}세트)`,
-          `**충족 수량:** ${data.required}개 (${requiredSets}세트)`,
+          `**현재 수량:** ${currentSets}세트-${currentRemainder}개 (총 ${data.quantity}개)`,
+          `**충족 수량:** ${requiredSets}세트-${requiredRemainder}개 (총 ${data.required}개)`,
           `**진행률:** ${percentage}% ${status}`,
           `${progressBar}${craftingText}`
         ].join('\n');
       } else {
         // 일반 모드
         fieldValue = [
-          `**현재 수량:** ${data.quantity}(${currentSets}세트) / **충족 수량:** ${data.required}(${requiredSets}세트)`,
+          `**현재 수량:** ${currentSets}세트-${currentRemainder}개 / **충족 수량:** ${requiredSets}세트-${requiredRemainder}개`,
           `${progressBar} ${percentage}% ${status}${craftingText}`
         ].join('\n');
       }
@@ -267,7 +269,9 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
       
       // 세트 계산
       const currentSets = Math.floor(data.quantity / 64);
+      const currentRemainder = data.quantity % 64;
       const requiredSets = Math.floor(data.required / 64);
+      const requiredRemainder = data.required % 64;
       
       // 수집 중인 사람 확인
       const collectingInfo = inventory.collecting?.[categoryName]?.[itemName];
@@ -279,19 +283,19 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
       
       if (uiMode === 'compact') {
         // 컴팩트 모드: 한 줄로 표시
-        fieldValue = `${data.quantity}(${currentSets}세트)/${data.required}(${requiredSets}세트) ${progressBar} ${percentage}% ${status}${collectingInfo ? ` 👤 ${collectingInfo.userName}` : ''}`;
+        fieldValue = `${currentSets}세트-${currentRemainder}개/${requiredSets}세트-${requiredRemainder}개 ${progressBar} ${percentage}% ${status}${collectingInfo ? ` 👤 ${collectingInfo.userName}` : ''}`;
       } else if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
-          `**현재 수량:** ${data.quantity}개 (${currentSets}세트)`,
-          `**충족 수량:** ${data.required}개 (${requiredSets}세트)`,
+          `**현재 수량:** ${currentSets}세트-${currentRemainder}개 (총 ${data.quantity}개)`,
+          `**충족 수량:** ${requiredSets}세트-${requiredRemainder}개 (총 ${data.required}개)`,
           `**진행률:** ${percentage}% ${status}`,
           `${progressBar}${collectingText}`
         ].join('\n');
       } else {
         // 일반 모드
         fieldValue = [
-          `**현재 수량:** ${data.quantity}(${currentSets}세트) / **충족 수량:** ${data.required}(${requiredSets}세트)`,
+          `**현재 수량:** ${currentSets}세트-${currentRemainder}개 / **충족 수량:** ${requiredSets}세트-${requiredRemainder}개`,
           `${progressBar} ${percentage}% ${status}${collectingText}`
         ].join('\n');
       }
