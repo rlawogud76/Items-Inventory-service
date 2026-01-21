@@ -2245,10 +2245,17 @@ client.on('interactionCreate', async (interaction) => {
         
         const row = new ActionRowBuilder().addComponents(setTagButton, removeTagButton, viewTagsButton);
         
-        await sendTemporaryReply(interaction, {
+        await interaction.update({
           content: `🏷️ **${category}** 카테고리 태그 관리\n\n태그를 사용하면 관련 물품들을 그룹으로 묶을 수 있습니다.\n예: "산호 블럭", "뇌 산호 블럭" → "산호" 태그\n\n원하는 작업을 선택하세요:`,
           components: [row]
-        }, 20000);
+        });
+        
+        // 30초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 30000);
         
       } catch (error) {
         console.error('❌ 태그 관리 에러:', error);
