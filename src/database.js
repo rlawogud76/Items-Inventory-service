@@ -51,6 +51,13 @@ const inventorySchema = new mongoose.Schema({
       recipes: {}
     }
   },
+  tags: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {
+      inventory: {}, // { categoryName: { tagName: [itemName1, itemName2, ...] } }
+      crafting: {}
+    }
+  },
   settings: {
     uiMode: { type: String, default: 'normal' },
     barLength: { type: Number, default: 15 }
@@ -81,6 +88,10 @@ inventorySchema.statics.getInstance = async function() {
         categories: {},
         crafting: {},
         recipes: {}
+      },
+      tags: {
+        inventory: {},
+        crafting: {}
       },
       settings: {
         uiMode: 'normal',
@@ -175,6 +186,12 @@ export async function loadInventory() {
         recipes: {}
       };
     }
+    if (!data.tags) {
+      data.tags = {
+        inventory: {},
+        crafting: {}
+      };
+    }
     if (!data.settings) {
       data.settings = {
         uiMode: 'normal',
@@ -201,6 +218,10 @@ export async function saveInventory(data) {
       crafting: {},
       recipes: {}
     };
+    inventory.tags = data.tags || {
+      inventory: {},
+      crafting: {}
+    };
     inventory.settings = data.settings || {
       uiMode: 'normal',
       barLength: 15
@@ -211,9 +232,21 @@ export async function saveInventory(data) {
     inventory.markModified('categories');
     inventory.markModified('collecting');
     inventory.markModified('crafting');
+    inventory.markModified('tags');
     inventory.markModified('settings');
     
     await inventory.save();
+    
+    // 저장 후 즉시 변경 리스너 트리거 (실시간 업데이트)
+    lastUpdateTime = inventory.updatedAt?.getTime();
+    changeListeners.forEach(listener => {
+      try {
+        listener({ operationType: 'update' });
+      } catch (error) {
+        console.error('리스너 실행 에러:', error);
+      }
+    });
+    
     return true;
   } catch (error) {
     console.error('❌ 재고 저장 실패:', error.message);
