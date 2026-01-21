@@ -3,7 +3,8 @@ import mongoose from 'mongoose';
 // MongoDB 연결
 export async function connectDatabase() {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/minecraft-inventory';
+    // Railway는 MONGODB_URL, 로컬은 MONGODB_URI 사용
+    const mongoUri = process.env.MONGODB_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017/minecraft-inventory';
     
     await mongoose.connect(mongoUri);
     
