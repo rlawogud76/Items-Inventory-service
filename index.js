@@ -2731,9 +2731,13 @@ client.on('interactionCreate', async (interaction) => {
           });
         }
         
-        // Discord 제한: 최대 25개 옵션
-        const limitedOptions = allOptions.slice(0, 25);
-        const hasMore = allOptions.length > 25;
+        // Discord 제한: 최대 25개 옵션 - 페이지네이션
+        const pageSize = 25;
+        const totalPages = Math.ceil(allOptions.length / pageSize);
+        const page = 0; // 첫 페이지
+        const startIdx = page * pageSize;
+        const endIdx = startIdx + pageSize;
+        const limitedOptions = allOptions.slice(startIdx, endIdx);
         
         // 선택 메뉴 생성
         const { StringSelectMenuBuilder } = await import('discord.js');
@@ -2742,25 +2746,165 @@ client.on('interactionCreate', async (interaction) => {
           .setPlaceholder(`${isCrafting ? '제작' : '수집'}할 아이템 또는 태그를 선택하세요`)
           .addOptions(limitedOptions);
         
-        const row = new ActionRowBuilder().addComponents(selectMenu);
+        const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+        
+        // 페이지네이션 버튼 추가 (2페이지 이상일 때)
+        if (totalPages > 1) {
+          const prevButton = new ButtonBuilder()
+            .setCustomId(`page_prev_${isCrafting ? 'crafting' : 'collecting'}_${category}_${page}`)
+            .setLabel('◀ 이전')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(page === 0);
+          
+          const nextButton = new ButtonBuilder()
+            .setCustomId(`page_next_${isCrafting ? 'crafting' : 'collecting'}_${category}_${page}`)
+            .setLabel('다음 ▶')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(page === totalPages - 1);
+          
+          const pageInfo = new ButtonBuilder()
+            .setCustomId(`page_info_${page}`)
+            .setLabel(`${page + 1} / ${totalPages}`)
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(true);
+          
+          rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
+        }
         
         let contentMessage = `${isCrafting ? '🔨' : '📦'} **${category}** 카테고리에서 ${isCrafting ? '제작' : '수집'}할 아이템 또는 태그를 선택하세요:`;
         if (tags.length > 0) {
           contentMessage += '\n\n💡 태그를 선택하면 해당 태그의 모든 항목이 선택됩니다.';
         }
-        if (hasMore) {
-          contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${allOptions.length}개)`;
+        if (totalPages > 1) {
+          contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${allOptions.length}개 항목)`;
         }
         
         await interaction.reply({
           content: contentMessage,
-          components: [row],
+          components: rows,
           ephemeral: true
         });
         
       } catch (error) {
         console.error('❌ 버튼 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('page_prev_') || interaction.customId.startsWith('page_next_')) {
+      try {
+        const isNext = interaction.customId.startsWith('page_next_');
+        const prefix = isNext ? 'page_next_' : 'page_prev_';
+        const parts = interaction.customId.replace(prefix, '').split('_');
+        const actionType = parts[0]; // 'crafting' or 'collecting'
+        const currentPage = parseInt(parts[parts.length - 1]);
+        const category = parts.slice(1, -1).join('_');
+        
+        const isCrafting = actionType === 'crafting';
+        const newPage = isNext ? currentPage + 1 : currentPage - 1;
+        
+        const inventory = await loadInventory();
+        const targetData = isCrafting ? inventory.crafting : inventory;
+        const tags = getAllTags(category, isCrafting ? 'crafting' : 'inventory', inventory);
+        const items = Object.keys(targetData.categories[category]);
+        
+        // 태그 옵션
+        const tagOptions = tags.map(tagName => {
+          const tagItems = getItemsByTag(tagName, category, isCrafting ? 'crafting' : 'inventory', inventory);
+          return {
+            label: `🏷️ ${tagName} (${tagItems.length}개 항목)`,
+            value: `tag_${tagName}`,
+            description: `"${tagName}" 태그의 모든 항목 선택`
+          };
+        });
+        
+        // 아이템 옵션
+        const itemOptions = items.map(item => {
+          const itemData = targetData.categories[category][item];
+          const customEmoji = itemData?.emoji;
+          const percentage = (itemData.quantity / itemData.required) * 100;
+          const tag = getItemTag(item, category, isCrafting ? 'crafting' : 'inventory', inventory);
+          
+          let workingUser = null;
+          if (isCrafting) {
+            workingUser = inventory.crafting?.crafting?.[category]?.[item];
+          } else {
+            workingUser = inventory.collecting?.[category]?.[item];
+          }
+          
+          let label = item;
+          let description = undefined;
+          
+          if (percentage >= 100) {
+            label = `${item} (완료됨 ${Math.round(percentage)}%)`;
+            description = `✅ 이미 목표 수량을 달성했습니다 (${Math.round(percentage)}%)${tag ? ` [${tag}]` : ''}`;
+          } else if (workingUser) {
+            label = `${item} (${workingUser.userName} 작업중)`;
+            description = `⚠️ ${workingUser.userName}님이 ${isCrafting ? '제작' : '수집'} 중입니다${tag ? ` [${tag}]` : ''}`;
+          } else if (tag) {
+            description = `🏷️ ${tag}`;
+          }
+          
+          return {
+            label: label,
+            value: `item_${item}`,
+            emoji: customEmoji || getItemIcon(item, inventory),
+            description: description
+          };
+        });
+        
+        const allOptions = [...tagOptions, ...itemOptions];
+        
+        // 페이지네이션
+        const pageSize = 25;
+        const totalPages = Math.ceil(allOptions.length / pageSize);
+        const startIdx = newPage * pageSize;
+        const endIdx = startIdx + pageSize;
+        const limitedOptions = allOptions.slice(startIdx, endIdx);
+        
+        const { StringSelectMenuBuilder } = await import('discord.js');
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId(`select_item_${isCrafting ? 'crafting' : 'collecting'}_${category}`)
+          .setPlaceholder(`${isCrafting ? '제작' : '수집'}할 아이템 또는 태그를 선택하세요`)
+          .addOptions(limitedOptions);
+        
+        const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+        
+        // 페이지네이션 버튼
+        const prevButton = new ButtonBuilder()
+          .setCustomId(`page_prev_${isCrafting ? 'crafting' : 'collecting'}_${category}_${newPage}`)
+          .setLabel('◀ 이전')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(newPage === 0);
+        
+        const nextButton = new ButtonBuilder()
+          .setCustomId(`page_next_${isCrafting ? 'crafting' : 'collecting'}_${category}_${newPage}`)
+          .setLabel('다음 ▶')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(newPage === totalPages - 1);
+        
+        const pageInfo = new ButtonBuilder()
+          .setCustomId(`page_info_${newPage}`)
+          .setLabel(`${newPage + 1} / ${totalPages}`)
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(true);
+        
+        rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
+        
+        let contentMessage = `${isCrafting ? '🔨' : '📦'} **${category}** 카테고리에서 ${isCrafting ? '제작' : '수집'}할 아이템 또는 태그를 선택하세요:`;
+        if (tags.length > 0) {
+          contentMessage += '\n\n💡 태그를 선택하면 해당 태그의 모든 항목이 선택됩니다.';
+        }
+        contentMessage += `\n\n📄 페이지 ${newPage + 1}/${totalPages} (전체 ${allOptions.length}개 항목)`;
+        
+        await interaction.update({
+          content: contentMessage,
+          components: rows
+        });
+        
+      } catch (error) {
+        console.error('❌ 페이지 이동 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
       }
     }
     
