@@ -533,12 +533,16 @@ client.on('interactionCreate', async (interaction) => {
     try {
       if (commandName === '재고') {
         const category = interaction.options.getString('카테고리');
+        
+        // 먼저 응답 (3초 제한 회피)
+        await interaction.deferReply();
+        
         const inventory = await loadInventory();
         const uiMode = inventory.settings?.uiMode || 'normal';
         const barLength = inventory.settings?.barLength || 15;
         const embed = createInventoryEmbed(inventory, category, uiMode, barLength);
-        const buttons = createButtons(category, true, 'inventory', uiMode, barLength); // 항상 true로 설정
-        const reply = await interaction.reply({ embeds: [embed], components: buttons, fetchReply: true });
+        const buttons = createButtons(category, true, 'inventory', uiMode, barLength);
+        const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
         
         // 자동 새로고침 시작 (5초마다)
         const messageId = reply.id;
@@ -992,13 +996,17 @@ client.on('interactionCreate', async (interaction) => {
 
       else if (commandName === '제작') {
         const category = interaction.options.getString('카테고리');
+        
+        // 먼저 응답 (3초 제한 회피)
+        await interaction.deferReply();
+        
         const inventory = await loadInventory();
         const crafting = inventory.crafting || { categories: {}, crafting: {} };
         const uiMode = inventory.settings?.uiMode || 'normal';
         const barLength = inventory.settings?.barLength || 15;
         const embed = createCraftingEmbed(crafting, category, uiMode, barLength);
-        const buttons = createButtons(category, true, 'crafting', uiMode, barLength); // 항상 true로 설정
-        const reply = await interaction.reply({ embeds: [embed], components: buttons, fetchReply: true });
+        const buttons = createButtons(category, true, 'crafting', uiMode, barLength);
+        const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
         
         // 자동 새로고침 시작 (5초마다)
         const messageId = reply.id;

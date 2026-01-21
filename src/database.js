@@ -19,7 +19,10 @@ export async function connectDatabase() {
     
     console.log('🔍 사용할 MongoDB URI:', mongoUri.replace(/\/\/.*:.*@/, '//***:***@')); // 비밀번호 숨김
     
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 30000, // 30초
+      socketTimeoutMS: 45000, // 45초
+    });
     
     console.log('✅ MongoDB 연결 성공!');
     return true;
