@@ -889,8 +889,10 @@ client.on('interactionCreate', async (interaction) => {
                 // "0 -> 192" 형식
                 const match1 = h.details.match(/(\d+)\s*->\s*(\d+)/);
                 if (match1) {
-                  const diff = Math.abs(parseInt(match1[2]) - parseInt(match1[1]));
-                  quantity = diff > 0 ? diff : 1;
+                  const oldQty = parseInt(match1[1]);
+                  const newQty = parseInt(match1[2]);
+                  const diff = newQty - oldQty; // 양수면 추가, 음수면 차감
+                  quantity = diff !== 0 ? diff : 1;
                 }
                 
                 // "192개 추가" 형식
@@ -899,9 +901,15 @@ client.on('interactionCreate', async (interaction) => {
                   quantity = parseInt(match2[1]);
                 }
                 
+                // "192개 차감" 형식
+                const match3 = h.details.match(/(\d+)개\s*차감/);
+                if (match3) {
+                  quantity = -parseInt(match3[1]); // 마이너스
+                }
+                
                 // "초기: 0개, 목표: 100개" 형식 (추가 시)
-                const match3 = h.details.match(/초기:\s*(\d+)개/);
-                if (match3 && h.action === 'add') {
+                const match4 = h.details.match(/초기:\s*(\d+)개/);
+                if (match4 && h.action === 'add') {
                   quantity = 10; // 아이템 추가는 10점
                 }
               } else if (h.action === 'remove') {
