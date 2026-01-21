@@ -1583,6 +1583,13 @@ client.on('interactionCreate', async (interaction) => {
             content: `🔄 **${category}** 카테고리에서 초기화할 ${type === 'inventory' ? '아이템' : '제작품'}을 선택하세요:`,
             components: [row]
           });
+          
+          // 30초 후 자동 삭제
+          setTimeout(async () => {
+            try {
+              await interaction.deleteReply();
+            } catch (error) {}
+          }, 30000);
         }
         
       } catch (error) {
@@ -1778,6 +1785,13 @@ client.on('interactionCreate', async (interaction) => {
           components: [row]
         });
         
+        // 30초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 30000);
+        
       } catch (error) {
         console.error('❌ 레시피 수정 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
@@ -1898,6 +1912,13 @@ client.on('interactionCreate', async (interaction) => {
           content: `🗑️ **${category}** 카테고리에서 삭제할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:`,
           components: [row]
         });
+        
+        // 30초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 30000);
         
       } catch (error) {
         console.error('❌ 삭제 선택 에러:', error);
