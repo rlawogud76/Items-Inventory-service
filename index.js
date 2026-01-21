@@ -1814,7 +1814,7 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('manage') && !interaction.customId.startsWith('manage_add') && !interaction.customId.startsWith('manage_remove')) {
+    else if (interaction.customId.startsWith('manage') && !interaction.customId.startsWith('manage_add') && !interaction.customId.startsWith('manage_remove') && !interaction.customId.startsWith('manage_edit') && !interaction.customId.startsWith('manage_tag')) {
       try {
         // 이미 응답했는지 확인
         if (interaction.replied || interaction.deferred) {
@@ -1827,7 +1827,10 @@ client.on('interactionCreate', async (interaction) => {
         const category = parts.length > 2 ? parts.slice(2).join('_') : null;
         
         if (!category) {
-          return await sendTemporaryReply(interaction, '❌ 카테고리를 선택한 후 사용해주세요.');
+          return await interaction.reply({ 
+            content: '❌ 카테고리를 선택한 후 사용해주세요.',
+            ephemeral: true
+          });
         }
         
         // 추가/수정/삭제/태그 선택 버튼
@@ -1854,15 +1857,23 @@ client.on('interactionCreate', async (interaction) => {
         const row1 = new ActionRowBuilder().addComponents(addButton, editButton, removeButton);
         const row2 = new ActionRowBuilder().addComponents(tagButton);
         
-        await sendTemporaryReply(interaction, {
+        await interaction.reply({
           content: `📝 **${category}** 카테고리 ${type === 'inventory' ? '물품' : '품목'} 관리\n\n원하는 작업을 선택하세요:`,
-          components: [row1, row2]
-        }, 15000);
+          components: [row1, row2],
+          ephemeral: true
+        });
+        
+        // 30초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 30000);
         
       } catch (error) {
         console.error('❌ 관리 버튼 에러:', error);
         if (!interaction.replied && !interaction.deferred) {
-          await sendTemporaryReply(interaction, '오류가 발생했습니다.').catch(() => {});
+          await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
         }
       }
     }
