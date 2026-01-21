@@ -1,6 +1,6 @@
 ﻿import { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import dotenv from 'dotenv';
-import { connectDatabase, loadInventory, saveInventory, migrateFromDataFile } from './src/database.js';
+import { connectDatabase, loadInventory, saveInventory, migrateFromDataFile, watchInventoryChanges, addChangeListener, removeChangeListener } from './src/database.js';
 
 // .env 파일 로드
 dotenv.config();
@@ -8,6 +8,9 @@ dotenv.config();
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
 });
+
+// 활성 메시지 추적 (변경 감지용)
+const activeMessages = new Map(); // messageId -> { interaction, category, type }
 
 // 수정 내역 추가
 function addHistory(inventory, type, category, itemName, action, details, userName) {
@@ -323,28 +326,24 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
   return embed;
 }
 
-// 자동 새로고침 타이머 저장
-const autoRefreshTimers = new Map();
+// 자동 새로고침 타이머 저장 - 제거됨 (변경 감지 방식 사용)
 
-// 봇 종료 시 모든 타이머 정리
+// 봇 종료 시 정리
 process.on('SIGINT', () => {
-  console.log('봇 종료 중... 타이머 정리');
-  autoRefreshTimers.forEach(timer => clearInterval(timer));
-  autoRefreshTimers.clear();
+  console.log('봇 종료 중...');
+  activeMessages.clear();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.log('봇 종료 중... 타이머 정리');
-  autoRefreshTimers.forEach(timer => clearInterval(timer));
-  autoRefreshTimers.clear();
+  console.log('봇 종료 중...');
+  activeMessages.clear();
   process.exit(0);
 });
 
-// 버튼 생성
+// 버튼 생성 - 자동 새로고침 버튼 제거 (변경 감지 방식 사용)
 function createButtons(categoryName = null, autoRefresh = false, type = 'inventory', uiMode = 'normal', barLength = 10) {
   const actionId = categoryName ? `${type === 'inventory' ? 'collecting' : 'crafting'}_${categoryName}` : (type === 'inventory' ? 'collecting' : 'crafting');
-  const autoRefreshId = categoryName ? `auto_refresh_${type}_${categoryName}` : `auto_refresh_${type}`;
   const uiModeId = categoryName ? `ui_mode_${type}_${categoryName}` : `ui_mode_${type}`;
   const barSizeId = categoryName ? `bar_size_${type}_${categoryName}` : `bar_size_${type}`;
   const quantityId = categoryName ? `quantity_${type}_${categoryName}` : `quantity_${type}`;
@@ -392,10 +391,6 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   const row2 = new ActionRowBuilder()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId(autoRefreshId)
-        .setLabel(autoRefresh ? '⏸️ 자동새로고침 중지' : '▶️ 자동새로고침')
-        .setStyle(autoRefresh ? ButtonStyle.Danger : ButtonStyle.Success),
-      new ButtonBuilder()
         .setCustomId(uiModeId)
         .setLabel(uiModeLabel)
         .setStyle(ButtonStyle.Secondary),
@@ -407,6 +402,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   
   return [row1, row2];
 }
+
 
 client.on('ready', async () => {
   console.log(`✅ ${client.user.tag} 봇이 준비되었습니다!`);
@@ -431,6 +427,42 @@ client.on('ready', async () => {
   console.log('🔨 제작 관리: /제작, /제작품목추가, /제작품목제거');
   console.log('📋 레시피 관리: /레시피조회, /레시피수정, /레시피삭제');
   console.log('🔧 기타: /도움말, /수정내역');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  // 변경 감지 시작
+  watchInventoryChanges();
+  
+  // 변경 감지 리스너 등록
+  addChangeListener(async (change) => {
+    console.log('🔄 데이터 변경 감지 - 활성 메시지 업데이트 중...');
+    
+    // 모든 활성 메시지 업데이트
+    for (const [messageId, data] of activeMessages.entries()) {
+      try {
+        const { interaction, category, type } = data;
+        const inventory = await loadInventory();
+        const uiMode = inventory.settings?.uiMode || 'normal';
+        const barLength = inventory.settings?.barLength || 15;
+        
+        let embed;
+        if (type === 'crafting') {
+          const crafting = inventory.crafting || { categories: {}, crafting: {} };
+          embed = createCraftingEmbed(crafting, category, uiMode, barLength);
+        } else {
+          embed = createInventoryEmbed(inventory, category, uiMode, barLength);
+        }
+        
+        const buttons = createButtons(category, true, type, uiMode, barLength);
+        await interaction.editReply({ embeds: [embed], components: buttons });
+        
+        console.log(`✅ 메시지 업데이트 완료: ${messageId}`);
+      } catch (error) {
+        console.log(`⚠️ 메시지 업데이트 실패 (삭제됨?): ${messageId}`);
+        activeMessages.delete(messageId);
+      }
+    }
+  });
+  
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   
   // 슬래시 커맨드 자동 등록
@@ -544,26 +576,15 @@ client.on('interactionCreate', async (interaction) => {
         const buttons = createButtons(category, true, 'inventory', uiMode, barLength);
         const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
         
-        // 자동 새로고침 시작 (5초마다)
+        // 활성 메시지로 등록 (변경 감지용)
         const messageId = reply.id;
-        const refreshInterval = setInterval(async () => {
-          try {
-            const updatedInventory = await loadInventory();
-            const updatedUiMode = updatedInventory.settings?.uiMode || 'normal';
-            const updatedBarLength = updatedInventory.settings?.barLength || 15;
-            const updatedEmbed = createInventoryEmbed(updatedInventory, category, updatedUiMode, updatedBarLength);
-            const updatedButtons = createButtons(category, true, 'inventory', updatedUiMode, updatedBarLength);
-            await interaction.editReply({ embeds: [updatedEmbed], components: updatedButtons });
-          } catch (error) {
-            // 메시지가 삭제되었거나 에러 발생 시 타이머 정리
-            console.log('새로고침 중단:', error.message);
-            clearInterval(refreshInterval);
-            autoRefreshTimers.delete(messageId);
-          }
-        }, 5000);
+        activeMessages.set(messageId, {
+          interaction,
+          category,
+          type: 'inventory'
+        });
         
-        autoRefreshTimers.set(messageId, refreshInterval);
-        console.log(`▶️ 자동 새로고침 시작: ${messageId} (재고 - ${category})`);
+        console.log(`📌 활성 메시지 등록: ${messageId} (재고 - ${category})`);
       }
 
       else if (commandName === '도움말') {
@@ -1008,27 +1029,15 @@ client.on('interactionCreate', async (interaction) => {
         const buttons = createButtons(category, true, 'crafting', uiMode, barLength);
         const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
         
-        // 자동 새로고침 시작 (5초마다)
+        // 활성 메시지로 등록 (변경 감지용)
         const messageId = reply.id;
-        const refreshInterval = setInterval(async () => {
-          try {
-            const updatedInventory = await loadInventory();
-            const updatedCrafting = updatedInventory.crafting || { categories: {}, crafting: {} };
-            const updatedUiMode = updatedInventory.settings?.uiMode || 'normal';
-            const updatedBarLength = updatedInventory.settings?.barLength || 15;
-            const updatedEmbed = createCraftingEmbed(updatedCrafting, category, updatedUiMode, updatedBarLength);
-            const updatedButtons = createButtons(category, true, 'crafting', updatedUiMode, updatedBarLength);
-            await interaction.editReply({ embeds: [updatedEmbed], components: updatedButtons });
-          } catch (error) {
-            // 메시지가 삭제되었거나 에러 발생 시 타이머 정리
-            console.log('새로고침 중단:', error.message);
-            clearInterval(refreshInterval);
-            autoRefreshTimers.delete(messageId);
-          }
-        }, 5000);
+        activeMessages.set(messageId, {
+          interaction,
+          category,
+          type: 'crafting'
+        });
         
-        autoRefreshTimers.set(messageId, refreshInterval);
-        console.log(`▶️ 자동 새로고침 시작: ${messageId} (제작 - ${category})`);
+        console.log(`📌 활성 메시지 등록: ${messageId} (제작 - ${category})`);
       }
 
       else if (commandName === '제작품목추가') {
