@@ -1433,7 +1433,7 @@ client.on('interactionCreate', async (interaction) => {
           try {
             await interaction.deleteReply();
           } catch (error) {}
-        }, 30000);
+        }, 20000);
         
       } catch (error) {
         console.error('❌ 레시피 조회 에러:', error);
