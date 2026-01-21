@@ -3254,7 +3254,7 @@ client.on('interactionCreate', async (interaction) => {
         const icon = getItemIcon(materialName, inventory);
         
         // 다음 재료 추가 또는 완료
-        if (step < 3) {
+        if (step < 5) {
           const addMoreButton = new ButtonBuilder()
             .setCustomId(`add_more_recipe_${category}_${itemName}_${step + 1}`)
             .setLabel(`➕ 재료 ${step + 1} 추가`)
@@ -3272,12 +3272,12 @@ client.on('interactionCreate', async (interaction) => {
             .join('\n');
           
           await interaction.reply({
-            content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${currentRecipe}\n\n더 추가하시겠습니까?`,
+            content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${currentRecipe}\n\n더 추가하시겠습니까? (최대 5개)`,
             components: [row],
             ephemeral: true
           });
         } else {
-          // 3개 재료 모두 추가 완료
+          // 5개 재료 모두 추가 완료
           const currentRecipe = inventory.crafting.recipes[category][itemName]
             .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
             .join('\n');
