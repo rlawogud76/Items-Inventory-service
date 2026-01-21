@@ -3171,9 +3171,103 @@ client.on('interactionCreate', async (interaction) => {
         } else if (action === 'subtract') {
           // 차감
           newQuantity = Math.max(0, oldQuantity - totalChange);
+          
+          // 제작품 차감 시 레시피가 있으면 재료 반환
+          if (type === 'crafting' && totalChange > 0) {
+            const recipe = inventory.crafting?.recipes?.[category]?.[itemName];
+            if (recipe) {
+              // 재료 반환
+              for (const material of recipe) {
+                const returnQty = material.quantity * totalChange;
+                
+                // 재고 카테고리에 재료가 있는지 확인
+                if (inventory.categories[material.category]?.[material.name]) {
+                  inventory.categories[material.category][material.name].quantity += returnQty;
+                  
+                  // 재료 반환 내역 추가
+                  addHistory(inventory, 'inventory', material.category, material.name, 'update_quantity',
+                    `[제작 취소] ${itemName} ${totalChange}개 차감으로 ${returnQty}개 반환`,
+                    interaction.user.displayName || interaction.user.username);
+                }
+              }
+            }
+          }
         } else {
           // 수정 (직접 설정)
           newQuantity = Math.max(0, totalChange);
+          
+          // 제작품 수정 시 레시피가 있으면 재료 조정
+          if (type === 'crafting') {
+            const recipe = inventory.crafting?.recipes?.[category]?.[itemName];
+            if (recipe) {
+              const quantityDiff = newQuantity - oldQuantity; // 양수면 증가, 음수면 감소
+              
+              if (quantityDiff > 0) {
+                // 수량 증가 - 재료 차감 필요
+                let canCraft = true;
+                const materialCheck = [];
+                
+                for (const material of recipe) {
+                  const materialData = inventory.categories[material.category]?.[material.name];
+                  const requiredQty = material.quantity * quantityDiff;
+                  const currentQty = materialData?.quantity || 0;
+                  
+                  materialCheck.push({
+                    name: material.name,
+                    category: material.category,
+                    required: requiredQty,
+                    current: currentQty,
+                    enough: currentQty >= requiredQty
+                  });
+                  
+                  if (currentQty < requiredQty) {
+                    canCraft = false;
+                  }
+                }
+                
+                if (!canCraft) {
+                  // 재료 부족
+                  const lackingMaterials = materialCheck
+                    .filter(m => !m.enough)
+                    .map(m => {
+                      const icon = getItemIcon(m.name, inventory);
+                      return `${icon} **${m.name}**: ${m.current}개 / ${m.required}개 필요 (${m.required - m.current}개 부족)`;
+                    })
+                    .join('\n');
+                  
+                  return await interaction.reply({
+                    content: `❌ **${itemName}**을(를) ${newQuantity}개로 수정하려면 ${quantityDiff}개를 추가 제작해야 하는데 재료가 부족합니다!\n\n**부족한 재료:**\n${lackingMaterials}`,
+                    ephemeral: true
+                  });
+                }
+                
+                // 재료 차감
+                for (const material of recipe) {
+                  const requiredQty = material.quantity * quantityDiff;
+                  inventory.categories[material.category][material.name].quantity -= requiredQty;
+                  
+                  addHistory(inventory, 'inventory', material.category, material.name, 'update_quantity',
+                    `[제작 재료 소모] ${itemName} ${quantityDiff}개 추가 제작으로 ${requiredQty}개 소모`,
+                    interaction.user.displayName || interaction.user.username);
+                }
+              } else if (quantityDiff < 0) {
+                // 수량 감소 - 재료 반환
+                const returnAmount = Math.abs(quantityDiff);
+                
+                for (const material of recipe) {
+                  const returnQty = material.quantity * returnAmount;
+                  
+                  if (inventory.categories[material.category]?.[material.name]) {
+                    inventory.categories[material.category][material.name].quantity += returnQty;
+                    
+                    addHistory(inventory, 'inventory', material.category, material.name, 'update_quantity',
+                      `[제작 취소] ${itemName} ${returnAmount}개 감소로 ${returnQty}개 반환`,
+                      interaction.user.displayName || interaction.user.username);
+                  }
+                }
+              }
+            }
+          }
         }
         
         itemData.quantity = newQuantity;
