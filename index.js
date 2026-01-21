@@ -166,8 +166,8 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
       let fieldValue;
       
       if (uiMode === 'compact') {
-        // 컴팩트 모드: 간결하게 표시
-        fieldValue = `${status} ${currentSets}세트/${currentRemainder}개 │ ${requiredSets}세트/${requiredRemainder}개 (${percentage}%)${craftingInfo ? ` 🔨 ${craftingInfo.userName}` : ''}\n${progressBar}`;
+        // 컴팩트 모드: 최소 정보만 한 줄로
+        fieldValue = `${status} ${currentSets}세트/${currentRemainder}개 │ ${requiredSets}세트/${requiredRemainder}개 (${percentage}%)${craftingInfo ? ` 🔨 ${craftingInfo.userName}` : ''}`;
       } else if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
@@ -184,8 +184,8 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
         ].join('\n');
       }
       
-      // 마지막 아이템이 아니면 구분선 추가 (컴팩트 모드는 짧게)
-      if (index < items.length - 1) {
+      // 마지막 아이템이 아니면 구분선 추가 (컴팩트 모드는 구분선 없음)
+      if (index < items.length - 1 && uiMode !== 'compact') {
         if (uiMode === 'compact') {
           fieldValue += '\n━━━━━━━━━━';
         } else {
@@ -196,7 +196,7 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
       embed.addFields({
         name: `${icon} **${itemName}**`,
         value: fieldValue,
-        inline: uiMode === 'compact'
+        inline: false  // 모든 모드에서 세로로 나열
       });
     });
   } else {
@@ -286,8 +286,8 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
       let fieldValue;
       
       if (uiMode === 'compact') {
-        // 컴팩트 모드: 간결하게 표시
-        fieldValue = `${status} ${currentSets}세트/${currentRemainder}개 │ ${requiredSets}세트/${requiredRemainder}개 (${percentage}%)${collectingInfo ? ` 👤 ${collectingInfo.userName}` : ''}\n${progressBar}`;
+        // 컴팩트 모드: 최소 정보만 한 줄로
+        fieldValue = `${status} ${currentSets}세트/${currentRemainder}개 │ ${requiredSets}세트/${requiredRemainder}개 (${percentage}%)${collectingInfo ? ` 👤 ${collectingInfo.userName}` : ''}`;
       } else if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
