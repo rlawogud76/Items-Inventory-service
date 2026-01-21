@@ -882,17 +882,26 @@ client.on('interactionCreate', async (interaction) => {
                 };
               }
               
-              // details에서 수량 추출 (예: "0 -> 192", "192개 추가", "초기: 0개, 목표: 100개")
-              let quantity = 1; // 기본값
+              // details에서 수량 추출 - 추가만 점수로 계산
+              let quantity = 0; // 기본값 0
               
-              if (h.action === 'add' || h.action === 'update_quantity') {
-                // "0 -> 192" 형식
+              if (h.action === 'add') {
+                // 아이템 추가
+                const match = h.details.match(/초기:\s*(\d+)개/);
+                if (match) {
+                  const initialQty = parseInt(match[1]);
+                  quantity = initialQty > 0 ? initialQty : 10; // 초기 수량이 있으면 그만큼, 없으면 10점
+                } else {
+                  quantity = 10; // 기본 10점
+                }
+              } else if (h.action === 'update_quantity') {
+                // "0 -> 192" 형식 - 증가만 점수
                 const match1 = h.details.match(/(\d+)\s*->\s*(\d+)/);
                 if (match1) {
                   const oldQty = parseInt(match1[1]);
                   const newQty = parseInt(match1[2]);
-                  const diff = newQty - oldQty; // 양수면 추가, 음수면 차감
-                  quantity = diff !== 0 ? diff : 1;
+                  const diff = newQty - oldQty;
+                  quantity = diff > 0 ? diff : 0; // 증가만 점수, 감소는 0점
                 }
                 
                 // "192개 추가" 형식
@@ -901,24 +910,13 @@ client.on('interactionCreate', async (interaction) => {
                   quantity = parseInt(match2[1]);
                 }
                 
-                // "192개 차감" 형식
+                // "192개 차감" 형식 - 점수 없음
                 const match3 = h.details.match(/(\d+)개\s*차감/);
                 if (match3) {
-                  quantity = -parseInt(match3[1]); // 마이너스
+                  quantity = 0; // 차감은 점수 없음
                 }
-                
-                // "초기: 0개, 목표: 100개" 형식 (추가 시)
-                const match4 = h.details.match(/초기:\s*(\d+)개/);
-                if (match4 && h.action === 'add') {
-                  quantity = 10; // 아이템 추가는 10점
-                }
-              } else if (h.action === 'remove') {
-                quantity = 5; // 삭제는 5점
-              } else if (h.action === 'reset') {
-                quantity = 0; // 초기화는 점수 없음
-              } else if (h.action === 'update_required') {
-                quantity = 0; // 목표 수정은 점수 없음
               }
+              // remove, reset, update_required는 모두 0점
               
               userScores[h.userName].score += quantity;
               userScores[h.userName].count += 1;
