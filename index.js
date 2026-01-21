@@ -2274,9 +2274,12 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('quantity_add_') || interaction.customId.startsWith('quantity_edit_') || interaction.customId.startsWith('quantity_subtract_')) {
+    else if (interaction.customId.startsWith('quantity_add_') || 
+             interaction.customId.startsWith('quantity_edit_') || 
+             interaction.customId.startsWith('quantity_subtract_') ||
+             interaction.customId.startsWith('quantity_edit_required_')) {
       try {
-        console.log('🔘 수량 추가/수정/차감 버튼 클릭');
+        console.log('🔘 수량 추가/수정/차감/목표수정 버튼 클릭');
         console.log('  - customId:', interaction.customId);
         
         // quantity_add_inventory_해양_산호 형식 파싱
@@ -2285,9 +2288,18 @@ client.on('interactionCreate', async (interaction) => {
         const selectedItem = interaction.customId.substring(lastUnderscoreIndex + 1);
         const prefix = interaction.customId.substring(0, lastUnderscoreIndex);
         const parts = prefix.split('_');
-        const action = parts[1]; // 'add', 'edit', or 'subtract'
-        const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.slice(3).join('_');
+        
+        let action, type, category;
+        // quantity_edit_required_inventory_해양 형식 처리
+        if (parts[1] === 'edit' && parts[2] === 'required') {
+          action = 'edit_required';
+          type = parts[3];
+          category = parts.slice(4).join('_');
+        } else {
+          action = parts[1]; // 'add', 'edit', or 'subtract'
+          type = parts[2]; // 'inventory' or 'crafting'
+          category = parts.slice(3).join('_');
+        }
         
         console.log('  - action:', action);
         console.log('  - type:', type);
@@ -2318,6 +2330,8 @@ client.on('interactionCreate', async (interaction) => {
         const itemData = targetData.categories[category][selectedItem];
         const currentSets = Math.floor(itemData.quantity / 64);
         const remainder = itemData.quantity % 64;
+        const requiredSets = Math.floor(itemData.required / 64);
+        const requiredRemainder = itemData.required % 64;
         
         console.log('  - itemData:', itemData);
         console.log('✅ 모달 생성 시작');
@@ -2343,6 +2357,14 @@ client.on('interactionCreate', async (interaction) => {
           itemsLabel = '차감할 낱개 수';
           itemsPlaceholder = '예: 32';
           itemsDefault = '';
+        } else if (action === 'edit_required') {
+          modalTitle = `${selectedItem} 목표 수정 (현재: ${requiredSets}세트 + ${requiredRemainder}개)`;
+          setsLabel = '목표 세트 수 (1세트 = 64개)';
+          setsPlaceholder = '예: 10';
+          setsDefault = requiredSets.toString();
+          itemsLabel = '목표 낱개 수';
+          itemsPlaceholder = '예: 32';
+          itemsDefault = requiredRemainder.toString();
         } else {
           modalTitle = `${selectedItem} 수정 (현재: ${currentSets}세트 + ${remainder}개)`;
           setsLabel = '설정할 세트 수 (1세트 = 64개)';
@@ -2788,7 +2810,12 @@ client.on('interactionCreate', async (interaction) => {
           .setLabel('➖ 차감')
           .setStyle(ButtonStyle.Danger);
         
-        const row = new ActionRowBuilder().addComponents(addButton, editButton, subtractButton);
+        const editRequiredButton = new ButtonBuilder()
+          .setCustomId(`quantity_edit_required_${type}_${category}_${selectedItem}`)
+          .setLabel('🎯 목표 수정')
+          .setStyle(ButtonStyle.Secondary);
+        
+        const row = new ActionRowBuilder().addComponents(addButton, editButton, subtractButton, editRequiredButton);
         
         const inventory = await loadInventory();
         const targetData = type === 'inventory' ? inventory : inventory.crafting;
@@ -3317,7 +3344,10 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('modal_add_') || interaction.customId.startsWith('modal_edit_') || interaction.customId.startsWith('modal_subtract_')) {
+    else if (interaction.customId.startsWith('modal_add_') || 
+             interaction.customId.startsWith('modal_edit_') || 
+             interaction.customId.startsWith('modal_subtract_') ||
+             interaction.customId.startsWith('modal_edit_required_')) {
       try {
         // modal_add_inventory_해양_산호 형식 파싱
         // 마지막 _를 기준으로 아이템명 분리
@@ -3325,9 +3355,18 @@ client.on('interactionCreate', async (interaction) => {
         const itemName = interaction.customId.substring(lastUnderscoreIndex + 1);
         const prefix = interaction.customId.substring(0, lastUnderscoreIndex);
         const parts = prefix.split('_');
-        const action = parts[1]; // 'add', 'edit', or 'subtract'
-        const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.slice(3).join('_');
+        
+        let action, type, category;
+        // modal_edit_required_inventory_해양 형식 처리
+        if (parts[1] === 'edit' && parts[2] === 'required') {
+          action = 'edit_required';
+          type = parts[3];
+          category = parts.slice(4).join('_');
+        } else {
+          action = parts[1]; // 'add', 'edit', or 'subtract'
+          type = parts[2]; // 'inventory' or 'crafting'
+          category = parts.slice(3).join('_');
+        }
         
         console.log('📝 모달 제출 - 수량 관리');
         console.log('  - customId:', interaction.customId);
@@ -3381,6 +3420,30 @@ client.on('interactionCreate', async (interaction) => {
         
         // 세트와 낱개를 합쳐서 총 개수 계산
         const totalChange = Math.round(sets * 64) + Math.round(items);
+        
+        if (action === 'edit_required') {
+          // 목표 수량 수정
+          const oldRequired = itemData.required;
+          const newRequired = totalChange;
+          
+          itemData.required = newRequired;
+          
+          addHistory(inventory, type, category, itemName, 'update_required',
+            `목표: ${oldRequired}개 → ${newRequired}개`,
+            interaction.user.displayName || interaction.user.username);
+          
+          await saveInventory(inventory);
+          
+          const icon = getItemIcon(itemName, inventory);
+          const successEmbed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setDescription(`### 🎯 목표 수정 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n**이전 목표:** ${oldRequired}개\n**새 목표:** ${newRequired}개`);
+          
+          await sendTemporaryReply(interaction, { embeds: [successEmbed] });
+          
+          console.log(`🎯 ${interaction.user.displayName}님이 ${category} - ${itemName} 목표 수정: ${oldRequired} → ${newRequired}`);
+          return;
+        }
         
         if (action === 'add') {
           // 추가
