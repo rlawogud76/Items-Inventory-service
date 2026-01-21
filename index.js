@@ -869,18 +869,45 @@ client.on('interactionCreate', async (interaction) => {
           const activityText = [];
           
           if (topUsers.length > 0) {
-            activityText.push('**가장 활발한 사용자:**');
-            const medals = ['🥇', '🥈', '🥉'];
-            topUsers.forEach(([user, count], idx) => {
-              activityText.push(`${medals[idx] || '•'} ${user} - ${count}회 변경`);
-            });
+            activityText.push('**🏆 기여도 순위 (최근 7일)**');
             activityText.push('');
+            
+            const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+            const topFive = topUsers.slice(0, 5);
+            
+            topFive.forEach(([user, totalCount], idx) => {
+              // 사용자별 활동 분석
+              const userHistory = recentHistory.filter(h => h.userName === user);
+              
+              // 활동 유형별 카운트
+              const addCount = userHistory.filter(h => h.action === 'add').length;
+              const updateCount = userHistory.filter(h => h.action === 'update_quantity' || h.action === 'update_required').length;
+              const removeCount = userHistory.filter(h => h.action === 'remove').length;
+              const resetCount = userHistory.filter(h => h.action === 'reset').length;
+              
+              // 재고/제작 분류
+              const inventoryCount = userHistory.filter(h => h.type === 'inventory').length;
+              const craftingCount = userHistory.filter(h => h.type === 'crafting').length;
+              
+              // 상세 정보
+              const details = [];
+              if (addCount > 0) details.push(`추가 ${addCount}`);
+              if (updateCount > 0) details.push(`수정 ${updateCount}`);
+              if (removeCount > 0) details.push(`삭제 ${removeCount}`);
+              if (resetCount > 0) details.push(`초기화 ${resetCount}`);
+              
+              const typeInfo = `재고 ${inventoryCount} / 제작 ${craftingCount}`;
+              
+              activityText.push(`${medals[idx]} **${user}** - 총 ${totalCount}회`);
+              activityText.push(`   └ ${details.join(', ')} | ${typeInfo}`);
+              activityText.push('');
+            });
           }
           
           if (topItems.length > 0) {
-            activityText.push('**가장 많이 변경된 아이템:**');
-            topItems.forEach(([item, count], idx) => {
-              activityText.push(`${idx + 1}. ${item} (${count}회)`);
+            activityText.push('**📦 가장 많이 변경된 아이템 (TOP 5)**');
+            topItems.slice(0, 5).forEach(([item, count], idx) => {
+              activityText.push(`${idx + 1}. ${item} - ${count}회`);
             });
           }
           
