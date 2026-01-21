@@ -3,6 +3,13 @@ import mongoose from 'mongoose';
 // MongoDB 연결
 export async function connectDatabase() {
   try {
+    // 모든 환경변수 출력 (디버깅용)
+    console.log('🔍 환경변수 확인:');
+    console.log('  - MONGODB_URL:', process.env.MONGODB_URL ? '있음' : '없음');
+    console.log('  - MONGO_URL:', process.env.MONGO_URL ? '있음' : '없음');
+    console.log('  - DATABASE_URL:', process.env.DATABASE_URL ? '있음' : '없음');
+    console.log('  - MONGODB_URI:', process.env.MONGODB_URI ? '있음' : '없음');
+    
     // Railway는 여러 변수명 사용 가능
     const mongoUri = process.env.MONGODB_URL || 
                      process.env.MONGO_URL || 
@@ -10,7 +17,7 @@ export async function connectDatabase() {
                      process.env.MONGODB_URI || 
                      'mongodb://localhost:27017/minecraft-inventory';
     
-    console.log('🔍 MongoDB URI 확인:', mongoUri.replace(/\/\/.*:.*@/, '//***:***@')); // 비밀번호 숨김
+    console.log('🔍 사용할 MongoDB URI:', mongoUri.replace(/\/\/.*:.*@/, '//***:***@')); // 비밀번호 숨김
     
     await mongoose.connect(mongoUri);
     
