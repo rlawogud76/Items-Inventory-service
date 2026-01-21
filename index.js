@@ -184,9 +184,13 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
         ].join('\n');
       }
       
-      // 마지막 아이템이 아니면 구분선 추가
+      // 마지막 아이템이 아니면 구분선 추가 (컴팩트 모드는 짧게)
       if (index < items.length - 1) {
-        fieldValue += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+        if (uiMode === 'compact') {
+          fieldValue += '\n━━━━━━━━━━';
+        } else {
+          fieldValue += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+        }
       }
 
       embed.addFields({
@@ -300,9 +304,13 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
         ].join('\n');
       }
       
-      // 마지막 아이템이 아니면 구분선 추가
+      // 마지막 아이템이 아니면 구분선 추가 (컴팩트 모드는 짧게)
       if (index < items.length - 1) {
-        fieldValue += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+        if (uiMode === 'compact') {
+          fieldValue += '\n━━━━━━━━━━';
+        } else {
+          fieldValue += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+        }
       }
 
       embed.addFields({
