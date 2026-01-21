@@ -533,8 +533,10 @@ client.on('interactionCreate', async (interaction) => {
         const refreshInterval = setInterval(async () => {
           try {
             const updatedInventory = await loadInventory();
-            const updatedEmbed = createInventoryEmbed(updatedInventory, category, uiMode, barLength);
-            const updatedButtons = createButtons(category, true, 'inventory', uiMode, barLength);
+            const updatedUiMode = updatedInventory.settings?.uiMode || 'normal';
+            const updatedBarLength = updatedInventory.settings?.barLength || 15;
+            const updatedEmbed = createInventoryEmbed(updatedInventory, category, updatedUiMode, updatedBarLength);
+            const updatedButtons = createButtons(category, true, 'inventory', updatedUiMode, updatedBarLength);
             await interaction.editReply({ embeds: [updatedEmbed], components: updatedButtons });
           } catch (error) {
             // 메시지가 삭제되었거나 에러 발생 시 타이머 정리
@@ -955,8 +957,10 @@ client.on('interactionCreate', async (interaction) => {
           try {
             const updatedInventory = await loadInventory();
             const updatedCrafting = updatedInventory.crafting || { categories: {}, crafting: {} };
-            const updatedEmbed = createCraftingEmbed(updatedCrafting, category, uiMode, barLength);
-            const updatedButtons = createButtons(category, true, 'crafting', uiMode, barLength);
+            const updatedUiMode = updatedInventory.settings?.uiMode || 'normal';
+            const updatedBarLength = updatedInventory.settings?.barLength || 15;
+            const updatedEmbed = createCraftingEmbed(updatedCrafting, category, updatedUiMode, updatedBarLength);
+            const updatedButtons = createButtons(category, true, 'crafting', updatedUiMode, updatedBarLength);
             await interaction.editReply({ embeds: [updatedEmbed], components: updatedButtons });
           } catch (error) {
             // 메시지가 삭제되었거나 에러 발생 시 타이머 정리
