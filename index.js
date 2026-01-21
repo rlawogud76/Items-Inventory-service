@@ -385,7 +385,7 @@ process.on('SIGTERM', () => {
 });
 
 // 버튼 생성
-function createButtons(categoryName = null, autoRefresh = false, type = 'inventory', uiMode = 'normal', barLength = 10) {
+function createButtons(categoryName = null, autoRefresh = false, type = 'inventory', uiMode = 'normal', barLength = 10, inventory = null, userId = null) {
   const actionId = categoryName ? `${type === 'inventory' ? 'collecting' : 'crafting'}_${categoryName}` : (type === 'inventory' ? 'collecting' : 'crafting');
   const uiModeId = categoryName ? `ui_mode_${type}_${categoryName}` : `ui_mode_${type}`;
   const barSizeId = categoryName ? `bar_size_${type}_${categoryName}` : `bar_size_${type}`;
@@ -395,15 +395,32 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   const recipeId = categoryName ? `recipe_${type}_${categoryName}` : `recipe_${type}`;
   const refreshId = categoryName ? `refresh_${type}_${categoryName}` : `refresh_${type}`;
   
+  // 사용자가 현재 카테고리에서 작업 중인지 확인
+  let isWorking = false;
+  if (inventory && userId && categoryName) {
+    const workingData = type === 'inventory' ? inventory.collecting : inventory.crafting?.crafting;
+    if (workingData?.[categoryName]) {
+      // 이 카테고리에서 작업 중인 항목이 있는지 확인
+      for (const [itemName, worker] of Object.entries(workingData[categoryName])) {
+        if (worker.userId === userId) {
+          isWorking = true;
+          break;
+        }
+      }
+    }
+  }
+  
   // UI 모드 버튼 라벨
-  let uiModeLabel = '📏 일반';
+  let uiModeLabel = '� 일반';
   if (uiMode === 'detailed') uiModeLabel = '📏 상세';
   
   const row1Buttons = [
     new ButtonBuilder()
       .setCustomId(actionId)
-      .setLabel(type === 'inventory' ? '📦 수집중' : '🔨 제작중')
-      .setStyle(ButtonStyle.Success),
+      .setLabel(isWorking 
+        ? (type === 'inventory' ? '⏹️ 수집중단' : '⏹️ 제작중단')
+        : (type === 'inventory' ? '📦 수집중' : '🔨 제작중'))
+      .setStyle(isWorking ? ButtonStyle.Danger : ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId(quantityId)
       .setLabel('📊 수량관리')
@@ -510,7 +527,7 @@ client.on('ready', async () => {
           embed = createInventoryEmbed(inventory, category, uiMode, barLength);
         }
         
-        const buttons = createButtons(category, true, type, uiMode, barLength);
+        const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id);
         await interaction.editReply({ embeds: [embed], components: buttons });
         
         console.log(`✅ 메시지 업데이트 완료: ${messageId}`);
@@ -634,7 +651,7 @@ client.on('interactionCreate', async (interaction) => {
         const uiMode = inventory.settings?.uiMode || 'normal';
         const barLength = inventory.settings?.barLength || 15;
         const embed = createInventoryEmbed(inventory, category, uiMode, barLength);
-        const buttons = createButtons(category, true, 'inventory', uiMode, barLength);
+        const buttons = createButtons(category, true, 'inventory', uiMode, barLength, inventory, interaction.user.id);
         const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
         
         // 활성 메시지로 등록 (변경 감지용)
@@ -1202,7 +1219,7 @@ client.on('interactionCreate', async (interaction) => {
         const uiMode = inventory.settings?.uiMode || 'normal';
         const barLength = inventory.settings?.barLength || 15;
         const embed = createCraftingEmbed(crafting, category, uiMode, barLength);
-        const buttons = createButtons(category, true, 'crafting', uiMode, barLength);
+        const buttons = createButtons(category, true, 'crafting', uiMode, barLength, inventory, interaction.user.id);
         const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
         
         // 활성 메시지로 등록 (변경 감지용)
@@ -2639,6 +2656,8 @@ client.on('interactionCreate', async (interaction) => {
         console.log('  - 카테고리:', category || '전체');
         
         const inventory = await loadInventory();
+        const userId = interaction.user.id;
+        const userName = interaction.user.displayName || interaction.user.username;
         
         if (!category) {
           return await interaction.reply({ 
@@ -2656,6 +2675,46 @@ client.on('interactionCreate', async (interaction) => {
           });
         }
         
+        // 사용자가 현재 카테고리에서 작업 중인 항목 확인
+        const workingData = isCrafting ? inventory.crafting?.crafting : inventory.collecting;
+        const myWorkingItems = [];
+        
+        if (workingData?.[category]) {
+          for (const [itemName, worker] of Object.entries(workingData[category])) {
+            if (worker.userId === userId) {
+              myWorkingItems.push(itemName);
+            }
+          }
+        }
+        
+        // 이미 작업 중이면 중단 메뉴 표시
+        if (myWorkingItems.length > 0) {
+          const itemOptions = myWorkingItems.map(item => {
+            const icon = getItemIcon(item, inventory);
+            return {
+              label: item,
+              value: item,
+              emoji: icon,
+              description: `${isCrafting ? '제작' : '수집'} 중단`
+            };
+          });
+          
+          const { StringSelectMenuBuilder } = await import('discord.js');
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId(`select_stop_${isCrafting ? 'crafting' : 'collecting'}_${category}`)
+            .setPlaceholder('중단할 항목을 선택하세요')
+            .addOptions(itemOptions);
+          
+          const row = new ActionRowBuilder().addComponents(selectMenu);
+          
+          return await interaction.reply({
+            content: `⏹️ **${category}** 카테고리에서 ${isCrafting ? '제작' : '수집'} 중인 항목:\n\n중단할 항목을 선택하세요.`,
+            components: [row],
+            ephemeral: true
+          });
+        }
+        
+        // 작업 중이 아니면 시작 메뉴 표시
         // 작업 중인 사람 정보 초기화
         if (isCrafting) {
           if (!inventory.crafting.crafting) {
@@ -3795,6 +3854,50 @@ client.on('interactionCreate', async (interaction) => {
         
       } catch (error) {
         console.error('❌ 초기화 선택 에러:', error);
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('select_stop_')) {
+      try {
+        const parts = interaction.customId.replace('select_stop_', '').split('_');
+        const actionType = parts[0]; // 'crafting' or 'collecting'
+        const category = parts.slice(1).join('_');
+        const selectedItem = interaction.values[0];
+        const isCrafting = actionType === 'crafting';
+        
+        const inventory = await loadInventory();
+        
+        // 작업 중단
+        if (isCrafting) {
+          if (inventory.crafting?.crafting?.[category]?.[selectedItem]) {
+            delete inventory.crafting.crafting[category][selectedItem];
+          }
+        } else {
+          if (inventory.collecting?.[category]?.[selectedItem]) {
+            delete inventory.collecting[category][selectedItem];
+          }
+        }
+        
+        await saveInventory(inventory);
+        
+        const icon = getItemIcon(selectedItem, inventory);
+        await interaction.update({
+          content: `✅ ${icon} **${selectedItem}** ${isCrafting ? '제작' : '수집'}을 중단했습니다.`,
+          components: []
+        });
+        
+        console.log(`⏹️ ${interaction.user.displayName}님이 ${category} - ${selectedItem} ${isCrafting ? '제작' : '수집'} 중단`);
+        
+        // 15초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 15000);
+        
+      } catch (error) {
+        console.error('❌ 중단 선택 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
       }
     }
