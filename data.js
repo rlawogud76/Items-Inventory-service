@@ -34,13 +34,40 @@ export const inventoryData = {
   },
   "collecting": {},
   "crafting": {
-    "categories": {},
+    "categories": {
+      "해양": {
+        "ㅇㄴ": {
+          "quantity": 0,
+          "required": 128
+        }
+      }
+    },
     "crafting": {},
-    "recipes": {}
+    "recipes": {
+      "해양": {
+        "ㅇㄴ": [
+          {
+            "name": "다이아몬드",
+            "quantity": 1,
+            "category": "해양"
+          }
+        ]
+      }
+    }
   },
   "settings": {
     "uiMode": "normal",
     "barLength": 15
   },
-  "history": []
+  "history": [
+    {
+      "timestamp": "2026-01-21T05:20:48.825Z",
+      "type": "crafting",
+      "category": "해양",
+      "itemName": "ㅇㄴ",
+      "action": "add",
+      "details": "초기: 0개, 목표: 128개",
+      "userName": "레브"
+    }
+  ]
 };
