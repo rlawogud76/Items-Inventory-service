@@ -1375,20 +1375,51 @@ client.on('interactionCreate', async (interaction) => {
           });
         }
         
-        const embed = new EmbedBuilder()
-          .setTitle(`📋 ${category} 카테고리 레시피`)
-          .setColor(0xFFA500)
-          .setTimestamp();
+        const recipes = inventory.crafting.recipes[category];
+        const recipeCount = Object.keys(recipes).length;
         
-        for (const [itemName, materials] of Object.entries(inventory.crafting.recipes[category])) {
+        const embed = new EmbedBuilder()
+          .setTitle(`📋 ${category} 레시피북`)
+          .setDescription(`총 **${recipeCount}개**의 레시피가 등록되어 있습니다.\n\n━━━━━━━━━━━━━━━━━━━━`)
+          .setColor(0xFFA500)
+          .setTimestamp()
+          .setFooter({ text: '✅ 제작 가능 | ⚠️ 재료 부족' });
+        
+        for (const [itemName, materials] of Object.entries(recipes)) {
           const icon = getItemIcon(itemName, inventory);
-          const recipeText = materials
-            .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
-            .join('\n');
+          
+          // 제작 가능 여부 확인
+          let canCraft = true;
+          const materialLines = materials.map(m => {
+            const matIcon = getItemIcon(m.name, inventory);
+            const materialData = inventory.categories[m.category]?.[m.name];
+            const currentQty = materialData?.quantity || 0;
+            const hasEnough = currentQty >= m.quantity;
+            
+            if (!hasEnough) canCraft = false;
+            
+            const statusIcon = hasEnough ? '✅' : '❌';
+            const qtyDisplay = hasEnough 
+              ? `**${m.quantity}개**` 
+              : `**${m.quantity}개** (보유: ${currentQty}개)`;
+            
+            return `${statusIcon} ${matIcon} ${m.name} × ${qtyDisplay}`;
+          });
+          
+          const statusEmoji = canCraft ? '✅' : '⚠️';
+          const statusText = canCraft ? '제작 가능' : '재료 부족';
+          
+          const fieldValue = [
+            `**${statusEmoji} ${statusText}**`,
+            '',
+            ...materialLines,
+            '',
+            '━━━━━━━━━━━━━━━━━━━━'
+          ].join('\n');
           
           embed.addFields({
             name: `${icon} ${itemName}`,
-            value: recipeText || '재료 없음',
+            value: fieldValue,
             inline: false
           });
         }
