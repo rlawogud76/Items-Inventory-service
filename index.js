@@ -1,6 +1,7 @@
 ﻿import { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import fs from 'fs/promises';
 import dotenv from 'dotenv';
+import { inventoryData } from './data.js';
 
 // .env 파일 로드
 dotenv.config();
@@ -9,26 +10,27 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
 });
 
-// 재고 파일 경로 (Railway Volume 지원)
-const INVENTORY_PATH = process.env.INVENTORY_PATH || './inventory.json';
+// 메모리에 데이터 저장 (런타임 중에만 유지)
+let currentInventory = JSON.parse(JSON.stringify(inventoryData));
 
 // 재고 데이터 로드
 async function loadInventory() {
-  try {
-    const data = await fs.readFile(INVENTORY_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('재고 파일 로드 실패:', error);
-    return { items: {} };
-  }
+  return currentInventory;
 }
 
-// 재고 데이터 저장
+// 재고 데이터 저장 (data.js 파일에 자동 저장)
 async function saveInventory(data) {
   try {
-    await fs.writeFile(INVENTORY_PATH, JSON.stringify(data, null, 2));
+    currentInventory = data;
+    
+    // data.js 파일 업데이트
+    const fileContent = `// 재고 데이터 - 이 파일을 수정하면 Git에 커밋하세요
+export const inventoryData = ${JSON.stringify(data, null, 2)};
+`;
+    await fs.writeFile('./data.js', fileContent, 'utf-8');
+    console.log('✅ data.js 파일 저장 완료');
   } catch (error) {
-    console.error('재고 파일 저장 실패:', error);
+    console.error('❌ 재고 파일 저장 실패:', error);
   }
 }
 
