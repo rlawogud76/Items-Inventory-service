@@ -11,7 +11,8 @@ import {
   getItemIcon, 
   createProgressBar,
   addHistory,
-  sendTemporaryReply
+  sendTemporaryReply,
+  sanitizeNumber
 } from './src/utils.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from './src/embeds.js';
 import { handleButtonInteraction } from './src/handlers/buttons.js';
@@ -401,6 +402,18 @@ client.on('interactionCreate', async (interaction) => {
         const boxesInput = interaction.fields.getTextInputValue('boxes_change')?.trim() || '';
         const setsInput = interaction.fields.getTextInputValue('sets_change').trim();
         const itemsInput = interaction.fields.getTextInputValue('items_change').trim();
+        
+        // 숫자 검증 및 sanitization
+        const boxes = boxesInput ? sanitizeNumber(boxesInput, { min: 0, max: 10000 }) : 0;
+        const sets = sanitizeNumber(setsInput, { min: 0, max: 100000 });
+        const items = sanitizeNumber(itemsInput, { min: 0, max: 63 });
+        
+        if (boxes === null || sets === null || items === null) {
+          return await interaction.reply({ 
+            content: '❌ 수량을 올바르게 입력해주세요. (상자: 0-10000, 세트: 0-100000, 개: 0-63)', 
+            ephemeral: true 
+          });
+        }
         
         const inventory = await loadInventory();
         const targetData = type === 'inventory' ? inventory : inventory.crafting;

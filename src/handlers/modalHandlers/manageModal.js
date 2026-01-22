@@ -1,7 +1,7 @@
 // 관리(추가/수정) modal 핸들러
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, saveInventory } from '../../database.js';
-import { formatQuantity, getItemIcon, addHistory } from '../../utils.js';
+import { formatQuantity, getItemIcon, addHistory, sanitizeInput, sanitizeNumber, isValidName } from '../../utils.js';
 
 /**
  * 물품/품목 추가 modal 핸들러
@@ -13,20 +13,32 @@ export async function handleAddItemModal(interaction) {
     const type = parts[3]; // 'inventory' or 'crafting'
     const category = parts.slice(4).join('_');
     
-    const itemName = interaction.fields.getTextInputValue('item_name').trim();
+    // 입력값 sanitization
+    const itemNameRaw = interaction.fields.getTextInputValue('item_name').trim();
+    const itemName = sanitizeInput(itemNameRaw, { maxLength: 50 });
+    
     const initialSets = interaction.fields.getTextInputValue('initial_sets')?.trim() || '0';
     const initialItems = interaction.fields.getTextInputValue('initial_items')?.trim() || '0';
     const requiredSets = interaction.fields.getTextInputValue('required_sets')?.trim() || '0';
     const requiredItems = interaction.fields.getTextInputValue('required_items')?.trim() || '0';
     
-    const initialSetsNum = parseInt(initialSets);
-    const initialItemsNum = parseInt(initialItems);
-    const requiredSetsNum = parseInt(requiredSets);
-    const requiredItemsNum = parseInt(requiredItems);
-    
-    if (!itemName || isNaN(initialSetsNum) || isNaN(initialItemsNum) || isNaN(requiredSetsNum) || isNaN(requiredItemsNum)) {
+    // 이름 검증
+    if (!isValidName(itemName)) {
       return await interaction.reply({ 
-        content: '❌ 모든 항목을 올바르게 입력해주세요. (숫자만 입력)', 
+        content: '❌ 아이템 이름이 유효하지 않습니다. (한글, 영문, 숫자, 공백, -, _, ()만 사용 가능, 최대 50자)', 
+        ephemeral: true 
+      });
+    }
+    
+    // 숫자 검증
+    const initialSetsNum = sanitizeNumber(initialSets, { min: 0, max: 100000 });
+    const initialItemsNum = sanitizeNumber(initialItems, { min: 0, max: 63 });
+    const requiredSetsNum = sanitizeNumber(requiredSets, { min: 0, max: 100000 });
+    const requiredItemsNum = sanitizeNumber(requiredItems, { min: 0, max: 63 });
+    
+    if (initialSetsNum === null || initialItemsNum === null || requiredSetsNum === null || requiredItemsNum === null) {
+      return await interaction.reply({ 
+        content: '❌ 수량을 올바르게 입력해주세요. (세트: 0-100000, 개: 0-63)', 
         ephemeral: true 
       });
     }
@@ -150,11 +162,14 @@ export async function handleEditNameModal(interaction) {
     const category = parts[1];
     const oldName = parts.slice(2).join('_');
     
-    const newName = interaction.fields.getTextInputValue('new_name').trim();
+    // 입력값 sanitization
+    const newNameRaw = interaction.fields.getTextInputValue('new_name').trim();
+    const newName = sanitizeInput(newNameRaw, { maxLength: 50 });
     
-    if (!newName) {
+    // 이름 검증
+    if (!isValidName(newName)) {
       return await interaction.reply({ 
-        content: '❌ 새 이름을 입력해주세요.', 
+        content: '❌ 새 이름이 유효하지 않습니다. (한글, 영문, 숫자, 공백, -, _, ()만 사용 가능, 최대 50자)', 
         ephemeral: true 
       });
     }
