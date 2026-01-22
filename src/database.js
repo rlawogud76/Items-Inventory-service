@@ -206,13 +206,16 @@ export async function loadInventory() {
   }
 }
 
-// 재고 데이터 저장 - 재시도 로직 추가
+// 재고 데이터 저장 - Optimistic Locking 추가
 export async function saveInventory(data, retryCount = 0) {
-  const maxRetries = 3;
+  const maxRetries = 5;
   
   try {
     // 최신 데이터를 다시 가져와서 충돌 방지
     const inventory = await Inventory.getInstance();
+    
+    // 현재 버전 저장 (optimistic locking)
+    const currentVersion = inventory.__v;
     
     inventory.categories = data.categories || {};
     inventory.collecting = data.collecting || {};
@@ -238,10 +241,30 @@ export async function saveInventory(data, retryCount = 0) {
     inventory.markModified('tags');
     inventory.markModified('settings');
     
-    await inventory.save();
+    // Optimistic locking: 버전이 변경되지 않았을 때만 저장
+    const result = await Inventory.updateOne(
+      { _id: inventory._id, __v: currentVersion },
+      {
+        $set: {
+          categories: inventory.categories,
+          collecting: inventory.collecting,
+          crafting: inventory.crafting,
+          tags: inventory.tags,
+          settings: inventory.settings,
+          history: inventory.history
+        },
+        $inc: { __v: 1 }
+      }
+    );
+    
+    // 업데이트가 실패한 경우 (다른 프로세스가 먼저 수정함)
+    if (result.matchedCount === 0) {
+      throw new Error('VersionConflict');
+    }
     
     // 저장 후 즉시 변경 리스너 트리거 (실시간 업데이트)
-    lastUpdateTime = inventory.updatedAt?.getTime();
+    const updatedInventory = await Inventory.findById(inventory._id);
+    lastUpdateTime = updatedInventory.updatedAt?.getTime();
     changeListeners.forEach(listener => {
       try {
         listener({ operationType: 'update' });
@@ -250,29 +273,32 @@ export async function saveInventory(data, retryCount = 0) {
       }
     });
     
+    console.log(`✅ 재고 저장 성공 (버전: ${currentVersion} -> ${currentVersion + 1})`);
     return true;
   } catch (error) {
     // 버전 충돌 에러인 경우 재시도
-    if (error.name === 'VersionError' && retryCount < maxRetries) {
+    if ((error.message === 'VersionConflict' || error.name === 'VersionError') && retryCount < maxRetries) {
       console.log(`⚠️ 버전 충돌 감지 - 재시도 ${retryCount + 1}/${maxRetries}`);
-      // 짧은 대기 후 재시도
-      await new Promise(resolve => setTimeout(resolve, 100 * (retryCount + 1)));
+      // 지수 백오프: 대기 시간을 점점 늘림
+      const waitTime = Math.min(1000, 50 * Math.pow(2, retryCount));
+      await new Promise(resolve => setTimeout(resolve, waitTime));
       
       // 최신 데이터를 다시 로드하여 병합
       const latestInventory = await loadInventory();
       
-      // 데이터 병합 (새 데이터 우선)
+      // 데이터 병합 전략: 새 데이터 우선, history는 합치기
       const mergedData = {
         ...latestInventory,
         ...data,
-        // history는 합치기
-        history: data.history || latestInventory.history || []
+        // history는 중복 제거하며 합치기 (최근 100개만)
+        history: [...new Set([...(data.history || []), ...(latestInventory.history || [])])].slice(-100)
       };
       
       return saveInventory(mergedData, retryCount + 1);
     }
     
     console.error('❌ 재고 저장 실패:', error.message);
+    console.error('❌ 재시도 횟수:', retryCount);
     throw error;
   }
 }
