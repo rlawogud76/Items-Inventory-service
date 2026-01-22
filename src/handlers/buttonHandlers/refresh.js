@@ -34,7 +34,11 @@ export async function handleRefresh(interaction) {
     
     buttons = createButtons(category, true, type || 'inventory', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
     
-    await interaction.editReply({ embeds: [embed], components: buttons });
+    // deferUpdate 후에는 webhook을 통해 메시지 수정
+    await interaction.webhook.editMessage(interaction.message.id, { 
+      embeds: [embed], 
+      components: buttons 
+    });
     console.log('✅ 새로고침 완료');
   } catch (error) {
     console.error('❌ 새로고침 에러:', error);

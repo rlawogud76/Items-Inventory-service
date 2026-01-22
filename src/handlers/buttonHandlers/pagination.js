@@ -36,7 +36,11 @@ export async function handlePageNavigation(interaction) {
     
     const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, newPage, totalPages);
     
-    await interaction.editReply({ embeds: [embed], components: buttons });
+    // deferUpdate 후에는 webhook을 통해 메시지 수정
+    await interaction.webhook.editMessage(interaction.message.id, { 
+      embeds: [embed], 
+      components: buttons 
+    });
     console.log(`📄 임베드 페이지 이동: ${currentPage + 1} → ${newPage + 1}`);
   } catch (error) {
     console.error('❌ 페이지 이동 에러:', error);

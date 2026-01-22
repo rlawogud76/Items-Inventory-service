@@ -96,7 +96,11 @@ export async function handleUiModeButton(interaction) {
     const isAutoRefreshing = autoRefreshTimers?.has(messageId) || false;
     const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', newMode, barLength, inventory, interaction.user.id, 0, totalPages);
     
-    await interaction.editReply({ embeds: [embed], components: buttons });
+    // deferUpdate 후에는 webhook을 통해 메시지 수정
+    await interaction.webhook.editMessage(interaction.message.id, { 
+      embeds: [embed], 
+      components: buttons 
+    });
     console.log(`📏 UI 모드 변경: ${currentMode} -> ${newMode}`);
   } catch (error) {
     console.error('❌ UI 모드 변경 에러:', error);
@@ -146,7 +150,11 @@ export async function handleAutoRefreshButton(interaction) {
       const barLength = inventory.settings?.barLength || 15;
       const buttons = createButtons(category, false, type || 'inventory', uiMode, barLength);
       
-      await interaction.editReply({ embeds: [embed], components: buttons });
+      // deferUpdate 후에는 webhook을 통해 메시지 수정
+      await interaction.webhook.editMessage(interaction.message.id, { 
+        embeds: [embed], 
+        components: buttons 
+      });
     } else {
       // 시작
       console.log('▶️ 자동 새로고침 시작:', messageId, '/ 타입:', type, '/ 카테고리:', category || '전체');
@@ -165,7 +173,11 @@ export async function handleAutoRefreshButton(interaction) {
       const barLength = inventory.settings?.barLength || 15;
       const buttons = createButtons(category, true, type || 'inventory', uiMode, barLength);
       
-      await interaction.editReply({ embeds: [embed], components: buttons });
+      // deferUpdate 후에는 webhook을 통해 메시지 수정
+      await interaction.webhook.editMessage(interaction.message.id, { 
+        embeds: [embed], 
+        components: buttons 
+      });
       
       // 5초마다 자동 새로고침
       const timer = setInterval(async () => {
