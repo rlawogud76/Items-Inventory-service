@@ -59,6 +59,9 @@ export async function handleBarSizeButton(interaction) {
  */
 export async function handleUiModeButton(interaction) {
   try {
+    // 먼저 응답 지연 처리
+    await interaction.deferUpdate();
+    
     const parts = interaction.customId.split('_');
     const type = parts[2]; // 'inventory' or 'crafting'
     const category = parts.length > 3 ? parts.slice(3).join('_') : null;
@@ -101,11 +104,17 @@ export async function handleUiModeButton(interaction) {
     
     console.log('📏 Buttons 생성 완료, rows:', buttons?.length);
     
-    // deferUpdate 없이 바로 update 사용
-    await interaction.update({ 
-      embeds: [embed], 
-      components: buttons 
-    });
+    // followUp 사용하지 않고 원본 메시지 직접 수정
+    await interaction.client.rest.patch(
+      `/channels/${interaction.channelId}/messages/${interaction.message.id}`,
+      {
+        body: {
+          embeds: [embed.toJSON()],
+          components: buttons.map(row => row.toJSON())
+        }
+      }
+    );
+    
     console.log(`📏 UI 모드 변경 완료: ${currentMode} -> ${newMode}`);
   } catch (error) {
     console.error('❌ UI 모드 변경 에러:', error);
