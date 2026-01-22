@@ -97,8 +97,6 @@ export async function handleUiModeButton(interaction) {
     }
     
     console.log('📏 Embed 생성 완료, totalPages:', totalPages);
-    console.log('📏 Embed fields:', embed.data.fields?.length);
-    console.log('📏 Embed description length:', embed.data.description?.length);
     
     const messageId = interaction.message.id;
     const isAutoRefreshing = autoRefreshTimers?.has(messageId) || false;
@@ -106,23 +104,35 @@ export async function handleUiModeButton(interaction) {
     
     console.log('📏 Buttons 생성 완료, rows:', buttons?.length);
     
-    // Embed를 JSON으로 변환하여 크기 확인
-    const embedJSON = embed.toJSON();
-    const embedString = JSON.stringify(embedJSON);
-    console.log('📏 Embed JSON 크기:', embedString.length, 'bytes');
-    
-    // followUp 사용하지 않고 원본 메시지 직접 수정
-    await interaction.client.rest.patch(
-      `/channels/${interaction.channelId}/messages/${interaction.message.id}`,
-      {
-        body: {
-          embeds: [embedJSON],
-          components: buttons.map(row => row.toJSON())
+    try {
+      // Embed를 JSON으로 변환
+      const embedJSON = embed.toJSON ? embed.toJSON() : embed;
+      console.log('📏 Embed fields:', embedJSON.fields?.length);
+      console.log('📏 Embed description length:', embedJSON.description?.length);
+      
+      const embedString = JSON.stringify(embedJSON);
+      console.log('📏 Embed JSON 크기:', embedString.length, 'bytes');
+      
+      // Components를 JSON으로 변환
+      const componentsJSON = buttons.map(row => row.toJSON ? row.toJSON() : row);
+      
+      // REST API로 메시지 수정
+      await interaction.client.rest.patch(
+        `/channels/${interaction.channelId}/messages/${interaction.message.id}`,
+        {
+          body: {
+            embeds: [embedJSON],
+            components: componentsJSON
+          }
         }
-      }
-    );
-    
-    console.log(`📏 UI 모드 변경 완료: ${currentMode} -> ${newMode}`);
+      );
+      
+      console.log(`📏 UI 모드 변경 완료: ${currentMode} -> ${newMode}`);
+    } catch (apiError) {
+      console.error('❌ REST API 호출 에러:', apiError);
+      console.error('❌ API 에러 상세:', apiError.message);
+      throw apiError;
+    }
   } catch (error) {
     console.error('❌ UI 모드 변경 에러:', error);
     console.error('❌ 에러 스택:', error.stack);
