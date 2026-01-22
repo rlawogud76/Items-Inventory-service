@@ -1695,16 +1695,20 @@ client.on('interactionCreate', async (interaction) => {
         const inventory = await loadInventory();
         const uiMode = inventory.settings?.uiMode || 'normal';
         const barLength = inventory.settings?.barLength || 15;
-        let embed, buttons;
+        let embed, buttons, items, totalPages;
         
         if (type === 'crafting') {
           const crafting = inventory.crafting || { categories: {}, crafting: {} };
-          embed = createCraftingEmbed(crafting, category, uiMode, barLength);
+          items = Object.entries(crafting.categories[category] || {});
+          totalPages = Math.ceil(items.length / 25);
+          embed = createCraftingEmbed(crafting, category, uiMode, barLength, 0);
         } else {
-          embed = createInventoryEmbed(inventory, category, uiMode, barLength);
+          items = Object.entries(inventory.categories[category] || {});
+          totalPages = Math.ceil(items.length / 25);
+          embed = createInventoryEmbed(inventory, category, uiMode, barLength, 0);
         }
         
-        buttons = createButtons(category, true, type || 'inventory', uiMode, barLength);
+        buttons = createButtons(category, true, type || 'inventory', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
         
         await interaction.update({ embeds: [embed], components: buttons });
         console.log('✅ 새로고침 완료');
@@ -2667,17 +2671,21 @@ client.on('interactionCreate', async (interaction) => {
         await saveInventory(inventory);
         
         const barLength = inventory.settings?.barLength || 15;
-        let embed;
+        let embed, items, totalPages;
         if (type === 'crafting') {
           const crafting = inventory.crafting || { categories: {}, crafting: {} };
-          embed = createCraftingEmbed(crafting, category, newMode, barLength);
+          items = Object.entries(crafting.categories[category] || {});
+          totalPages = Math.ceil(items.length / 25);
+          embed = createCraftingEmbed(crafting, category, newMode, barLength, 0);
         } else {
-          embed = createInventoryEmbed(inventory, category, newMode, barLength);
+          items = Object.entries(inventory.categories[category] || {});
+          totalPages = Math.ceil(items.length / 25);
+          embed = createInventoryEmbed(inventory, category, newMode, barLength, 0);
         }
         
         const messageId = interaction.message.id;
         const isAutoRefreshing = autoRefreshTimers.has(messageId);
-        const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', newMode, barLength);
+        const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', newMode, barLength, inventory, interaction.user.id, 0, totalPages);
         
         await interaction.update({ embeds: [embed], components: buttons });
         console.log(`📏 UI 모드 변경: ${currentMode} -> ${newMode}`);
@@ -4939,17 +4947,21 @@ client.on('interactionCreate', async (interaction) => {
         await saveInventory(inventory);
         
         const uiMode = inventory.settings?.uiMode || 'normal';
-        let embed;
+        let embed, items, totalPages;
         if (type === 'crafting') {
           const crafting = inventory.crafting || { categories: {}, crafting: {} };
-          embed = createCraftingEmbed(crafting, category, uiMode, newLength);
+          items = Object.entries(crafting.categories[category] || {});
+          totalPages = Math.ceil(items.length / 25);
+          embed = createCraftingEmbed(crafting, category, uiMode, newLength, 0);
         } else {
-          embed = createInventoryEmbed(inventory, category, uiMode, newLength);
+          items = Object.entries(inventory.categories[category] || {});
+          totalPages = Math.ceil(items.length / 25);
+          embed = createInventoryEmbed(inventory, category, uiMode, newLength, 0);
         }
         
         const messageId = interaction.message.id;
         const isAutoRefreshing = autoRefreshTimers.has(messageId);
-        const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', uiMode, newLength);
+        const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', uiMode, newLength, inventory, interaction.user.id, 0, totalPages);
         
         await interaction.update({ embeds: [embed], components: buttons });
         console.log(`📊 바 크기 변경: ${percentage}% (길이: ${newLength})`);
