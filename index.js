@@ -491,14 +491,14 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   
   const rows = [row1, row2];
   
-  // 페이지네이션 버튼 (25개 초과 시)
+  // 페이지네이션 버튼 (25개 초과 시) - 임베드 전용
   if (totalPages > 1) {
     const pageButtons = [];
     
     // 이전 페이지 버튼
     pageButtons.push(
       new ButtonBuilder()
-        .setCustomId(`page_prev_${type}_${categoryName}_${page}`)
+        .setCustomId(`page_prev_embed_${type}_${categoryName}_${page}`)
         .setLabel('◀ 이전')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(page === 0)
@@ -507,7 +507,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
     // 페이지 정보 버튼 (비활성화)
     pageButtons.push(
       new ButtonBuilder()
-        .setCustomId(`page_info_${type}_${categoryName}_${page}`)
+        .setCustomId(`page_info_embed_${type}_${categoryName}_${page}`)
         .setLabel(`페이지 ${page + 1}/${totalPages}`)
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(true)
@@ -516,7 +516,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
     // 다음 페이지 버튼
     pageButtons.push(
       new ButtonBuilder()
-        .setCustomId(`page_next_${type}_${categoryName}_${page}`)
+        .setCustomId(`page_next_embed_${type}_${categoryName}_${page}`)
         .setLabel('다음 ▶')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(page >= totalPages - 1)
@@ -1644,13 +1644,13 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton()) {
     console.log('버튼 클릭 감지! customId:', interaction.customId);
     
-    if (interaction.customId.startsWith('page_prev_') || interaction.customId.startsWith('page_next_')) {
+    if (interaction.customId.startsWith('page_prev_embed_') || interaction.customId.startsWith('page_next_embed_')) {
       try {
         const parts = interaction.customId.split('_');
-        const direction = parts[1]; // 'prev' or 'next'
-        const type = parts[2]; // 'inventory' or 'crafting'
+        const direction = parts[2]; // 'prev' or 'next'
+        const type = parts[3]; // 'inventory' or 'crafting'
         const currentPage = parseInt(parts[parts.length - 1]);
-        const category = parts.slice(3, -1).join('_');
+        const category = parts.slice(4, -1).join('_');
         
         const newPage = direction === 'prev' ? currentPage - 1 : currentPage + 1;
         
@@ -1674,7 +1674,7 @@ client.on('interactionCreate', async (interaction) => {
         const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, newPage, totalPages);
         
         await interaction.update({ embeds: [embed], components: buttons });
-        console.log(`📄 페이지 이동: ${currentPage + 1} → ${newPage + 1}`);
+        console.log(`📄 임베드 페이지 이동: ${currentPage + 1} → ${newPage + 1}`);
       } catch (error) {
         console.error('❌ 페이지 이동 에러:', error);
         await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
