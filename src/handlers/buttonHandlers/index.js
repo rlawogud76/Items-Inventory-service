@@ -1,12 +1,61 @@
 // 모든 버튼 핸들러 export
+
+// 페이지네이션 & 새로고침
 export { handlePageNavigation } from './pagination.js';
 export { handleRefresh } from './refresh.js';
 
-// TODO: 나머지 핸들러들도 분리 예정
-// - quantity.js (수량 관리)
-// - reset.js (초기화)
-// - manage.js (물품/품목 관리)
-// - recipe.js (레시피)
-// - tag.js (태그)
-// - settings.js (UI 모드, 바 크기)
-// - work.js (수집/제작 작업)
+// 수량 관리
+export { handleQuantityButton } from './quantity.js';
+
+// 초기화
+export { handleResetButton, handleResetTypeButton } from './reset.js';
+
+// 물품/품목 관리
+export { 
+  handleManageButton, 
+  handleManageAddButton, 
+  handleManageRemoveButton, 
+  handleManageEditButton 
+} from './manage.js';
+
+// 태그 관리
+export { 
+  handleManageTagButton, 
+  handleTagSetButton, 
+  handleTagRemoveButton, 
+  handleTagViewButton 
+} from './tag.js';
+
+// 레시피
+export { 
+  handleRecipeButton, 
+  handleRecipeViewButton, 
+  handleRecipeEditButton,
+  handleRecipeAddSkipButton,
+  handleRecipeMoreFinishButton
+} from './recipe.js';
+
+// 설정 (UI 모드, 바 크기, 자동 새로고침)
+export { 
+  handleBarSizeButton, 
+  handleUiModeButton, 
+  handleAutoRefreshButton,
+  setAutoRefreshTimers
+} from './settings.js';
+
+// 작업 (수집/제작)
+export { 
+  handleWorkButton, 
+  handleWorkPageButton, 
+  handleStopWorkButton 
+} from './work.js';
+
+// 수량 액션 (추가/수정/차감)
+export { handleQuantityActionButton } from './quantityActions.js';
+
+// 기여도 초기화
+export { 
+  handleConfirmContributionReset, 
+  handleCancelContributionReset 
+} from './contribution.js';
+

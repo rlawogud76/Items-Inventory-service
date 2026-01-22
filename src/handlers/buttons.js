@@ -3,16 +3,16 @@
 // 📋 목차:
 // ├─ 1. 페이지네이션 (page_prev_embed_, page_next_embed_) → pagination.js
 // ├─ 2. 새로고침 (refresh) → refresh.js
-// ├─ 3. 수량관리 (quantity) → 미분리
-// ├─ 4. 초기화 (reset, reset_individual, reset_batch) → 미분리
-// ├─ 5. 물품/품목 관리 (manage, manage_add, manage_remove, manage_edit) → 미분리
-// ├─ 6. 레시피 (recipe_crafting_, recipe_view_, recipe_edit_) → 미분리
-// ├─ 7. 태그 (manage_tag, tag_set_, tag_remove_, tag_view_) → 미분리
-// ├─ 8. 설정 (ui_mode, bar_size) → 미분리
-// ├─ 9. 작업 (collecting, crafting, stop_collecting_, stop_crafting_) → 미분리
-// ├─ 10. 수량 액션 (quantity_add_, quantity_edit_, quantity_subtract_) → 미분리
-// ├─ 11. 레시피 플로우 (add_recipe_, skip_recipe_, add_more_recipe_, finish_recipe_) → 미분리
-// └─ 12. 기여도 초기화 (confirm_contribution_reset, cancel_contribution_reset) → 미분리
+// ├─ 3. 수량관리 (quantity) → quantity.js
+// ├─ 4. 초기화 (reset, reset_individual, reset_batch) → reset.js
+// ├─ 5. 물품/품목 관리 (manage, manage_add, manage_remove, manage_edit) → manage.js
+// ├─ 6. 레시피 (recipe_crafting_, recipe_view_, recipe_edit_) → recipe.js
+// ├─ 7. 태그 (manage_tag, tag_set_, tag_remove_, tag_view_) → tag.js
+// ├─ 8. 설정 (ui_mode, bar_size, auto_refresh) → settings.js
+// ├─ 9. 작업 (collecting, crafting, stop_collecting_, stop_crafting_) → work.js
+// ├─ 10. 수량 액션 (quantity_add_, quantity_edit_, quantity_subtract_) → quantityActions.js
+// ├─ 11. 레시피 플로우 (add_recipe_, skip_recipe_, add_more_recipe_, finish_recipe_) → recipe.js
+// └─ 12. 기여도 초기화 (confirm_contribution_reset, cancel_contribution_reset) → contribution.js
 
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, saveInventory } from '../database.js';
@@ -25,10 +25,42 @@ import {
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../embeds.js';
 
 // 분리된 핸들러 import
-import { handlePageNavigation, handleRefresh } from './buttonHandlers/index.js';
+import { 
+  handlePageNavigation, 
+  handleRefresh,
+  handleQuantityButton,
+  handleResetButton,
+  handleResetTypeButton,
+  handleManageButton,
+  handleManageAddButton,
+  handleManageRemoveButton,
+  handleManageEditButton,
+  handleManageTagButton,
+  handleTagSetButton,
+  handleTagRemoveButton,
+  handleTagViewButton,
+  handleRecipeButton,
+  handleRecipeViewButton,
+  handleRecipeEditButton,
+  handleRecipeAddSkipButton,
+  handleRecipeMoreFinishButton,
+  handleBarSizeButton,
+  handleUiModeButton,
+  handleAutoRefreshButton,
+  setAutoRefreshTimers,
+  handleWorkButton,
+  handleWorkPageButton,
+  handleStopWorkButton,
+  handleQuantityActionButton,
+  handleConfirmContributionReset,
+  handleCancelContributionReset
+} from './buttonHandlers/index.js';
 
 // 자동 새로고침 타이머 저장소
 const autoRefreshTimers = new Map();
+
+// settings.js에 타이머 맵 전달
+setAutoRefreshTimers(autoRefreshTimers);
 
 // 버튼 인터랙션 처리 함수
 export async function handleButtonInteraction(interaction) {
@@ -48,1910 +80,145 @@ export async function handleButtonInteraction(interaction) {
       return await handleRefresh(interaction);
     }
     
+    // ============================================
+    // 3. 수량관리 핸들러 (분리됨)
+    // ============================================
     else if (interaction.customId.startsWith('quantity') && 
              !interaction.customId.startsWith('quantity_add_') && 
              !interaction.customId.startsWith('quantity_edit_') && 
              !interaction.customId.startsWith('quantity_subtract_')) {
-      try {
-        const parts = interaction.customId.split('_');
-        const type = parts[1]; // 'inventory' or 'crafting'
-        const category = parts.length > 2 ? parts.slice(2).join('_') : null;
-        
-        console.log('📊 수량관리 버튼 클릭');
-        console.log('  - 타입:', type);
-        console.log('  - 카테고리:', category || '전체');
-        
-        const inventory = await loadInventory();
-        
-        if (!category) {
-          return await interaction.reply({ 
-            content: `❌ 특정 카테고리를 선택한 후 수량관리 버튼을 사용해주세요.\n\`/${type === 'inventory' ? '재고' : '제작'} 카테고리:해양\` 처럼 카테고리를 지정해주세요.`, 
-            ephemeral: true 
-          });
-        }
-        
-        const targetData = type === 'inventory' ? inventory : inventory.crafting;
-        
-        if (!targetData.categories[category]) {
-          return await interaction.reply({ 
-            content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, 
-            ephemeral: true 
-          });
-        }
-        
-        // 현재 카테고리의 아이템 목록 생성
-        const items = Object.keys(targetData.categories[category]);
-        
-        if (items.length === 0) {
-          return await interaction.reply({ 
-            content: `❌ "${category}" 카테고리에 아이템이 없습니다.`, 
-            ephemeral: true 
-          });
-        }
-        
-        const itemOptions = items.map(item => {
-          const itemData = targetData.categories[category][item];
-          const customEmoji = itemData?.emoji;
-          const { boxes, sets, items: remainder } = formatQuantity(itemData.quantity);
-          return {
-            label: item,
-            value: item,
-            emoji: customEmoji || getItemIcon(item, inventory),
-            description: `현재: ${boxes}상자/${sets}세트/${remainder}개 (${itemData.quantity}개) / 목표: ${itemData.required}개`
-          };
-        });
-        
-        // Discord 제한: 최대 25개 옵션
-        const limitedOptions = itemOptions.slice(0, 25);
-        const hasMore = itemOptions.length > 25;
-        
-        // 선택 메뉴 생성
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_quantity_${type}_${category}`)
-          .setPlaceholder('수량을 관리할 아이템을 선택하세요')
-          .addOptions(limitedOptions);
-        
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-        
-        let contentMessage = `📊 **${category}** 카테고리에서 수량을 관리할 아이템을 선택하세요:`;
-        if (hasMore) {
-          contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${itemOptions.length}개)`;
-        }
-        
-        const reply = await interaction.reply({
-          content: contentMessage,
-          components: [row],
-          ephemeral: true,
-          fetchReply: true
-        });
-        
-        // 15초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {
-            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
-          }
-        }, 15000);
-        
-      } catch (error) {
-        console.error('❌ 버튼 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
-      }
+      return await handleQuantityButton(interaction);
     }
     
+    // ============================================
+    // 4. 초기화 핸들러 (분리됨)
+    // ============================================
     else if (interaction.customId.startsWith('reset') && !interaction.customId.startsWith('reset_individual') && !interaction.customId.startsWith('reset_batch')) {
-      try {
-        // 이미 응답했는지 확인
-        if (interaction.replied || interaction.deferred) {
-          console.log('⚠️ 이미 응답한 인터랙션, 무시');
-          return;
-        }
-        
-        const parts = interaction.customId.split('_');
-        const type = parts[1]; // 'inventory' or 'crafting'
-        const category = parts.length > 2 ? parts.slice(2).join('_') : null;
-        
-        console.log('🔄 초기화 버튼 클릭');
-        console.log('  - 타입:', type);
-        console.log('  - 카테고리:', category || '전체');
-        
-        if (!category) {
-          return await sendTemporaryReply(interaction, 
-            `❌ 특정 카테고리를 선택한 후 초기화 버튼을 사용해주세요.\n\`/${type === 'inventory' ? '재고' : '제작'} 카테고리:해양\` 처럼 카테고리를 지정해주세요.`
-          );
-        }
-        
-        // 초기화 방식 선택 버튼 생성
-        const individualButton = new ButtonBuilder()
-          .setCustomId(`reset_individual_${type}_${category}`)
-          .setLabel('개별 초기화')
-          .setStyle(ButtonStyle.Primary);
-        
-        const batchButton = new ButtonBuilder()
-          .setCustomId(`reset_batch_${type}_${category}`)
-          .setLabel('일괄 초기화')
-          .setStyle(ButtonStyle.Danger);
-        
-        const row = new ActionRowBuilder().addComponents(individualButton, batchButton);
-        
-        await sendTemporaryReply(interaction, {
-          content: `🔄 **${category}** 카테고리 초기화 방식을 선택하세요:\n\n**개별 초기화**: 특정 ${type === 'inventory' ? '아이템' : '제작품'}만 선택하여 초기화\n**일괄 초기화**: 카테고리 전체를 0으로 초기화`,
-          components: [row]
-        }, 15000);
-        
-      } catch (error) {
-        console.error('❌ 초기화 버튼 에러:', error);
-        if (!interaction.replied && !interaction.deferred) {
-          await sendTemporaryReply(interaction, '오류가 발생했습니다: ' + error.message).catch(() => {});
-        }
-      }
+      return await handleResetButton(interaction);
     }
     
     else if (interaction.customId.startsWith('reset_individual') || interaction.customId.startsWith('reset_batch')) {
-      try {
-        const parts = interaction.customId.split('_');
-        const resetType = parts[1]; // 'individual' or 'batch'
-        const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.slice(3).join('_');
-        
-        const inventory = await loadInventory();
-        const targetData = type === 'inventory' ? inventory : inventory.crafting;
-        
-        if (!targetData.categories[category]) {
-          return await interaction.update({ 
-            content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`,
-            components: []
-          });
-        }
-        
-        if (resetType === 'batch') {
-          // 일괄 초기화
-          let resetCount = 0;
-          let resetItems = [];
-          
-          for (const [itemName, data] of Object.entries(targetData.categories[category])) {
-            if (data.quantity > 0) {
-              const oldQuantity = data.quantity;
-              data.quantity = 0;
-              resetCount++;
-              resetItems.push(`${getItemIcon(itemName, inventory)} ${itemName} (${oldQuantity}개)`);
-              
-              addHistory(inventory, type, category, itemName, 'reset', 
-                `${oldQuantity}개 → 0개`, 
-                interaction.user.displayName || interaction.user.username);
-            }
-          }
-          
-          if (resetCount === 0) {
-            return await interaction.update({
-              content: '⚠️ 초기화할 항목이 없습니다. (이미 모두 0개입니다)',
-              components: []
-            });
-          }
-          
-          await saveInventory(inventory);
-          
-          const itemList = resetItems.slice(0, 10).join('\n');
-          const moreText = resetItems.length > 10 ? `\n... 외 ${resetItems.length - 10}개` : '';
-          
-          const successEmbed = new EmbedBuilder()
-            .setColor(0xFFA500)
-            .setTitle('🔄 일괄 초기화 완료')
-            .setDescription(`**${category}** 카테고리의 ${type === 'inventory' ? '아이템' : '제작품'} **${resetCount}개**가 초기화되었습니다.\n\n${itemList}${moreText}`);
-          
-          await interaction.update({
-            embeds: [successEmbed],
-            components: []
-          });
-          
-          // 15초 후 자동 삭제
-          setTimeout(async () => {
-            try {
-              await interaction.deleteReply();
-            } catch (error) {}
-          }, 15000);
-          
-        } else {
-          // 개별 초기화 - 아이템 선택 메뉴 표시
-          const items = Object.keys(targetData.categories[category]);
-          
-          if (items.length === 0) {
-            return await interaction.update({
-              content: `❌ "${category}" 카테고리에 ${type === 'inventory' ? '아이템' : '제작품'}이 없습니다.`,
-              components: []
-            });
-          }
-          
-          const itemOptions = items.map(item => {
-            const itemData = targetData.categories[category][item];
-            const customEmoji = itemData?.emoji;
-            return {
-              label: item,
-              value: item,
-              emoji: customEmoji || getItemIcon(item, inventory),
-              description: `현재: ${itemData.quantity}개`
-            };
-          });
-          
-          // Discord 제한: 최대 25개 옵션
-          const limitedOptions = itemOptions.slice(0, 25);
-          const hasMore = itemOptions.length > 25;
-          
-          const { StringSelectMenuBuilder } = await import('discord.js');
-          const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId(`select_reset_${type}_${category}`)
-            .setPlaceholder('초기화할 항목을 선택하세요')
-            .addOptions(limitedOptions);
-          
-          const row = new ActionRowBuilder().addComponents(selectMenu);
-          
-          let contentMessage = `🔄 **${category}** 카테고리에서 초기화할 ${type === 'inventory' ? '아이템' : '제작품'}을 선택하세요:`;
-          if (hasMore) {
-            contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${itemOptions.length}개)`;
-          }
-          
-          await interaction.update({
-            content: contentMessage,
-            components: [row]
-          });
-          
-          // 30초 후 자동 삭제
-          setTimeout(async () => {
-            try {
-              await interaction.deleteReply();
-            } catch (error) {}
-          }, 30000);
-        }
-        
-      } catch (error) {
-        console.error('❌ 초기화 타입 선택 에러:', error);
-        if (!interaction.replied && !interaction.deferred) {
-          await sendTemporaryReply(interaction, '오류가 발생했습니다: ' + error.message).catch(() => {});
-        }
-      }
+      return await handleResetTypeButton(interaction);
     }
     
+    // ============================================
+    // 5. 물품/품목 관리 핸들러 (분리됨)
+    // ============================================
     else if (interaction.customId.startsWith('manage') && !interaction.customId.startsWith('manage_add') && !interaction.customId.startsWith('manage_remove') && !interaction.customId.startsWith('manage_edit') && !interaction.customId.startsWith('manage_tag')) {
-      try {
-        // 이미 응답했는지 확인
-        if (interaction.replied || interaction.deferred) {
-          console.log('⚠️ 이미 응답한 인터랙션, 무시');
-          return;
-        }
-        
-        const parts = interaction.customId.split('_');
-        const type = parts[1]; // 'inventory' or 'crafting'
-        const category = parts.length > 2 ? parts.slice(2).join('_') : null;
-        
-        if (!category) {
-          return await interaction.reply({ 
-            content: '❌ 카테고리를 선택한 후 사용해주세요.',
-            ephemeral: true
-          });
-        }
-        
-        // 추가/수정/삭제/태그 선택 버튼
-        const addButton = new ButtonBuilder()
-          .setCustomId(`manage_add_${type}_${category}`)
-          .setLabel(type === 'inventory' ? '➕ 물품 추가' : '➕ 품목 추가')
-          .setStyle(ButtonStyle.Success);
-        
-        const editButton = new ButtonBuilder()
-          .setCustomId(`manage_edit_${type}_${category}`)
-          .setLabel('✏️ 이름 수정')
-          .setStyle(ButtonStyle.Primary);
-        
-        const tagButton = new ButtonBuilder()
-          .setCustomId(`manage_tag_${type}_${category}`)
-          .setLabel('🏷️ 태그 관리')
-          .setStyle(ButtonStyle.Primary);
-        
-        const removeButton = new ButtonBuilder()
-          .setCustomId(`manage_remove_${type}_${category}`)
-          .setLabel(type === 'inventory' ? '➖ 물품 삭제' : '➖ 품목 삭제')
-          .setStyle(ButtonStyle.Danger);
-        
-        const row1 = new ActionRowBuilder().addComponents(addButton, editButton, removeButton);
-        const row2 = new ActionRowBuilder().addComponents(tagButton);
-        
-        await interaction.reply({
-          content: `📝 **${category}** 카테고리 ${type === 'inventory' ? '물품' : '품목'} 관리\n\n원하는 작업을 선택하세요:`,
-          components: [row1, row2],
-          ephemeral: true
-        });
-        
-        // 30초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 30000);
-        
-      } catch (error) {
-        console.error('❌ 관리 버튼 에러:', error);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-        }
-      }
-    }
-    
-    else if (interaction.customId.startsWith('recipe_crafting_') || interaction.customId.startsWith('recipe_inventory_')) {
-      try {
-        const parts = interaction.customId.split('_');
-        const type = parts[1]; // 'crafting'
-        const category = parts.slice(2).join('_');
-        
-        // 레시피 관리 버튼 생성
-        const viewButton = new ButtonBuilder()
-          .setCustomId(`recipe_view_${category}`)
-          .setLabel('📖 조회')
-          .setStyle(ButtonStyle.Primary);
-        
-        const editButton = new ButtonBuilder()
-          .setCustomId(`recipe_edit_${category}`)
-          .setLabel('✏️ 수정')
-          .setStyle(ButtonStyle.Primary);
-        
-        const row = new ActionRowBuilder().addComponents(viewButton, editButton);
-        
-        await interaction.reply({
-          content: `📋 **${category}** 카테고리 레시피 관리\n\n원하는 작업을 선택하세요:`,
-          components: [row],
-          ephemeral: true
-        });
-        
-      } catch (error) {
-        console.error('❌ 레시피 버튼 에러:', error);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-        }
-      }
-    }
-    
-    else if (interaction.customId.startsWith('recipe_view_')) {
-      try {
-        const category = interaction.customId.replace('recipe_view_', '');
-        const inventory = await loadInventory();
-        
-        if (!inventory.crafting?.recipes?.[category] || Object.keys(inventory.crafting.recipes[category]).length === 0) {
-          return await interaction.update({
-            content: `❌ "${category}" 카테고리에 레시피가 없습니다.`,
-            components: []
-          });
-        }
-        
-        const recipes = inventory.crafting.recipes[category];
-        const recipeCount = Object.keys(recipes).length;
-        
-        const embed = new EmbedBuilder()
-          .setTitle(`📋 ${category} 레시피북`)
-          .setDescription(`총 **${recipeCount}개**의 레시피가 등록되어 있습니다.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
-          .setColor(0xFFA500)
-          .setTimestamp()
-          .setFooter({ text: '✅ 제작 가능 | ⚠️ 재료 부족' });
-        
-        for (const [itemName, materials] of Object.entries(recipes)) {
-          const icon = getItemIcon(itemName, inventory);
-          
-          // 제작 가능 여부 확인
-          let canCraft = true;
-          const materialLines = materials.map(m => {
-            const matIcon = getItemIcon(m.name, inventory);
-            const materialData = inventory.categories[m.category]?.[m.name];
-            const currentQty = materialData?.quantity || 0;
-            const hasEnough = currentQty >= m.quantity;
-            
-            if (!hasEnough) canCraft = false;
-            
-            const statusIcon = hasEnough ? '✅' : '❌';
-            const qtyDisplay = hasEnough 
-              ? `**${m.quantity}개**` 
-              : `**${m.quantity}개** (보유: ${currentQty}개)`;
-            
-            return `${statusIcon} ${matIcon} ${m.name} × ${qtyDisplay}`;
-          });
-          
-          const statusEmoji = canCraft ? '✅' : '⚠️';
-          const statusText = canCraft ? '제작 가능' : '재료 부족';
-          
-          const fieldValue = [
-            `**${statusEmoji} ${statusText}**`,
-            '',
-            ...materialLines,
-            '',
-            '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-          ].join('\n');
-          
-          embed.addFields({
-            name: `${icon} ${itemName}`,
-            value: fieldValue,
-            inline: false
-          });
-        }
-        
-        await interaction.update({
-          embeds: [embed],
-          components: []
-        });
-        
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 20000);
-        
-      } catch (error) {
-        console.error('❌ 레시피 조회 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-      }
-    }
-    
-    else if (interaction.customId.startsWith('recipe_edit_')) {
-      try {
-        const category = interaction.customId.replace('recipe_edit_', '');
-        const inventory = await loadInventory();
-        
-        if (!inventory.crafting?.categories?.[category] || Object.keys(inventory.crafting.categories[category]).length === 0) {
-          return await interaction.update({
-            content: `❌ "${category}" 카테고리에 제작품이 없습니다.`,
-            components: []
-          });
-        }
-        
-        const items = Object.keys(inventory.crafting.categories[category]);
-        const itemOptions = items.map(item => ({
-          label: item,
-          value: item,
-          emoji: getItemIcon(item, inventory)
-        }));
-        
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_recipe_edit_${category}`)
-          .setPlaceholder('레시피를 수정할 제작품을 선택하세요')
-          .addOptions(itemOptions);
-        
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-        
-        await interaction.update({
-          content: `✏️ **${category}** 카테고리에서 레시피를 수정할 제작품을 선택하세요:`,
-          components: [row]
-        });
-        
-        // 30초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 30000);
-        
-      } catch (error) {
-        console.error('❌ 레시피 수정 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-      }
+      return await handleManageButton(interaction);
     }
     
     else if (interaction.customId.startsWith('manage_add')) {
-      try {
-        // 이미 응답했는지 확인
-        if (interaction.replied || interaction.deferred) {
-          console.log('⚠️ 이미 응답한 인터랙션, 무시');
-          return;
-        }
-        
-        const parts = interaction.customId.split('_');
-        const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.slice(3).join('_');
-        
-        const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
-        
-        const modal = new ModalBuilder()
-          .setCustomId(`add_item_modal_${type}_${category}`)
-          .setTitle(`➕ ${type === 'inventory' ? '물품' : '품목'} 추가 - ${category}`);
-        
-        const nameInput = new TextInputBuilder()
-          .setCustomId('item_name')
-          .setLabel(type === 'inventory' ? '아이템 이름' : '제작품 이름')
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder('예: 다이아몬드')
-          .setRequired(true);
-        
-        const initialSetsInput = new TextInputBuilder()
-          .setCustomId('initial_sets')
-          .setLabel('초기 수량 - 세트 (1세트 = 64개)')
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder('예: 0')
-          .setValue('0')
-          .setRequired(false);
-        
-        const initialItemsInput = new TextInputBuilder()
-          .setCustomId('initial_items')
-          .setLabel('초기 수량 - 낱개')
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder('예: 0')
-          .setValue('0')
-          .setRequired(false);
-        
-        const requiredSetsInput = new TextInputBuilder()
-          .setCustomId('required_sets')
-          .setLabel('충족 수량 - 세트 (1세트 = 64개)')
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder('예: 10')
-          .setRequired(false);
-        
-        const requiredItemsInput = new TextInputBuilder()
-          .setCustomId('required_items')
-          .setLabel('충족 수량 - 낱개')
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder('예: 32')
-          .setRequired(false);
-        
-        modal.addComponents(
-          new ActionRowBuilder().addComponents(nameInput),
-          new ActionRowBuilder().addComponents(initialSetsInput),
-          new ActionRowBuilder().addComponents(initialItemsInput),
-          new ActionRowBuilder().addComponents(requiredSetsInput),
-          new ActionRowBuilder().addComponents(requiredItemsInput)
-        );
-        
-        await interaction.showModal(modal);
-        
-      } catch (error) {
-        console.error('❌ 추가 모달 에러:', error);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-        }
-      }
+      return await handleManageAddButton(interaction);
     }
     
     else if (interaction.customId.startsWith('manage_remove')) {
-      try {
-        // 이미 응답했는지 확인
-        if (interaction.replied || interaction.deferred) {
-          console.log('⚠️ 이미 응답한 인터랙션, 무시');
-          return;
-        }
-        
-        const parts = interaction.customId.split('_');
-        const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.slice(3).join('_');
-        
-        const inventory = await loadInventory();
-        const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
-        
-        if (!targetData?.[category] || Object.keys(targetData[category]).length === 0) {
-          return await interaction.update({
-            content: `❌ "${category}" 카테고리에 ${type === 'inventory' ? '아이템' : '제작품'}이 없습니다.`,
-            components: []
-          });
-        }
-        
-        const items = Object.keys(targetData[category]);
-        const itemOptions = items.map(item => {
-          const formatted = formatQuantity(targetData[category][item].quantity);
-          return {
-            label: item,
-            value: item,
-            description: `현재: ${formatted.boxes}상자/${formatted.sets}세트/${formatted.items}개 / 목표: ${targetData[category][item].required}개`
-          };
-        });
-        
-        // Discord 제한: 최대 25개 옵션
-        const limitedOptions = itemOptions.slice(0, 25);
-        const hasMore = itemOptions.length > 25;
-        
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_remove_${type}_${category}`)
-          .setPlaceholder('삭제할 항목을 선택하세요')
-          .addOptions(limitedOptions);
-        
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-        
-        let contentMessage = `🗑️ **${category}** 카테고리에서 삭제할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:`;
-        if (hasMore) {
-          contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${itemOptions.length}개)`;
-        }
-        
-        await interaction.update({
-          content: contentMessage,
-          components: [row]
-        });
-        
-        // 30초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 30000);
-        
-      } catch (error) {
-        console.error('❌ 삭제 선택 에러:', error);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-        }
-      }
+      return await handleManageRemoveButton(interaction);
     }
     
     else if (interaction.customId.startsWith('manage_edit')) {
-      try {
-        // 이미 응답했는지 확인
-        if (interaction.replied || interaction.deferred) {
-          console.log('⚠️ 이미 응답한 인터랙션, 무시');
-          return;
-        }
-        
-        const parts = interaction.customId.split('_');
-        const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.slice(3).join('_');
-        
-        const inventory = await loadInventory();
-        const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
-        
-        if (!targetData?.[category] || Object.keys(targetData[category]).length === 0) {
-          return await interaction.update({
-            content: `❌ "${category}" 카테고리에 ${type === 'inventory' ? '아이템' : '제작품'}이 없습니다.`,
-            components: []
-          });
-        }
-        
-        const items = Object.keys(targetData[category]);
-        const itemOptions = items.map(item => {
-          const formatted = formatQuantity(targetData[category][item].quantity);
-          return {
-            label: item,
-            value: item,
-            description: `현재: ${formatted.boxes}상자/${formatted.sets}세트/${formatted.items}개`
-          };
-        });
-        
-        // Discord 제한: 최대 25개 옵션
-        const limitedOptions = itemOptions.slice(0, 25);
-        const hasMore = itemOptions.length > 25;
-        
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_edit_${type}_${category}`)
-          .setPlaceholder('이름을 수정할 항목을 선택하세요')
-          .addOptions(limitedOptions);
-        
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-        
-        let contentMessage = `✏️ **${category}** 카테고리에서 이름을 수정할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:`;
-        if (hasMore) {
-          contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${itemOptions.length}개)`;
-        }
-        
-        await interaction.update({
-          content: contentMessage,
-          components: [row]
-        });
-        
-        // 30초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 30000);
-        
-      } catch (error) {
-        console.error('❌ 이름 수정 선택 에러:', error);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-        }
-      }
+      return await handleManageEditButton(interaction);
     }
     
+    // ============================================
+    // 6. 레시피 핸들러 (분리됨)
+    // ============================================
+    else if (interaction.customId.startsWith('recipe_crafting_') || interaction.customId.startsWith('recipe_inventory_')) {
+      return await handleRecipeButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('recipe_view_')) {
+      return await handleRecipeViewButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('recipe_edit_')) {
+      return await handleRecipeEditButton(interaction);
+    }
+    
+    // ============================================
+    // 7. 태그 핸들러 (분리됨)
+    // ============================================
     else if (interaction.customId.startsWith('manage_tag')) {
-      try {
-        if (interaction.replied || interaction.deferred) {
-          console.log('⚠️ 이미 응답한 인터랙션, 무시');
-          return;
-        }
-        
-        const parts = interaction.customId.split('_');
-        const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.slice(3).join('_');
-        
-        // 태그 관리 옵션 버튼
-        const setTagButton = new ButtonBuilder()
-          .setCustomId(`tag_set_${type}_${category}`)
-          .setLabel('🏷️ 태그 설정')
-          .setStyle(ButtonStyle.Primary);
-        
-        const removeTagButton = new ButtonBuilder()
-          .setCustomId(`tag_remove_${type}_${category}`)
-          .setLabel('🗑️ 태그 제거')
-          .setStyle(ButtonStyle.Secondary);
-        
-        const viewTagsButton = new ButtonBuilder()
-          .setCustomId(`tag_view_${type}_${category}`)
-          .setLabel('👁️ 태그 보기')
-          .setStyle(ButtonStyle.Secondary);
-        
-        const row = new ActionRowBuilder().addComponents(setTagButton, removeTagButton, viewTagsButton);
-        
-        await interaction.update({
-          content: `🏷️ **${category}** 카테고리 태그 관리\n\n태그를 사용하면 관련 물품들을 그룹으로 묶을 수 있습니다.\n예: "산호 블럭", "뇌 산호 블럭" → "산호" 태그\n\n원하는 작업을 선택하세요:`,
-          components: [row]
-        });
-        
-        // 30초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 30000);
-        
-      } catch (error) {
-        console.error('❌ 태그 관리 에러:', error);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-        }
-      }
+      return await handleManageTagButton(interaction);
     }
     
     else if (interaction.customId.startsWith('tag_set_')) {
-      try {
-        if (interaction.replied || interaction.deferred) {
-          return;
-        }
-        
-        const parts = interaction.customId.split('_');
-        const type = parts[2];
-        const category = parts.slice(3).join('_');
-        
-        const inventory = await loadInventory();
-        const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
-        
-        if (!targetData?.[category] || Object.keys(targetData[category]).length === 0) {
-          return await interaction.update({
-            content: `❌ "${category}" 카테고리에 ${type === 'inventory' ? '아이템' : '제작품'}이 없습니다.`,
-            components: []
-          });
-        }
-        
-        // 태그 이름 입력 모달 표시
-        const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
-        
-        const modal = new ModalBuilder()
-          .setCustomId(`tag_name_input_${type}_${category}`)
-          .setTitle(`🏷️ 태그 생성 - ${category}`);
-        
-        const tagNameInput = new TextInputBuilder()
-          .setCustomId('tag_name')
-          .setLabel('태그 이름')
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder('예: 산호, 광석, 블럭')
-          .setRequired(true);
-        
-        modal.addComponents(new ActionRowBuilder().addComponents(tagNameInput));
-        
-        await interaction.showModal(modal);
-        
-      } catch (error) {
-        console.error('❌ 태그 설정 에러:', error);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-        }
-      }
+      return await handleTagSetButton(interaction);
     }
     
     else if (interaction.customId.startsWith('tag_remove_')) {
-      try {
-        const parts = interaction.customId.split('_');
-        const type = parts[2];
-        const category = parts.slice(3).join('_');
-        
-        const inventory = await loadInventory();
-        const tags = inventory.tags?.[type]?.[category];
-        
-        if (!tags || Object.keys(tags).length === 0) {
-          return await interaction.update({ 
-            content: `❌ "${category}" 카테고리에 태그가 없습니다.`,
-            components: []
-          });
-        }
-        
-        // 태그 선택 메뉴 생성
-        const tagOptions = Object.entries(tags).map(([tagName, items]) => ({
-          label: tagName,
-          value: tagName,
-          description: `${items.length}개 항목`,
-          emoji: '🏷️'
-        }));
-        
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`confirm_tag_remove_${type}_${category}`)
-          .setPlaceholder('제거할 태그를 선택하세요')
-          .setMinValues(1)
-          .setMaxValues(1)
-          .addOptions(tagOptions);
-        
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-        
-        await interaction.update({
-          content: `🗑️ **태그 제거**\n\n제거할 태그를 선택하세요.\n⚠️ 태그만 제거되며, 항목은 유지됩니다.`,
-          components: [row]
-        });
-        
-        // 30초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 30000);
-        
-      } catch (error) {
-        console.error('❌ 태그 제거 버튼 에러:', error);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
-        }
-      }
+      return await handleTagRemoveButton(interaction);
     }
     
     else if (interaction.customId.startsWith('tag_view_')) {
-      try {
-        const parts = interaction.customId.split('_');
-        const type = parts[2];
-        const category = parts.slice(3).join('_');
-        
-        const inventory = await loadInventory();
-        const tags = inventory.tags?.[type]?.[category] || {};
-        
-        if (Object.keys(tags).length === 0) {
-          return await interaction.update({
-            content: `📋 **${category}** 카테고리에 설정된 태그가 없습니다.`,
-            components: []
-          });
-        }
-        
-        const embed = new EmbedBuilder()
-          .setColor(0x5865F2)
-          .setTitle(`🏷️ ${category} 카테고리 태그 목록`)
-          .setDescription('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        
-        for (const [tagName, items] of Object.entries(tags)) {
-          const itemList = items.map(item => {
-            const icon = getItemIcon(item, inventory);
-            return `${icon} ${item}`;
-          }).join('\n');
-          
-          embed.addFields({
-            name: `🏷️ **${tagName}** (${items.length}개)`,
-            value: itemList || '없음',
-            inline: false
-          });
-        }
-        
-        await interaction.update({
-          embeds: [embed],
-          components: []
-        });
-        
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 30000);
-        
-      } catch (error) {
-        console.error('❌ 태그 보기 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-      }
+      return await handleTagViewButton(interaction);
     }
     
+    // ============================================
+    // 8. 설정 핸들러 (분리됨)
+    // ============================================
     else if (interaction.customId.startsWith('bar_size')) {
-      try {
-        const parts = interaction.customId.split('_');
-        const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.length > 3 ? parts.slice(3).join('_') : null;
-        
-        const inventory = await loadInventory();
-        const currentLength = inventory.settings?.barLength || 15;
-        
-        // 모달 생성
-        const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
-        
-        const modal = new ModalBuilder()
-          .setCustomId(`bar_size_modal_${type}_${category || 'all'}`)
-          .setTitle('📊 프로그레스 바 크기 설정');
-        
-        const barSizeInput = new TextInputBuilder()
-          .setCustomId('bar_size_value')
-          .setLabel('바 크기 (25% ~ 200%)')
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder('예: 100')
-          .setValue(String(Math.round(currentLength * 10)))
-          .setRequired(true)
-          .setMinLength(2)
-          .setMaxLength(3);
-        
-        const row = new ActionRowBuilder().addComponents(barSizeInput);
-        modal.addComponents(row);
-        
-        await interaction.showModal(modal);
-        console.log(`📊 바 크기 설정 모달 표시 (현재: ${Math.round(currentLength * 10)}%)`);
-      } catch (error) {
-        console.error('❌ 바 크기 변경 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-      }
+      return await handleBarSizeButton(interaction);
     }
     
     else if (interaction.customId.startsWith('ui_mode')) {
-      try {
-        const parts = interaction.customId.split('_');
-        const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.length > 3 ? parts.slice(3).join('_') : null;
-        
-        const inventory = await loadInventory();
-        
-        // UI 모드 순환: normal -> detailed -> normal
-        let currentMode = inventory.settings?.uiMode || 'normal';
-        let newMode;
-        if (currentMode === 'normal') newMode = 'detailed';
-        else newMode = 'normal';
-        
-        // 설정 저장
-        if (!inventory.settings) inventory.settings = {};
-        inventory.settings.uiMode = newMode;
-        await saveInventory(inventory);
-        
-        const barLength = inventory.settings?.barLength || 15;
-        let embed, items, totalPages;
-        if (type === 'crafting') {
-          const crafting = inventory.crafting || { categories: {}, crafting: {} };
-          items = Object.entries(crafting.categories[category] || {});
-          totalPages = Math.ceil(items.length / 25);
-          embed = createCraftingEmbed(crafting, category, newMode, barLength, 0);
-        } else {
-          items = Object.entries(inventory.categories[category] || {});
-          totalPages = Math.ceil(items.length / 25);
-          embed = createInventoryEmbed(inventory, category, newMode, barLength, 0);
-        }
-        
-        const messageId = interaction.message.id;
-        const isAutoRefreshing = autoRefreshTimers.has(messageId);
-        const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', newMode, barLength, inventory, interaction.user.id, 0, totalPages);
-        
-        await interaction.update({ embeds: [embed], components: buttons });
-        console.log(`📏 UI 모드 변경: ${currentMode} -> ${newMode}`);
-      } catch (error) {
-        console.error('❌ UI 모드 변경 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-      }
+      return await handleUiModeButton(interaction);
     }
     
     else if (interaction.customId.startsWith('auto_refresh')) {
-      try {
-        const parts = interaction.customId.split('_');
-        const type = parts[2]; // 'inventory' or 'crafting'
-        const category = parts.length > 3 ? parts.slice(3).join('_') : null;
-        const messageId = interaction.message.id;
-        
-        // 자동 새로고침 토글
-        if (autoRefreshTimers.has(messageId)) {
-          // 중지
-          clearInterval(autoRefreshTimers.get(messageId));
-          autoRefreshTimers.delete(messageId);
-          console.log('⏸️ 자동 새로고침 중지:', messageId);
-          
-          const inventory = await loadInventory();
-          let embed;
-          
-          if (type === 'crafting') {
-            const crafting = inventory.crafting || { categories: {}, crafting: {} };
-            embed = createCraftingEmbed(crafting, category);
-          } else {
-            embed = createInventoryEmbed(inventory, category);
-          }
-          
-          const uiMode = inventory.settings?.uiMode || 'normal';
-          const barLength = inventory.settings?.barLength || 15;
-          const buttons = createButtons(category, false, type || 'inventory', uiMode, barLength);
-          
-          await interaction.update({ embeds: [embed], components: buttons });
-        } else {
-          // 시작
-          console.log('▶️ 자동 새로고침 시작:', messageId, '/ 타입:', type, '/ 카테고리:', category || '전체');
-          
-          const inventory = await loadInventory();
-          let embed;
-          
-          if (type === 'crafting') {
-            const crafting = inventory.crafting || { categories: {}, crafting: {} };
-            embed = createCraftingEmbed(crafting, category);
-          } else {
-            embed = createInventoryEmbed(inventory, category);
-          }
-          
-          const uiMode = inventory.settings?.uiMode || 'normal';
-          const barLength = inventory.settings?.barLength || 15;
-          const buttons = createButtons(category, true, type || 'inventory', uiMode, barLength);
-          
-          await interaction.update({ embeds: [embed], components: buttons });
-          
-          // 5초마다 자동 새로고침
-          const timer = setInterval(async () => {
-            try {
-              // 메시지가 여전히 존재하는지 확인
-              const message = await interaction.message.fetch().catch(() => null);
-              if (!message) {
-                console.log('⚠️ 메시지가 삭제됨. 자동 새로고침 중지:', messageId);
-                clearInterval(timer);
-                autoRefreshTimers.delete(messageId);
-                return;
-              }
-              
-              const inv = await loadInventory();
-              let emb;
-              
-              if (type === 'crafting') {
-                const crafting = inv.crafting || { categories: {}, crafting: {} };
-                emb = createCraftingEmbed(crafting, category);
-              } else {
-                emb = createInventoryEmbed(inv, category);
-              }
-              
-              const uiMode = inv.settings?.uiMode || 'normal';
-              const barLength = inv.settings?.barLength || 15;
-              const btns = createButtons(category, true, type || 'inventory', uiMode, barLength);
-              
-              await interaction.message.edit({ embeds: [emb], components: btns });
-              console.log('🔄 자동 새로고침 실행:', new Date().toLocaleTimeString());
-            } catch (error) {
-              console.error('❌ 자동 새로고침 에러:', error);
-              // 에러 발생 시 타이머 중지
-              clearInterval(timer);
-              autoRefreshTimers.delete(messageId);
-            }
-          }, 5000); // 5초
-          
-          autoRefreshTimers.set(messageId, timer);
-          
-          // 10분 후 자동 중지 (안전장치)
-          setTimeout(() => {
-            if (autoRefreshTimers.has(messageId)) {
-              console.log('⏰ 10분 경과. 자동 새로고침 자동 중지:', messageId);
-              clearInterval(timer);
-              autoRefreshTimers.delete(messageId);
-            }
-          }, 600000); // 10분
-        }
-      } catch (error) {
-        console.error('❌ 자동 새로고침 토글 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-      }
+      return await handleAutoRefreshButton(interaction);
     }
     
+    // ============================================
+    // 9. 작업 핸들러 (분리됨)
+    // ============================================
     else if (interaction.customId.startsWith('collecting') || interaction.customId.startsWith('crafting')) {
-      try {
-        // crafting_가 아니라 crafting으로 시작하는지 확인 (단, crafting_stop은 제외)
-        const isCrafting = interaction.customId.startsWith('crafting') && !interaction.customId.startsWith('crafting_stop');
-        const isCollecting = interaction.customId.startsWith('collecting');
-        
-        // 둘 다 아니면 무시
-        if (!isCrafting && !isCollecting) return;
-        
-        let category;
-        if (isCrafting) {
-          // crafting 또는 crafting_카테고리
-          if (interaction.customId === 'crafting') {
-            category = null;
-          } else {
-            category = interaction.customId.replace('crafting_', '');
-          }
-        } else {
-          // collecting 또는 collecting_카테고리
-          if (interaction.customId === 'collecting') {
-            category = null;
-          } else {
-            category = interaction.customId.replace('collecting_', '');
-          }
-        }
-        
-        console.log(isCrafting ? '🔨 제작중 버튼 클릭' : '📦 수집중 버튼 클릭');
-        console.log('  - 사용자:', interaction.user.tag);
-        console.log('  - 카테고리:', category || '전체');
-        
-        const inventory = await loadInventory();
-        const userId = interaction.user.id;
-        const userName = interaction.user.displayName || interaction.user.username;
-        
-        if (!category) {
-          return await interaction.reply({ 
-            content: `❌ 특정 카테고리를 선택한 후 ${isCrafting ? '제작중' : '수집중'} 버튼을 사용해주세요.\n\`/${isCrafting ? '제작' : '재고'} 카테고리:${isCrafting ? '해양' : '해양'}\` 처럼 카테고리를 지정해주세요.`, 
-            ephemeral: true 
-          });
-        }
-        
-        const targetData = isCrafting ? inventory.crafting : inventory;
-        
-        if (!targetData.categories[category]) {
-          return await interaction.reply({ 
-            content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, 
-            ephemeral: true 
-          });
-        }
-        
-        // 사용자가 현재 카테고리에서 작업 중인 항목 확인
-        const workingData = isCrafting ? inventory.crafting?.crafting : inventory.collecting;
-        const myWorkingItems = [];
-        
-        if (workingData?.[category]) {
-          for (const [itemName, worker] of Object.entries(workingData[category])) {
-            if (worker.userId === userId) {
-              myWorkingItems.push(itemName);
-            }
-          }
-        }
-        
-        // 이미 작업 중이면 일괄 중단
-        if (myWorkingItems.length > 0) {
-          // 모든 작업 중인 항목 중단
-          for (const itemName of myWorkingItems) {
-            if (isCrafting) {
-              delete inventory.crafting.crafting[category][itemName];
-            } else {
-              delete inventory.collecting[category][itemName];
-            }
-          }
-          
-          await saveInventory(inventory);
-          
-          const itemList = myWorkingItems.map(item => `${getItemIcon(item, inventory)} ${item}`).join(', ');
-          
-          return await interaction.reply({
-            content: `✅ **${category}** 카테고리에서 ${isCrafting ? '제작' : '수집'} 중단 완료!\n\n중단된 항목 (${myWorkingItems.length}개):\n${itemList}`,
-            ephemeral: true
-          });
-        }
-        
-        // 작업 중이 아니면 시작 메뉴 표시
-        // 작업 중인 사람 정보 초기화
-        if (isCrafting) {
-          if (!inventory.crafting.crafting) {
-            inventory.crafting.crafting = {};
-          }
-          if (!inventory.crafting.crafting[category]) {
-            inventory.crafting.crafting[category] = {};
-          }
-        } else {
-          if (!inventory.collecting) {
-            inventory.collecting = {};
-          }
-          if (!inventory.collecting[category]) {
-            inventory.collecting[category] = {};
-          }
-        }
-        
-        // 현재 카테고리의 아이템 목록 생성
-        const items = Object.keys(targetData.categories[category]);
-        const tags = getAllTags(category, isCrafting ? 'crafting' : 'inventory', inventory);
-        
-        const itemOptions = items.map(item => {
-          const itemData = targetData.categories[category][item];
-          const customEmoji = itemData?.emoji;
-          const percentage = (itemData.quantity / itemData.required) * 100;
-          const tag = getItemTag(item, category, isCrafting ? 'crafting' : 'inventory', inventory);
-          
-          // 작업 중인 사람 확인
-          let workingUser = null;
-          if (isCrafting) {
-            workingUser = inventory.crafting?.crafting?.[category]?.[item];
-          } else {
-            workingUser = inventory.collecting?.[category]?.[item];
-          }
-          
-          let label = item;
-          let description = undefined;
-          
-          if (percentage >= 100) {
-            label = `${item} (완료됨 ${Math.round(percentage)}%)`;
-            description = `✅ 이미 목표 수량을 달성했습니다 (${Math.round(percentage)}%)${tag ? ` [${tag}]` : ''}`;
-          } else if (workingUser) {
-            label = `${item} (${workingUser.userName} 작업중)`;
-            description = `⚠️ ${workingUser.userName}님이 ${isCrafting ? '제작' : '수집'} 중입니다${tag ? ` [${tag}]` : ''}`;
-          } else if (tag) {
-            description = `🏷️ ${tag}`;
-          }
-          
-          return {
-            label: label,
-            value: `item_${item}`,
-            emoji: customEmoji || getItemIcon(item, inventory),
-            description: description
-          };
-        });
-        
-        // 태그 옵션 추가
-        const tagOptions = tags.map(tagName => {
-          const tagItems = getItemsByTag(tagName, category, isCrafting ? 'crafting' : 'inventory', inventory);
-          return {
-            label: `🏷️ ${tagName} (${tagItems.length}개 항목)`,
-            value: `tag_${tagName}`,
-            description: `"${tagName}" 태그의 모든 항목 선택`
-          };
-        });
-        
-        const allOptions = [...tagOptions, ...itemOptions];
-        
-        if (allOptions.length === 0) {
-          return await interaction.reply({ 
-            content: `❌ "${category}" 카테고리에 아이템이 없습니다.`, 
-            ephemeral: true 
-          });
-        }
-        
-        // Discord 제한: 최대 25개 옵션 - 페이지네이션
-        const pageSize = 25;
-        const totalPages = Math.ceil(allOptions.length / pageSize);
-        const page = 0; // 첫 페이지
-        const startIdx = page * pageSize;
-        const endIdx = startIdx + pageSize;
-        const limitedOptions = allOptions.slice(startIdx, endIdx);
-        
-        // 선택 메뉴 생성
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_item_${isCrafting ? 'crafting' : 'collecting'}_${category}`)
-          .setPlaceholder(`${isCrafting ? '제작' : '수집'}할 아이템 또는 태그를 선택하세요`)
-          .addOptions(limitedOptions);
-        
-        const rows = [new ActionRowBuilder().addComponents(selectMenu)];
-        
-        // 페이지네이션 버튼 추가 (2페이지 이상일 때)
-        if (totalPages > 1) {
-          const prevButton = new ButtonBuilder()
-            .setCustomId(`page_prev_${isCrafting ? 'crafting' : 'collecting'}_${category}_${page}`)
-            .setLabel('◀ 이전')
-            .setStyle(ButtonStyle.Secondary)
-            .setDisabled(page === 0);
-          
-          const nextButton = new ButtonBuilder()
-            .setCustomId(`page_next_${isCrafting ? 'crafting' : 'collecting'}_${category}_${page}`)
-            .setLabel('다음 ▶')
-            .setStyle(ButtonStyle.Secondary)
-            .setDisabled(page === totalPages - 1);
-          
-          const pageInfo = new ButtonBuilder()
-            .setCustomId(`page_info_${page}`)
-            .setLabel(`${page + 1} / ${totalPages}`)
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(true);
-          
-          rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
-        }
-        
-        let contentMessage = `${isCrafting ? '🔨' : '📦'} **${category}** 카테고리에서 ${isCrafting ? '제작' : '수집'}할 아이템 또는 태그를 선택하세요:`;
-        if (tags.length > 0) {
-          contentMessage += '\n\n💡 태그를 선택하면 해당 태그의 모든 항목이 선택됩니다.';
-        }
-        if (totalPages > 1) {
-          contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${allOptions.length}개 항목)`;
-        }
-        
-        await interaction.reply({
-          content: contentMessage,
-          components: rows,
-          ephemeral: true
-        });
-        
-      } catch (error) {
-        console.error('❌ 버튼 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+      // crafting_stop은 제외
+      if (!interaction.customId.startsWith('stop_collecting_') && !interaction.customId.startsWith('stop_crafting_')) {
+        return await handleWorkButton(interaction);
       }
     }
     
     else if (interaction.customId.startsWith('page_prev_') || interaction.customId.startsWith('page_next_')) {
-      try {
-        const isNext = interaction.customId.startsWith('page_next_');
-        const prefix = isNext ? 'page_next_' : 'page_prev_';
-        const parts = interaction.customId.replace(prefix, '').split('_');
-        const actionType = parts[0]; // 'crafting' or 'collecting'
-        const currentPage = parseInt(parts[parts.length - 1]);
-        const category = parts.slice(1, -1).join('_');
-        
-        const isCrafting = actionType === 'crafting';
-        const newPage = isNext ? currentPage + 1 : currentPage - 1;
-        
-        const inventory = await loadInventory();
-        const targetData = isCrafting ? inventory.crafting : inventory;
-        const tags = getAllTags(category, isCrafting ? 'crafting' : 'inventory', inventory);
-        const items = Object.keys(targetData.categories[category]);
-        
-        // 태그 옵션
-        const tagOptions = tags.map(tagName => {
-          const tagItems = getItemsByTag(tagName, category, isCrafting ? 'crafting' : 'inventory', inventory);
-          return {
-            label: `🏷️ ${tagName} (${tagItems.length}개 항목)`,
-            value: `tag_${tagName}`,
-            description: `"${tagName}" 태그의 모든 항목 선택`
-          };
-        });
-        
-        // 아이템 옵션
-        const itemOptions = items.map(item => {
-          const itemData = targetData.categories[category][item];
-          const customEmoji = itemData?.emoji;
-          const percentage = (itemData.quantity / itemData.required) * 100;
-          const tag = getItemTag(item, category, isCrafting ? 'crafting' : 'inventory', inventory);
-          
-          let workingUser = null;
-          if (isCrafting) {
-            workingUser = inventory.crafting?.crafting?.[category]?.[item];
-          } else {
-            workingUser = inventory.collecting?.[category]?.[item];
-          }
-          
-          let label = item;
-          let description = undefined;
-          
-          if (percentage >= 100) {
-            label = `${item} (완료됨 ${Math.round(percentage)}%)`;
-            description = `✅ 이미 목표 수량을 달성했습니다 (${Math.round(percentage)}%)${tag ? ` [${tag}]` : ''}`;
-          } else if (workingUser) {
-            label = `${item} (${workingUser.userName} 작업중)`;
-            description = `⚠️ ${workingUser.userName}님이 ${isCrafting ? '제작' : '수집'} 중입니다${tag ? ` [${tag}]` : ''}`;
-          } else if (tag) {
-            description = `🏷️ ${tag}`;
-          }
-          
-          return {
-            label: label,
-            value: `item_${item}`,
-            emoji: customEmoji || getItemIcon(item, inventory),
-            description: description
-          };
-        });
-        
-        const allOptions = [...tagOptions, ...itemOptions];
-        
-        // 페이지네이션
-        const pageSize = 25;
-        const totalPages = Math.ceil(allOptions.length / pageSize);
-        const startIdx = newPage * pageSize;
-        const endIdx = startIdx + pageSize;
-        const limitedOptions = allOptions.slice(startIdx, endIdx);
-        
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_item_${isCrafting ? 'crafting' : 'collecting'}_${category}`)
-          .setPlaceholder(`${isCrafting ? '제작' : '수집'}할 아이템 또는 태그를 선택하세요`)
-          .addOptions(limitedOptions);
-        
-        const rows = [new ActionRowBuilder().addComponents(selectMenu)];
-        
-        // 페이지네이션 버튼
-        const prevButton = new ButtonBuilder()
-          .setCustomId(`page_prev_${isCrafting ? 'crafting' : 'collecting'}_${category}_${newPage}`)
-          .setLabel('◀ 이전')
-          .setStyle(ButtonStyle.Secondary)
-          .setDisabled(newPage === 0);
-        
-        const nextButton = new ButtonBuilder()
-          .setCustomId(`page_next_${isCrafting ? 'crafting' : 'collecting'}_${category}_${newPage}`)
-          .setLabel('다음 ▶')
-          .setStyle(ButtonStyle.Secondary)
-          .setDisabled(newPage === totalPages - 1);
-        
-        const pageInfo = new ButtonBuilder()
-          .setCustomId(`page_info_${newPage}`)
-          .setLabel(`${newPage + 1} / ${totalPages}`)
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(true);
-        
-        rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
-        
-        let contentMessage = `${isCrafting ? '🔨' : '📦'} **${category}** 카테고리에서 ${isCrafting ? '제작' : '수집'}할 아이템 또는 태그를 선택하세요:`;
-        if (tags.length > 0) {
-          contentMessage += '\n\n💡 태그를 선택하면 해당 태그의 모든 항목이 선택됩니다.';
-        }
-        contentMessage += `\n\n📄 페이지 ${newPage + 1}/${totalPages} (전체 ${allOptions.length}개 항목)`;
-        
-        await interaction.update({
-          content: contentMessage,
-          components: rows
-        });
-        
-      } catch (error) {
-        console.error('❌ 페이지 이동 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      // 작업 페이지 이동 (collecting/crafting)
+      if (interaction.customId.includes('_collecting_') || interaction.customId.includes('_crafting_')) {
+        return await handleWorkPageButton(interaction);
       }
     }
     
     else if (interaction.customId.startsWith('stop_collecting_') || interaction.customId.startsWith('stop_crafting_')) {
-      try {
-        const isCrafting = interaction.customId.startsWith('stop_crafting_');
-        const prefix = isCrafting ? 'stop_crafting_' : 'stop_collecting_';
-        const parts = interaction.customId.replace(prefix, '').split('_');
-        const category = parts[0];
-        const itemName = parts.slice(1).join('_');
-        
-        console.log(`${isCrafting ? '🔨' : '📦'} 중단 버튼 클릭`);
-        console.log('  - 카테고리:', category);
-        console.log('  - 아이템:', itemName);
-        
-        const inventory = await loadInventory();
-        
-        if (isCrafting) {
-          if (inventory.crafting?.crafting?.[category]?.[itemName]) {
-            delete inventory.crafting.crafting[category][itemName];
-            await saveInventory(inventory);
-            
-            await interaction.update({
-              content: `✅ **${itemName}** 제작을 중단했습니다.`,
-              components: []
-            });
-            console.log(`✅ ${itemName} 제작 중단 완료`);
-            
-            // 15초 후 메시지 삭제
-            setTimeout(async () => {
-              try {
-                await interaction.deleteReply();
-              } catch (error) {
-                // 이미 삭제되었거나 삭제할 수 없는 경우 무시
-              }
-            }, 15000);
-          } else {
-            await interaction.update({
-              content: `⚠️ **${itemName}** 제작 정보를 찾을 수 없습니다.`,
-              components: []
-            });
-            console.log(`⚠️ ${itemName} 제작 정보 없음`);
-          }
-        } else {
-          if (inventory.collecting?.[category]?.[itemName]) {
-            delete inventory.collecting[category][itemName];
-            await saveInventory(inventory);
-            
-            await interaction.update({
-              content: `✅ **${itemName}** 수집을 중단했습니다.`,
-              components: []
-            });
-            console.log(`✅ ${itemName} 수집 중단 완료`);
-            
-            // 15초 후 메시지 삭제
-            setTimeout(async () => {
-              try {
-                await interaction.deleteReply();
-              } catch (error) {
-                // 이미 삭제되었거나 삭제할 수 없는 경우 무시
-              }
-            }, 15000);
-          } else {
-            await interaction.update({
-              content: `⚠️ **${itemName}** 수집 정보를 찾을 수 없습니다.`,
-              components: []
-            });
-            console.log(`⚠️ ${itemName} 수집 정보 없음`);
-          }
-        }
-      } catch (error) {
-        console.error('❌ 중단 에러:', error);
-        await interaction.reply({ 
-          content: `❌ 오류가 발생했습니다: ${error.message}`, 
-          ephemeral: true 
-        }).catch(() => {});
-      }
+      return await handleStopWorkButton(interaction);
     }
     
+    // ============================================
+    // 10. 수량 액션 핸들러 (분리됨)
+    // ============================================
     else if (interaction.customId.startsWith('quantity_add_') || 
              interaction.customId.startsWith('quantity_edit_') || 
              interaction.customId.startsWith('quantity_subtract_') ||
              interaction.customId.startsWith('quantity_edit_required_')) {
-      try {
-        console.log('🔘 수량 추가/수정/차감/목표수정 버튼 클릭');
-        console.log('  - customId:', interaction.customId);
-        
-        // quantity_add_inventory_해양_산호 형식 파싱
-        // 마지막 _를 기준으로 아이템명 분리
-        const lastUnderscoreIndex = interaction.customId.lastIndexOf('_');
-        const selectedItem = interaction.customId.substring(lastUnderscoreIndex + 1);
-        const prefix = interaction.customId.substring(0, lastUnderscoreIndex);
-        const parts = prefix.split('_');
-        
-        let action, type, category;
-        // quantity_edit_required_inventory_해양 형식 처리
-        if (parts[1] === 'edit' && parts[2] === 'required') {
-          action = 'edit_required';
-          type = parts[3];
-          category = parts.slice(4).join('_');
-        } else {
-          action = parts[1]; // 'add', 'edit', or 'subtract'
-          type = parts[2]; // 'inventory' or 'crafting'
-          category = parts.slice(3).join('_');
-        }
-        
-        console.log('  - action:', action);
-        console.log('  - type:', type);
-        console.log('  - category:', category);
-        console.log('  - selectedItem:', selectedItem);
-        
-        const inventory = await loadInventory();
-        const targetData = type === 'inventory' ? inventory : inventory.crafting;
-        
-        console.log('  - targetData.categories:', Object.keys(targetData.categories || {}));
-        
-        if (!targetData.categories[category]) {
-          console.error('❌ 카테고리를 찾을 수 없습니다:', category);
-          return await interaction.reply({ 
-            content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, 
-            ephemeral: true 
-          });
-        }
-        
-        if (!targetData.categories[category][selectedItem]) {
-          console.error('❌ 아이템을 찾을 수 없습니다:', selectedItem);
-          return await interaction.reply({ 
-            content: `❌ "${selectedItem}" 아이템을 "${category}" 카테고리에서 찾을 수 없습니다.`, 
-            ephemeral: true 
-          });
-        }
-        
-        const itemData = targetData.categories[category][selectedItem];
-        const current = formatQuantity(itemData.quantity);
-        const required = formatQuantity(itemData.required);
-        
-        console.log('  - itemData:', itemData);
-        console.log('✅ 모달 생성 시작');
-        
-        // 모달 생성
-        const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
-        
-        let modalTitle, boxesLabel, boxesPlaceholder, boxesDefault, setsLabel, setsPlaceholder, setsDefault, itemsLabel, itemsPlaceholder, itemsDefault;
-        
-        if (action === 'add') {
-          modalTitle = `${selectedItem} 추가`;
-          boxesLabel = '추가할 상자 수 (1상자 = 54세트 = 3456개)';
-          boxesPlaceholder = '예: 0';
-          boxesDefault = '';
-          setsLabel = '추가할 세트 수 (1세트 = 64개)';
-          setsPlaceholder = '예: 2';
-          setsDefault = '';
-          itemsLabel = '추가할 낱개 수';
-          itemsPlaceholder = '예: 32';
-          itemsDefault = '';
-        } else if (action === 'subtract') {
-          modalTitle = `${selectedItem} 차감`;
-          boxesLabel = '차감할 상자 수 (1상자 = 54세트 = 3456개)';
-          boxesPlaceholder = '예: 0';
-          boxesDefault = '';
-          setsLabel = '차감할 세트 수 (1세트 = 64개)';
-          setsPlaceholder = '예: 1';
-          setsDefault = '';
-          itemsLabel = '차감할 낱개 수';
-          itemsPlaceholder = '예: 32';
-          itemsDefault = '';
-        } else if (action === 'edit_required') {
-          modalTitle = `${selectedItem} 목표 수정 (현재: ${required.boxes}상자/${required.sets}세트/${required.items}개)`;
-          boxesLabel = '목표 상자 수 (1상자 = 54세트 = 3456개)';
-          boxesPlaceholder = '예: 0';
-          boxesDefault = required.boxes.toString();
-          setsLabel = '목표 세트 수 (1세트 = 64개)';
-          setsPlaceholder = '예: 10';
-          setsDefault = required.sets.toString();
-          itemsLabel = '목표 낱개 수';
-          itemsPlaceholder = '예: 32';
-          itemsDefault = required.items.toString();
-        } else {
-          modalTitle = `${selectedItem} 수정 (현재: ${current.boxes}상자/${current.sets}세트/${current.items}개)`;
-          boxesLabel = '설정할 상자 수 (1상자 = 54세트 = 3456개)';
-          boxesPlaceholder = '예: 0';
-          boxesDefault = current.boxes.toString();
-          setsLabel = '설정할 세트 수 (1세트 = 64개)';
-          setsPlaceholder = '예: 5';
-          setsDefault = current.sets.toString();
-          itemsLabel = '설정할 낱개 수';
-          itemsPlaceholder = '예: 32';
-          itemsDefault = current.items.toString();
-        }
-        
-        const modal = new ModalBuilder()
-          .setCustomId(`modal_${action}_${type}_${category}_${selectedItem}`)
-          .setTitle(modalTitle);
-        
-        const boxesInput = new TextInputBuilder()
-          .setCustomId('boxes_change')
-          .setLabel(boxesLabel)
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder(boxesPlaceholder)
-          .setValue(boxesDefault)
-          .setRequired(false);
-        
-        const setsInput = new TextInputBuilder()
-          .setCustomId('sets_change')
-          .setLabel(setsLabel)
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder(setsPlaceholder)
-          .setValue(setsDefault)
-          .setRequired(false);
-        
-        const itemsInput = new TextInputBuilder()
-          .setCustomId('items_change')
-          .setLabel(itemsLabel)
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder(itemsPlaceholder)
-          .setValue(itemsDefault)
-          .setRequired(false);
-        
-        const row1 = new ActionRowBuilder().addComponents(boxesInput);
-        const row2 = new ActionRowBuilder().addComponents(setsInput);
-        const row3 = new ActionRowBuilder().addComponents(itemsInput);
-        modal.addComponents(row1, row2, row3);
-        
-        console.log('✅ 모달 표시 시도');
-        await interaction.showModal(modal);
-        console.log('✅ 모달 표시 완료');
-        
-      } catch (error) {
-        console.error('❌ 수량관리 액션 에러:', error);
-        console.error('❌ 에러 스택:', error.stack);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
-      }
+      return await handleQuantityActionButton(interaction);
     }
     
+    // ============================================
+    // 11. 레시피 플로우 핸들러 (분리됨)
+    // ============================================
     else if (interaction.customId.startsWith('add_recipe_') || interaction.customId.startsWith('skip_recipe_')) {
-      try {
-        const isSkip = interaction.customId.startsWith('skip_recipe_');
-        const prefix = isSkip ? 'skip_recipe_' : 'add_recipe_';
-        const parts = interaction.customId.replace(prefix, '').split('_');
-        const category = parts[0];
-        const itemName = parts.slice(1).join('_');
-        
-        if (isSkip) {
-          await interaction.update({
-            content: `✅ **${itemName}** 제작품이 추가되었습니다. 나중에 \`/레시피수정\` 명령어로 레시피를 추가할 수 있습니다.`,
-            embeds: [],
-            components: []
-          });
-          
-          setTimeout(async () => {
-            try {
-              await interaction.deleteReply();
-            } catch (error) {}
-          }, 15000);
-          return;
-        }
-        
-        // 레시피 추가 - 재료 선택 메뉴 표시
-        const inventory = await loadInventory();
-        
-        // 같은 카테고리의 재고 아이템 목록 가져오기
-        if (!inventory.categories[category] || Object.keys(inventory.categories[category]).length === 0) {
-          return await interaction.update({
-            content: `❌ "${category}" 카테고리에 재료가 없습니다. 먼저 재고 목록에 재료를 추가해주세요.`,
-            embeds: [],
-            components: []
-          });
-        }
-        
-        const materials = Object.keys(inventory.categories[category]);
-        const materialOptions = materials.map(mat => ({
-          label: mat,
-          value: mat,
-          emoji: getItemIcon(mat, inventory)
-        }));
-        
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_recipe_material_${category}_${itemName}_1`)
-          .setPlaceholder('재료 1을 선택하세요 (필수)')
-          .addOptions(materialOptions);
-        
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-        
-        await interaction.update({
-          content: `📝 **${itemName}** 레시피 추가\n\n**1단계:** 첫 번째 재료를 선택하세요`,
-          embeds: [],
-          components: [row]
-        });
-        
-      } catch (error) {
-        console.error('❌ 레시피 추가 버튼 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
-      }
-    }
-    
-    else if (interaction.customId.startsWith('add_more_recipe_edit_') || interaction.customId.startsWith('finish_recipe_edit_')) {
-      try {
-        const isFinish = interaction.customId.startsWith('finish_recipe_edit_');
-        const prefix = isFinish ? 'finish_recipe_edit_' : 'add_more_recipe_edit_';
-        const parts = interaction.customId.replace(prefix, '').split('_');
-        const category = parts[0];
-        const step = isFinish ? null : parseInt(parts[parts.length - 1]);
-        const itemName = isFinish ? parts.slice(1).join('_') : parts.slice(1, -1).join('_');
-        
-        if (isFinish) {
-          const inventory = await loadInventory();
-          const recipe = inventory.crafting.recipes?.[category]?.[itemName] || [];
-          const recipeText = recipe
-            .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
-            .join('\n');
-          
-          await interaction.update({
-            content: `✅ **${itemName}** 레시피 수정 완료!\n\n**새 레시피:**\n${recipeText}`,
-            components: []
-          });
-          
-          setTimeout(async () => {
-            try {
-              await interaction.deleteReply();
-            } catch (error) {}
-          }, 15000);
-          return;
-        }
-        
-        // 다음 재료 선택
-        const inventory = await loadInventory();
-        const materials = Object.keys(inventory.categories[category]);
-        const materialOptions = materials.map(mat => ({
-          label: mat,
-          value: mat,
-          emoji: getItemIcon(mat, inventory)
-        }));
-        
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_recipe_material_edit_${category}_${itemName}_${step}`)
-          .setPlaceholder(`재료 ${step}을 선택하세요`)
-          .addOptions(materialOptions);
-        
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-        
-        const currentRecipe = inventory.crafting.recipes[category][itemName]
-          .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
-          .join('\n');
-        
-        await interaction.update({
-          content: `✏️ **${itemName}** 레시피 수정\n\n**현재 레시피:**\n${currentRecipe}\n\n**${step}단계:** ${step}번째 재료를 선택하세요`,
-          components: [row]
-        });
-        
-      } catch (error) {
-        console.error('❌ 레시피 수정 버튼 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
-      }
+      return await handleRecipeAddSkipButton(interaction);
     }
     
     else if (interaction.customId.startsWith('add_more_recipe_') || interaction.customId.startsWith('finish_recipe_')) {
-      try {
-        const isFinish = interaction.customId.startsWith('finish_recipe_');
-        const prefix = isFinish ? 'finish_recipe_' : 'add_more_recipe_';
-        const parts = interaction.customId.replace(prefix, '').split('_');
-        const category = parts[0];
-        const step = isFinish ? null : parseInt(parts[parts.length - 1]);
-        const itemName = isFinish ? parts.slice(1).join('_') : parts.slice(1, -1).join('_');
-        
-        if (isFinish) {
-          const inventory = await loadInventory();
-          const recipe = inventory.crafting.recipes?.[category]?.[itemName] || [];
-          const recipeText = recipe
-            .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
-            .join('\n');
-          
-          await interaction.update({
-            content: `✅ **${itemName}** 레시피 추가 완료!\n\n**레시피:**\n${recipeText}`,
-            components: []
-          });
-          
-          setTimeout(async () => {
-            try {
-              await interaction.deleteReply();
-            } catch (error) {}
-          }, 15000);
-          return;
-        }
-        
-        // 다음 재료 선택
-        const inventory = await loadInventory();
-        const materials = Object.keys(inventory.categories[category]);
-        const materialOptions = materials.map(mat => ({
-          label: mat,
-          value: mat,
-          emoji: getItemIcon(mat, inventory)
-        }));
-        
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_recipe_material_${category}_${itemName}_${step}`)
-          .setPlaceholder(`재료 ${step}을 선택하세요`)
-          .addOptions(materialOptions);
-        
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-        
-        const currentRecipe = inventory.crafting.recipes[category][itemName]
-          .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
-          .join('\n');
-        
-        await interaction.update({
-          content: `📝 **${itemName}** 레시피 추가\n\n**현재 레시피:**\n${currentRecipe}\n\n**${step}단계:** ${step}번째 재료를 선택하세요`,
-          components: [row]
-        });
-        
-      } catch (error) {
-        console.error('❌ 레시피 버튼 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
-      }
+      return await handleRecipeMoreFinishButton(interaction);
     }
     
-    // 기여도 초기화 확인 버튼
+    // ============================================
+    // 12. 기여도 초기화 핸들러 (분리됨)
+    // ============================================
     else if (interaction.customId === 'confirm_contribution_reset') {
-      try {
-        const inventory = await loadInventory();
-        const historyCount = inventory.history?.length || 0;
-        
-        // 히스토리 초기화
-        inventory.history = [];
-        await saveInventory(inventory);
-        
-        const successEmbed = new EmbedBuilder()
-          .setColor(0x57F287)
-          .setTitle('✅ 기여도 초기화 완료')
-          .setDescription([
-            `**${historyCount}개**의 수정 내역이 삭제되었습니다.`,
-            '',
-            '모든 기여도 통계가 초기화되었습니다.'
-          ].join('\n'));
-        
-        await interaction.update({ 
-          embeds: [successEmbed], 
-          components: [] 
-        });
-        
-        console.log(`✅ 기여도 초기화 완료 (${historyCount}개 삭제)`);
-        
-        // 30초 후 메시지 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {
-            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
-          }
-        }, 30000);
-        
-      } catch (error) {
-        console.error('❌ 기여도 초기화 에러:', error);
-        await interaction.reply({ 
-          content: `❌ 오류가 발생했습니다: ${error.message}`, 
-          ephemeral: true 
-        }).catch(() => {});
-      }
+      return await handleConfirmContributionReset(interaction);
     }
     
-    // 기여도 초기화 취소 버튼
     else if (interaction.customId === 'cancel_contribution_reset') {
-      try {
-        const cancelEmbed = new EmbedBuilder()
-          .setColor(0x5865F2)
-          .setTitle('❌ 기여도 초기화 취소')
-          .setDescription('기여도 초기화가 취소되었습니다.');
-        
-        await interaction.update({ 
-          embeds: [cancelEmbed], 
-          components: [] 
-        });
-        
-        console.log('❌ 기여도 초기화 취소됨');
-        
-        // 15초 후 메시지 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {
-            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
-          }
-        }, 15000);
-        
-      } catch (error) {
-        console.error('❌ 취소 버튼 에러:', error);
-        await interaction.reply({ 
-          content: `❌ 오류가 발생했습니다: ${error.message}`, 
-          ephemeral: true 
-        }).catch(() => {});
-      }
+      return await handleCancelContributionReset(interaction);
     }
 }
