@@ -97,6 +97,8 @@ export async function handleUiModeButton(interaction) {
     }
     
     console.log('📏 Embed 생성 완료, totalPages:', totalPages);
+    console.log('📏 Embed fields:', embed.data.fields?.length);
+    console.log('📏 Embed description length:', embed.data.description?.length);
     
     const messageId = interaction.message.id;
     const isAutoRefreshing = autoRefreshTimers?.has(messageId) || false;
@@ -104,12 +106,17 @@ export async function handleUiModeButton(interaction) {
     
     console.log('📏 Buttons 생성 완료, rows:', buttons?.length);
     
+    // Embed를 JSON으로 변환하여 크기 확인
+    const embedJSON = embed.toJSON();
+    const embedString = JSON.stringify(embedJSON);
+    console.log('📏 Embed JSON 크기:', embedString.length, 'bytes');
+    
     // followUp 사용하지 않고 원본 메시지 직접 수정
     await interaction.client.rest.patch(
       `/channels/${interaction.channelId}/messages/${interaction.message.id}`,
       {
         body: {
-          embeds: [embed.toJSON()],
+          embeds: [embedJSON],
           components: buttons.map(row => row.toJSON())
         }
       }
