@@ -2859,29 +2859,23 @@ client.on('interactionCreate', async (interaction) => {
           }
         }
         
-        // 이미 작업 중이면 중단 메뉴 표시
+        // 이미 작업 중이면 일괄 중단
         if (myWorkingItems.length > 0) {
-          const itemOptions = myWorkingItems.map(item => {
-            const icon = getItemIcon(item, inventory);
-            return {
-              label: item,
-              value: item,
-              emoji: icon,
-              description: `${isCrafting ? '제작' : '수집'} 중단`
-            };
-          });
+          // 모든 작업 중인 항목 중단
+          for (const itemName of myWorkingItems) {
+            if (isCrafting) {
+              delete inventory.crafting.crafting[category][itemName];
+            } else {
+              delete inventory.collecting[category][itemName];
+            }
+          }
           
-          const { StringSelectMenuBuilder } = await import('discord.js');
-          const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId(`select_stop_${isCrafting ? 'crafting' : 'collecting'}_${category}`)
-            .setPlaceholder('중단할 항목을 선택하세요')
-            .addOptions(itemOptions);
+          await saveInventory(inventory);
           
-          const row = new ActionRowBuilder().addComponents(selectMenu);
+          const itemList = myWorkingItems.map(item => `${getItemIcon(item, inventory)} ${item}`).join(', ');
           
           return await interaction.reply({
-            content: `⏹️ **${category}** 카테고리에서 ${isCrafting ? '제작' : '수집'} 중인 항목:\n\n중단할 항목을 선택하세요.`,
-            components: [row],
+            content: `✅ **${category}** 카테고리에서 ${isCrafting ? '제작' : '수집'} 중단 완료!\n\n중단된 항목 (${myWorkingItems.length}개):\n${itemList}`,
             ephemeral: true
           });
         }
@@ -4030,49 +4024,7 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
     
-    else if (interaction.customId.startsWith('select_stop_')) {
-      try {
-        const parts = interaction.customId.replace('select_stop_', '').split('_');
-        const actionType = parts[0]; // 'crafting' or 'collecting'
-        const category = parts.slice(1).join('_');
-        const selectedItem = interaction.values[0];
-        const isCrafting = actionType === 'crafting';
-        
-        const inventory = await loadInventory();
-        
-        // 작업 중단
-        if (isCrafting) {
-          if (inventory.crafting?.crafting?.[category]?.[selectedItem]) {
-            delete inventory.crafting.crafting[category][selectedItem];
-          }
-        } else {
-          if (inventory.collecting?.[category]?.[selectedItem]) {
-            delete inventory.collecting[category][selectedItem];
-          }
-        }
-        
-        await saveInventory(inventory);
-        
-        const icon = getItemIcon(selectedItem, inventory);
-        await interaction.update({
-          content: `✅ ${icon} **${selectedItem}** ${isCrafting ? '제작' : '수집'}을 중단했습니다.`,
-          components: []
-        });
-        
-        console.log(`⏹️ ${interaction.user.displayName}님이 ${category} - ${selectedItem} ${isCrafting ? '제작' : '수집'} 중단`);
-        
-        // 15초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, 15000);
-        
-      } catch (error) {
-        console.error('❌ 중단 선택 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-      }
-    }
+    // select_stop_ 핸들러 제거됨 - 이제 일괄 중단 처리
     
     else if (interaction.customId.startsWith('select_item_')) {
       try {
