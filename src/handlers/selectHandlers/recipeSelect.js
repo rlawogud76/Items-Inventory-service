@@ -52,7 +52,7 @@ export async function handleRecipeMaterialSelect(interaction) {
   try {
     const parts = interaction.customId.replace('select_recipe_material_', '').split('_');
     const category = parts[0];
-    const step = parts[parts.length - 1]; // 1, 2, 3
+    const step = parseInt(parts[parts.length - 1]); // 문자열을 숫자로 변환
     const itemName = parts.slice(1, -1).join('_');
     const selectedMaterial = interaction.values[0];
     
