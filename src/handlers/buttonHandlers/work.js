@@ -390,6 +390,13 @@ export async function handleStopWorkButton(interaction) {
           components: []
         });
         console.log(`⚠️ ${itemName} 제작 정보 없음`);
+        
+        // 15초 후 메시지 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 15000);
       }
     } else {
       if (inventory.collecting?.[category]?.[itemName]) {
@@ -416,6 +423,13 @@ export async function handleStopWorkButton(interaction) {
           components: []
         });
         console.log(`⚠️ ${itemName} 수집 정보 없음`);
+        
+        // 15초 후 메시지 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 15000);
       }
     }
   } catch (error) {
