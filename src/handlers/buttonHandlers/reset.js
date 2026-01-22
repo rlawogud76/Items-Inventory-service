@@ -145,26 +145,53 @@ export async function handleResetTypeButton(interaction) {
         };
       });
       
-      // Discord 제한: 최대 25개 옵션
-      const limitedOptions = itemOptions.slice(0, 25);
-      const hasMore = itemOptions.length > 25;
+      // Discord 제한: 최대 25개 옵션 - 페이지네이션
+      const pageSize = 25;
+      const totalPages = Math.ceil(itemOptions.length / pageSize);
+      const page = 0; // 첫 페이지
+      const startIdx = page * pageSize;
+      const endIdx = startIdx + pageSize;
+      const limitedOptions = itemOptions.slice(startIdx, endIdx);
       
-      const { StringSelectMenuBuilder } = await import('discord.js');
+      const { StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
       const selectMenu = new StringSelectMenuBuilder()
         .setCustomId(`select_reset_${type}_${category}`)
         .setPlaceholder('초기화할 항목을 선택하세요')
         .addOptions(limitedOptions);
       
-      const row = new ActionRowBuilder().addComponents(selectMenu);
+      const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+      
+      // 페이지네이션 버튼 추가 (2페이지 이상일 때)
+      if (totalPages > 1) {
+        const prevButton = new ButtonBuilder()
+          .setCustomId(`page_prev_reset_${type}_${category}_${page}`)
+          .setLabel('◀ 이전')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page === 0);
+        
+        const nextButton = new ButtonBuilder()
+          .setCustomId(`page_next_reset_${type}_${category}_${page}`)
+          .setLabel('다음 ▶')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page === totalPages - 1);
+        
+        const pageInfo = new ButtonBuilder()
+          .setCustomId(`page_info_${page}`)
+          .setLabel(`${page + 1} / ${totalPages}`)
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(true);
+        
+        rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
+      }
       
       let contentMessage = `🔄 **${category}** 카테고리에서 초기화할 ${type === 'inventory' ? '아이템' : '제작품'}을 선택하세요:`;
-      if (hasMore) {
-        contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${itemOptions.length}개)`;
+      if (totalPages > 1) {
+        contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
       }
       
       await interaction.update({
         content: contentMessage,
-        components: [row]
+        components: rows
       });
       
       // 30초 후 자동 삭제
@@ -180,5 +207,86 @@ export async function handleResetTypeButton(interaction) {
     if (!interaction.replied && !interaction.deferred) {
       await sendTemporaryReply(interaction, '오류가 발생했습니다: ' + error.message).catch(() => {});
     }
+  }
+}
+
+
+/**
+ * 초기화 페이지 이동 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleResetPageButton(interaction) {
+  try {
+    const isNext = interaction.customId.startsWith('page_next_');
+    const prefix = isNext ? 'page_next_reset_' : 'page_prev_reset_';
+    const parts = interaction.customId.replace(prefix, '').split('_');
+    const type = parts[0]; // 'inventory' or 'crafting'
+    const currentPage = parseInt(parts[parts.length - 1]);
+    const category = parts.slice(1, -1).join('_');
+    
+    const newPage = isNext ? currentPage + 1 : currentPage - 1;
+    
+    const inventory = await loadInventory();
+    const targetData = type === 'inventory' ? inventory : inventory.crafting;
+    const items = Object.keys(targetData.categories[category]);
+    
+    const itemOptions = items.map(item => {
+      const itemData = targetData.categories[category][item];
+      const customEmoji = itemData?.emoji;
+      return {
+        label: item,
+        value: item,
+        emoji: customEmoji || getItemIcon(item, inventory),
+        description: `현재: ${itemData.quantity}개`
+      };
+    });
+    
+    // 페이지네이션
+    const pageSize = 25;
+    const totalPages = Math.ceil(itemOptions.length / pageSize);
+    const startIdx = newPage * pageSize;
+    const endIdx = startIdx + pageSize;
+    const limitedOptions = itemOptions.slice(startIdx, endIdx);
+    
+    const { StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`select_reset_${type}_${category}`)
+      .setPlaceholder('초기화할 항목을 선택하세요')
+      .addOptions(limitedOptions);
+    
+    const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+    
+    // 페이지네이션 버튼
+    const prevButton = new ButtonBuilder()
+      .setCustomId(`page_prev_reset_${type}_${category}_${newPage}`)
+      .setLabel('◀ 이전')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(newPage === 0);
+    
+    const nextButton = new ButtonBuilder()
+      .setCustomId(`page_next_reset_${type}_${category}_${newPage}`)
+      .setLabel('다음 ▶')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(newPage === totalPages - 1);
+    
+    const pageInfo = new ButtonBuilder()
+      .setCustomId(`page_info_${newPage}`)
+      .setLabel(`${newPage + 1} / ${totalPages}`)
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(true);
+    
+    rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
+    
+    let contentMessage = `🔄 **${category}** 카테고리에서 초기화할 ${type === 'inventory' ? '아이템' : '제작품'}을 선택하세요:`;
+    contentMessage += `\n\n📄 페이지 ${newPage + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
+    
+    await interaction.update({
+      content: contentMessage,
+      components: rows
+    });
+    
+  } catch (error) {
+    console.error('❌ 초기화 페이지 이동 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
   }
 }

@@ -5,17 +5,19 @@ export { handlePageNavigation } from './pagination.js';
 export { handleRefresh } from './refresh.js';
 
 // 수량 관리
-export { handleQuantityButton } from './quantity.js';
+export { handleQuantityButton, handleQuantityPageButton } from './quantity.js';
 
 // 초기화
-export { handleResetButton, handleResetTypeButton } from './reset.js';
+export { handleResetButton, handleResetTypeButton, handleResetPageButton } from './reset.js';
 
 // 물품/품목 관리
 export { 
   handleManageButton, 
   handleManageAddButton, 
   handleManageRemoveButton, 
-  handleManageEditButton 
+  handleManageEditButton,
+  handleManageRemovePageButton,
+  handleManageEditPageButton
 } from './manage.js';
 
 // 태그 관리

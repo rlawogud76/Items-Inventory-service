@@ -29,12 +29,16 @@ import {
   handlePageNavigation, 
   handleRefresh,
   handleQuantityButton,
+  handleQuantityPageButton,
   handleResetButton,
   handleResetTypeButton,
+  handleResetPageButton,
   handleManageButton,
   handleManageAddButton,
   handleManageRemoveButton,
   handleManageEditButton,
+  handleManageRemovePageButton,
+  handleManageEditPageButton,
   handleManageTagButton,
   handleTagSetButton,
   handleTagRemoveButton,
@@ -183,6 +187,22 @@ export async function handleButtonInteraction(interaction) {
       // 작업 페이지 이동 (collecting/crafting)
       if (interaction.customId.includes('_collecting_') || interaction.customId.includes('_crafting_')) {
         return await handleWorkPageButton(interaction);
+      }
+      // 수량관리 페이지 이동
+      else if (interaction.customId.includes('_quantity_')) {
+        return await handleQuantityPageButton(interaction);
+      }
+      // 초기화 페이지 이동
+      else if (interaction.customId.includes('_reset_')) {
+        return await handleResetPageButton(interaction);
+      }
+      // 삭제 페이지 이동
+      else if (interaction.customId.includes('_remove_')) {
+        return await handleManageRemovePageButton(interaction);
+      }
+      // 수정 페이지 이동
+      else if (interaction.customId.includes('_edit_')) {
+        return await handleManageEditPageButton(interaction);
       }
     }
     

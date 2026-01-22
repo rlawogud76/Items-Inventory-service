@@ -2223,9 +2223,6 @@ client.on('interactionCreate', async (interaction) => {
         const row = new ActionRowBuilder().addComponents(selectMenu);
         
         let contentMessage = `🏷️ **태그: ${tagName}**\n\n"${tagName}" 태그에 추가할 항목을 선택하세요.\n💡 여러 개를 한 번에 선택할 수 있습니다.`;
-        if (hasMore) {
-          contentMessage += `\n\n⚠️ 항목이 많아 처음 25개만 표시됩니다. (전체 ${itemOptions.length}개)`;
-        }
         
         await interaction.reply({
           content: contentMessage,
