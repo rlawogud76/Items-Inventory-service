@@ -1,18 +1,18 @@
-﻿// 버튼 인터랙션 핸들러
+﻿// 버튼 인터랙션 핸들러 - 메인 라우터
 // 
 // 📋 목차:
-// ├─ 1. 페이지네이션 (page_prev_embed_, page_next_embed_)
-// ├─ 2. 새로고침 (refresh)
-// ├─ 3. 수량관리 (quantity)
-// ├─ 4. 초기화 (reset, reset_individual, reset_batch)
-// ├─ 5. 물품/품목 관리 (manage, manage_add, manage_remove, manage_edit)
-// ├─ 6. 레시피 (recipe_crafting_, recipe_view_, recipe_edit_)
-// ├─ 7. 태그 (manage_tag, tag_set_, tag_remove_, tag_view_)
-// ├─ 8. 설정 (ui_mode, bar_size)
-// ├─ 9. 작업 (collecting, crafting, stop_collecting_, stop_crafting_)
-// ├─ 10. 수량 액션 (quantity_add_, quantity_edit_, quantity_subtract_)
-// ├─ 11. 레시피 플로우 (add_recipe_, skip_recipe_, add_more_recipe_, finish_recipe_)
-// └─ 12. 기여도 초기화 (confirm_contribution_reset, cancel_contribution_reset)
+// ├─ 1. 페이지네이션 (page_prev_embed_, page_next_embed_) → pagination.js
+// ├─ 2. 새로고침 (refresh) → refresh.js
+// ├─ 3. 수량관리 (quantity) → 미분리
+// ├─ 4. 초기화 (reset, reset_individual, reset_batch) → 미분리
+// ├─ 5. 물품/품목 관리 (manage, manage_add, manage_remove, manage_edit) → 미분리
+// ├─ 6. 레시피 (recipe_crafting_, recipe_view_, recipe_edit_) → 미분리
+// ├─ 7. 태그 (manage_tag, tag_set_, tag_remove_, tag_view_) → 미분리
+// ├─ 8. 설정 (ui_mode, bar_size) → 미분리
+// ├─ 9. 작업 (collecting, crafting, stop_collecting_, stop_crafting_) → 미분리
+// ├─ 10. 수량 액션 (quantity_add_, quantity_edit_, quantity_subtract_) → 미분리
+// ├─ 11. 레시피 플로우 (add_recipe_, skip_recipe_, add_more_recipe_, finish_recipe_) → 미분리
+// └─ 12. 기여도 초기화 (confirm_contribution_reset, cancel_contribution_reset) → 미분리
 
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, saveInventory } from '../database.js';
@@ -24,82 +24,28 @@ import {
 } from '../utils.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../embeds.js';
 
+// 분리된 핸들러 import
+import { handlePageNavigation, handleRefresh } from './buttonHandlers/index.js';
+
+// 자동 새로고침 타이머 저장소
+const autoRefreshTimers = new Map();
+
 // 버튼 인터랙션 처리 함수
 export async function handleButtonInteraction(interaction) {
     console.log('버튼 클릭 감지! customId:', interaction.customId);
     
+    // ============================================
+    // 1. 페이지네이션 핸들러 (분리됨)
+    // ============================================
     if (interaction.customId.startsWith('page_prev_embed_') || interaction.customId.startsWith('page_next_embed_')) {
-      try {
-        const parts = interaction.customId.split('_');
-        const direction = parts[2]; // 'prev' or 'next'
-        const type = parts[3]; // 'inventory' or 'crafting'
-        const currentPage = parseInt(parts[parts.length - 1]);
-        const category = parts.slice(4, -1).join('_');
-        
-        const newPage = direction === 'prev' ? currentPage - 1 : currentPage + 1;
-        
-        const inventory = await loadInventory();
-        const uiMode = inventory.settings?.uiMode || 'normal';
-        const barLength = inventory.settings?.barLength || 15;
-        
-        let embed, items, totalPages;
-        
-        if (type === 'crafting') {
-          const crafting = inventory.crafting || { categories: {}, crafting: {} };
-          items = Object.entries(crafting.categories[category] || {});
-          totalPages = Math.ceil(items.length / 25);
-          embed = createCraftingEmbed(crafting, category, uiMode, barLength, newPage);
-        } else {
-          items = Object.entries(inventory.categories[category] || {});
-          totalPages = Math.ceil(items.length / 25);
-          embed = createInventoryEmbed(inventory, category, uiMode, barLength, newPage);
-        }
-        
-        const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, newPage, totalPages);
-        
-        await interaction.update({ embeds: [embed], components: buttons });
-        console.log(`📄 임베드 페이지 이동: ${currentPage + 1} → ${newPage + 1}`);
-      } catch (error) {
-        console.error('❌ 페이지 이동 에러:', error);
-        await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-      }
+      return await handlePageNavigation(interaction);
     }
     
+    // ============================================
+    // 2. 새로고침 핸들러 (분리됨)
+    // ============================================
     else if (interaction.customId.startsWith('refresh')) {
-      try {
-        const parts = interaction.customId.split('_');
-        const type = parts[1]; // 'inventory' or 'crafting'
-        const category = parts.length > 2 ? parts.slice(2).join('_') : null;
-        
-        console.log('🔄 새로고침 버튼 클릭');
-        console.log('  - customId:', interaction.customId);
-        console.log('  - 타입:', type);
-        console.log('  - 카테고리:', category || '전체');
-        
-        const inventory = await loadInventory();
-        const uiMode = inventory.settings?.uiMode || 'normal';
-        const barLength = inventory.settings?.barLength || 15;
-        let embed, buttons, items, totalPages;
-        
-        if (type === 'crafting') {
-          const crafting = inventory.crafting || { categories: {}, crafting: {} };
-          items = Object.entries(crafting.categories[category] || {});
-          totalPages = Math.ceil(items.length / 25);
-          embed = createCraftingEmbed(crafting, category, uiMode, barLength, 0);
-        } else {
-          items = Object.entries(inventory.categories[category] || {});
-          totalPages = Math.ceil(items.length / 25);
-          embed = createInventoryEmbed(inventory, category, uiMode, barLength, 0);
-        }
-        
-        buttons = createButtons(category, true, type || 'inventory', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
-        
-        await interaction.update({ embeds: [embed], components: buttons });
-        console.log('✅ 새로고침 완료');
-      } catch (error) {
-        console.error('❌ 새로고침 에러:', error);
-        await interaction.reply({ content: '새로고침 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-      }
+      return await handleRefresh(interaction);
     }
     
     else if (interaction.customId.startsWith('quantity') && 
@@ -2008,4 +1954,4 @@ export async function handleButtonInteraction(interaction) {
         }).catch(() => {});
       }
     }
-  }
+}
