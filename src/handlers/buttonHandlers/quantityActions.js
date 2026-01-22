@@ -90,7 +90,7 @@ export async function handleQuantityActionButton(interaction) {
       itemsPlaceholder = '예: 32';
       itemsDefault = '';
     } else if (action === 'edit_required') {
-      modalTitle = `${selectedItem} 목표 수정 (현재: ${required.boxes}상자/${required.sets}세트/${required.items}개)`;
+      modalTitle = `${selectedItem} 목표 수정 (현재: ${required.items}개/${required.sets}세트/${required.boxes}상자)`;
       boxesLabel = '목표 상자 수 (1상자 = 54세트 = 3456개)';
       boxesPlaceholder = '예: 0';
       boxesDefault = required.boxes.toString();
@@ -101,7 +101,7 @@ export async function handleQuantityActionButton(interaction) {
       itemsPlaceholder = '예: 32';
       itemsDefault = required.items.toString();
     } else {
-      modalTitle = `${selectedItem} 수정 (현재: ${current.boxes}상자/${current.sets}세트/${current.items}개)`;
+      modalTitle = `${selectedItem} 수정 (현재: ${current.items}개/${current.sets}세트/${current.boxes}상자)`;
       boxesLabel = '설정할 상자 수 (1상자 = 54세트 = 3456개)';
       boxesPlaceholder = '예: 0';
       boxesDefault = current.boxes.toString();

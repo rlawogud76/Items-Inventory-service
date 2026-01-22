@@ -112,14 +112,14 @@ export async function handleAddItemModal(interaction) {
       const successEmbed = new EmbedBuilder()
         .setColor(0x57F287)
         .setTitle('✅ 제작품 추가 완료')
-        .setDescription(`**카테고리:** ${category}\n${icon} **${itemName}**이(가) 추가되었습니다!\n\n**초기 수량:** ${initialQty}개 (${initialFormatted.boxes}상자/${initialFormatted.sets}세트/${initialFormatted.items}개)\n**충족 수량:** ${requiredQty}개 (${requiredFormatted.boxes}상자/${requiredFormatted.sets}세트/${requiredFormatted.items}개)\n\n레시피를 추가하시겠습니까?`);
+        .setDescription(`**카테고리:** ${category}\n${icon} **${itemName}**이(가) 추가되었습니다!\n\n**초기 수량:** ${initialQty}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n**충족 수량:** ${requiredQty}개 (${requiredFormatted.items}개/${requiredFormatted.sets}세트/${requiredFormatted.boxes}상자)\n\n레시피를 추가하시겠습니까?`);
       
       await interaction.reply({ embeds: [successEmbed], components: [row], ephemeral: true });
     } else {
       const successEmbed = new EmbedBuilder()
         .setColor(0x57F287)
         .setTitle('✅ 추가 완료')
-        .setDescription(`**카테고리:** ${category}\n${icon} **${itemName}**이(가) 추가되었습니다!\n\n**초기 수량:** ${initialQty}개 (${initialFormatted.boxes}상자/${initialFormatted.sets}세트/${initialFormatted.items}개)\n**충족 수량:** ${requiredQty}개 (${requiredFormatted.boxes}상자/${requiredFormatted.sets}세트/${requiredFormatted.items}개)`);
+        .setDescription(`**카테고리:** ${category}\n${icon} **${itemName}**이(가) 추가되었습니다!\n\n**초기 수량:** ${initialQty}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n**충족 수량:** ${requiredQty}개 (${requiredFormatted.items}개/${requiredFormatted.sets}세트/${requiredFormatted.boxes}상자)`);
       
       await interaction.reply({ embeds: [successEmbed], ephemeral: true, fetchReply: true });
       

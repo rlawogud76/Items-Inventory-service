@@ -65,15 +65,15 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
-          `**현재 수량:** ${current.boxes}상자/${current.sets}세트/${current.items}개 (총 ${data.quantity}개)`,
-          `**충족 수량:** ${required.boxes}상자/${required.sets}세트/${required.items}개 (총 ${data.required}개)`,
+          `**현재 수량:** ${current.items}개/${current.sets}세트/${current.boxes}상자 (총 ${data.quantity}개)`,
+          `**충족 수량:** ${required.items}개/${required.sets}세트/${required.boxes}상자 (총 ${data.required}개)`,
           `**진행률:** ${percentage}% ${status}`,
           `${progressBar}${craftingText}`
         ].join('\n');
       } else {
         // 일반 모드
         fieldValue = [
-          `**현재:** ${current.boxes}상자/${current.sets}세트/${current.items}개 │ **충족:** ${required.boxes}상자/${required.sets}세트/${required.items}개`,
+          `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 │ **충족:** ${required.items}개/${required.sets}세트/${required.boxes}상자`,
           `${progressBar} ${percentage}% ${status}${craftingText}`
         ].join('\n');
       }
@@ -190,15 +190,15 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
       if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
-          `**현재 수량:** ${current.boxes}상자/${current.sets}세트/${current.items}개 (총 ${data.quantity}개)`,
-          `**충족 수량:** ${required.boxes}상자/${required.sets}세트/${required.items}개 (총 ${data.required}개)`,
+          `**현재 수량:** ${current.items}개/${current.sets}세트/${current.boxes}상자 (총 ${data.quantity}개)`,
+          `**충족 수량:** ${required.items}개/${required.sets}세트/${required.boxes}상자 (총 ${data.required}개)`,
           `**진행률:** ${percentage}% ${status}`,
           `${progressBar}${collectingText}`
         ].join('\n');
       } else {
         // 일반 모드
         fieldValue = [
-          `**현재:** ${current.boxes}상자/${current.sets}세트/${current.items}개 │ **충족:** ${required.boxes}상자/${required.sets}세트/${required.items}개`,
+          `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 │ **충족:** ${required.items}개/${required.sets}세트/${required.boxes}상자`,
           `${progressBar} ${percentage}% ${status}${collectingText}`
         ].join('\n');
       }

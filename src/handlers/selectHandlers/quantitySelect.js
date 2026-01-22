@@ -44,7 +44,7 @@ export async function handleQuantitySelect(interaction) {
     const icon = getItemIcon(selectedItem, inventory);
     
     await interaction.update({
-      content: `📊 ${icon} **${selectedItem}** 수량관리\n\n**현재 수량:** ${formatted.boxes}상자/${formatted.sets}세트/${formatted.items}개 (총 ${itemData.quantity}개)\n**목표 수량:** ${itemData.required}개\n\n원하는 작업을 선택하세요:`,
+      content: `📊 ${icon} **${selectedItem}** 수량관리\n\n**현재 수량:** ${formatted.items}개/${formatted.sets}세트/${formatted.boxes}상자 (총 ${itemData.quantity}개)\n**목표 수량:** ${itemData.required}개\n\n원하는 작업을 선택하세요:`,
       components: [row]
     });
     

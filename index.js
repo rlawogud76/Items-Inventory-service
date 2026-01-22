@@ -635,7 +635,7 @@ client.on('interactionCreate', async (interaction) => {
           'edit': '수정',
           'subtract': '차감'
         };
-        const changeDetail = `${old.boxes}상자/${old.sets}세트/${old.items}개 (${oldQuantity}개) → ${newFormatted.boxes}상자/${newFormatted.sets}세트/${newFormatted.items}개 (${newQuantity}개)`;
+        const changeDetail = `${old.items}개/${old.sets}세트/${old.boxes}상자 (${oldQuantity}개) → ${newFormatted.items}개/${newFormatted.sets}세트/${newFormatted.boxes}상자 (${newQuantity}개)`;
         addHistory(inventory, type, category, itemName, 'update_quantity', 
           `[${actionLabels[action]}] ${changeDetail}`, 
           interaction.user.displayName || interaction.user.username);
@@ -665,7 +665,7 @@ client.on('interactionCreate', async (interaction) => {
         
         const successEmbed = new EmbedBuilder()
           .setColor(action === 'add' ? 0x57F287 : action === 'subtract' ? 0xED4245 : 0x5865F2)
-          .setDescription(`### ${actionEmojis[action]} ${actionLabels[action]} 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${old.boxes}상자/${old.sets}세트/${old.items}개 (${oldQuantity}개)\n↓\n${newFormatted.boxes}상자/${newFormatted.sets}세트/${newFormatted.items}개 (${newQuantity}개)${materialInfo}`);
+          .setDescription(`### ${actionEmojis[action]} ${actionLabels[action]} 완료\n**카테고리:** ${category}\n${icon} **${itemName}**\n${old.items}개/${old.sets}세트/${old.boxes}상자 (${oldQuantity}개)\n↓\n${newFormatted.items}개/${newFormatted.sets}세트/${newFormatted.boxes}상자 (${newQuantity}개)${materialInfo}`);
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
         

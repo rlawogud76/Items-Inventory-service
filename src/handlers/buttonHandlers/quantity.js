@@ -53,7 +53,7 @@ export async function handleQuantityButton(interaction) {
         label: item,
         value: item,
         emoji: customEmoji || getItemIcon(item, inventory),
-        description: `현재: ${boxes}상자/${sets}세트/${remainder}개 (${itemData.quantity}개) / 목표: ${itemData.required}개`
+        description: `현재: ${remainder}개/${sets}세트/${boxes}상자 (${itemData.quantity}개) / 목표: ${itemData.required}개`
       };
     });
     
@@ -152,7 +152,7 @@ export async function handleQuantityPageButton(interaction) {
         label: item,
         value: item,
         emoji: customEmoji || getItemIcon(item, inventory),
-        description: `현재: ${boxes}상자/${sets}세트/${remainder}개 (${itemData.quantity}개) / 목표: ${itemData.required}개`
+        description: `현재: ${remainder}개/${sets}세트/${boxes}상자 (${itemData.quantity}개) / 목표: ${itemData.required}개`
       };
     });
     

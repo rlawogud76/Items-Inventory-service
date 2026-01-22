@@ -178,7 +178,7 @@ export async function handleManageRemoveButton(interaction) {
       return {
         label: item,
         value: item,
-        description: `현재: ${formatted.boxes}상자/${formatted.sets}세트/${formatted.items}개 / 목표: ${targetData[category][item].required}개`
+        description: `현재: ${formatted.items}개/${formatted.sets}세트/${formatted.boxes}상자 / 목표: ${targetData[category][item].required}개`
       };
     });
     
@@ -278,7 +278,7 @@ export async function handleManageEditButton(interaction) {
       return {
         label: item,
         value: item,
-        description: `현재: ${formatted.boxes}상자/${formatted.sets}세트/${formatted.items}개`
+        description: `현재: ${formatted.items}개/${formatted.sets}세트/${formatted.boxes}상자`
       };
     });
     
@@ -371,7 +371,7 @@ export async function handleManageRemovePageButton(interaction) {
       return {
         label: item,
         value: item,
-        description: `현재: ${formatted.boxes}상자/${formatted.sets}세트/${formatted.items}개 / 목표: ${targetData[category][item].required}개`
+        description: `현재: ${formatted.items}개/${formatted.sets}세트/${formatted.boxes}상자 / 목표: ${targetData[category][item].required}개`
       };
     });
     
@@ -449,7 +449,7 @@ export async function handleManageEditPageButton(interaction) {
       return {
         label: item,
         value: item,
-        description: `현재: ${formatted.boxes}상자/${formatted.sets}세트/${formatted.items}개`
+        description: `현재: ${formatted.items}개/${formatted.sets}세트/${formatted.boxes}상자`
       };
     });
     

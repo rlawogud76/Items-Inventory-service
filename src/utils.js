@@ -10,10 +10,10 @@ export function formatQuantity(quantity) {
   return { boxes, sets, items };
 }
 
-// 수량을 문자열로 표시
+// 수량을 문자열로 표시 (낱개/세트/상자)
 export function formatQuantityString(quantity) {
   const { boxes, sets, items } = formatQuantity(quantity);
-  return `${boxes}상자/${sets}세트/${items}개`;
+  return `${items}개/${sets}세트/${boxes}상자`;
 }
 
 // 아이템의 태그 가져오기
