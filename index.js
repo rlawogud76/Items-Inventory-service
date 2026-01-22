@@ -162,7 +162,17 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
     const fullInventory = { crafting: crafting };
 
     const items = Object.entries(crafting.categories[categoryName]);
-    items.forEach(([itemName, data], index) => {
+    
+    // Discord 제한: 최대 25개 필드
+    const maxFields = 25;
+    const limitedItems = items.slice(0, maxFields);
+    const hasMore = items.length > maxFields;
+    
+    if (hasMore) {
+      embed.setDescription(`⚠️ 제작품이 많아 처음 ${maxFields}개만 표시됩니다. (전체 ${items.length}개)`);
+    }
+    
+    limitedItems.forEach(([itemName, data], index) => {
       const status = getStatusEmoji(data.quantity, data.required);
       const icon = getItemIcon(itemName, fullInventory);
       const progressBar = createProgressBar(data.quantity, data.required, barLength);
@@ -201,7 +211,7 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
       }
       
       // 마지막 아이템이 아니면 구분선 추가
-      if (index < items.length - 1) {
+      if (index < limitedItems.length - 1) {
         fieldValue += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       }
 
@@ -275,7 +285,17 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
     }
 
     const items = Object.entries(inventory.categories[categoryName]);
-    items.forEach(([itemName, data], index) => {
+    
+    // Discord 제한: 최대 25개 필드
+    const maxFields = 25;
+    const limitedItems = items.slice(0, maxFields);
+    const hasMore = items.length > maxFields;
+    
+    if (hasMore) {
+      embed.setDescription(`⚠️ 아이템이 많아 처음 ${maxFields}개만 표시됩니다. (전체 ${items.length}개)`);
+    }
+    
+    limitedItems.forEach(([itemName, data], index) => {
       const status = getStatusEmoji(data.quantity, data.required);
       const icon = getItemIcon(itemName, inventory);
       const progressBar = createProgressBar(data.quantity, data.required, barLength);
@@ -314,7 +334,7 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
       }
       
       // 마지막 아이템이 아니면 구분선 추가
-      if (index < items.length - 1) {
+      if (index < limitedItems.length - 1) {
         fieldValue += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       }
 
@@ -647,22 +667,31 @@ client.on('interactionCreate', async (interaction) => {
         // 먼저 응답 (3초 제한 회피)
         await interaction.deferReply();
         
-        const inventory = await loadInventory();
-        const uiMode = inventory.settings?.uiMode || 'normal';
-        const barLength = inventory.settings?.barLength || 15;
-        const embed = createInventoryEmbed(inventory, category, uiMode, barLength);
-        const buttons = createButtons(category, true, 'inventory', uiMode, barLength, inventory, interaction.user.id);
-        const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
-        
-        // 활성 메시지로 등록 (변경 감지용)
-        const messageId = reply.id;
-        activeMessages.set(messageId, {
-          interaction,
-          category,
-          type: 'inventory'
-        });
-        
-        console.log(`📌 활성 메시지 등록: ${messageId} (재고 - ${category})`);
+        try {
+          const inventory = await loadInventory();
+          const uiMode = inventory.settings?.uiMode || 'normal';
+          const barLength = inventory.settings?.barLength || 15;
+          const embed = createInventoryEmbed(inventory, category, uiMode, barLength);
+          const buttons = createButtons(category, true, 'inventory', uiMode, barLength, inventory, interaction.user.id);
+          const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
+          
+          // 활성 메시지로 등록 (변경 감지용)
+          const messageId = reply.id;
+          activeMessages.set(messageId, {
+            interaction,
+            category,
+            type: 'inventory'
+          });
+          
+          console.log(`📌 활성 메시지 등록: ${messageId} (재고 - ${category})`);
+        } catch (error) {
+          console.error('❌ 재고 표시 에러:', error);
+          await interaction.editReply({ 
+            content: `❌ 재고를 표시하는 중 오류가 발생했습니다.\n${error.message}`,
+            embeds: [],
+            components: []
+          }).catch(() => {});
+        }
       }
 
       else if (commandName === '도움말') {
@@ -1214,23 +1243,32 @@ client.on('interactionCreate', async (interaction) => {
         // 먼저 응답 (3초 제한 회피)
         await interaction.deferReply();
         
-        const inventory = await loadInventory();
-        const crafting = inventory.crafting || { categories: {}, crafting: {} };
-        const uiMode = inventory.settings?.uiMode || 'normal';
-        const barLength = inventory.settings?.barLength || 15;
-        const embed = createCraftingEmbed(crafting, category, uiMode, barLength);
-        const buttons = createButtons(category, true, 'crafting', uiMode, barLength, inventory, interaction.user.id);
-        const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
-        
-        // 활성 메시지로 등록 (변경 감지용)
-        const messageId = reply.id;
-        activeMessages.set(messageId, {
-          interaction,
-          category,
-          type: 'crafting'
-        });
-        
-        console.log(`📌 활성 메시지 등록: ${messageId} (제작 - ${category})`);
+        try {
+          const inventory = await loadInventory();
+          const crafting = inventory.crafting || { categories: {}, crafting: {} };
+          const uiMode = inventory.settings?.uiMode || 'normal';
+          const barLength = inventory.settings?.barLength || 15;
+          const embed = createCraftingEmbed(crafting, category, uiMode, barLength);
+          const buttons = createButtons(category, true, 'crafting', uiMode, barLength, inventory, interaction.user.id);
+          const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
+          
+          // 활성 메시지로 등록 (변경 감지용)
+          const messageId = reply.id;
+          activeMessages.set(messageId, {
+            interaction,
+            category,
+            type: 'crafting'
+          });
+          
+          console.log(`📌 활성 메시지 등록: ${messageId} (제작 - ${category})`);
+        } catch (error) {
+          console.error('❌ 제작 표시 에러:', error);
+          await interaction.editReply({ 
+            content: `❌ 제작 현황을 표시하는 중 오류가 발생했습니다.\n${error.message}`,
+            embeds: [],
+            components: []
+          }).catch(() => {});
+        }
       }
 
       else if (commandName === '제작품목추가') {
