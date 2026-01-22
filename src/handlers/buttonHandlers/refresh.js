@@ -4,6 +4,9 @@ import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../
 
 export async function handleRefresh(interaction) {
   try {
+    // 먼저 응답 지연 처리 (3초 제한 회피)
+    await interaction.deferUpdate();
+    
     const parts = interaction.customId.split('_');
     const type = parts[1]; // 'inventory' or 'crafting'
     const category = parts.length > 2 ? parts.slice(2).join('_') : null;
@@ -31,10 +34,12 @@ export async function handleRefresh(interaction) {
     
     buttons = createButtons(category, true, type || 'inventory', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
     
-    await interaction.update({ embeds: [embed], components: buttons });
+    await interaction.editReply({ embeds: [embed], components: buttons });
     console.log('✅ 새로고침 완료');
   } catch (error) {
     console.error('❌ 새로고침 에러:', error);
-    await interaction.reply({ content: '새로고침 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: '새로고침 중 오류가 발생했습니다.', flags: 64 }).catch(() => {});
+    }
   }
 }

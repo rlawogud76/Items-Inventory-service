@@ -4,6 +4,9 @@ import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../
 
 export async function handlePageNavigation(interaction) {
   try {
+    // 먼저 응답 지연 처리 (3초 제한 회피)
+    await interaction.deferUpdate();
+    
     // customId 형식: page_prev_embed_inventory_해양_0 또는 page_next_embed_crafting_채광_2
     const parts = interaction.customId.split('_');
     const direction = parts[1]; // 'prev' or 'next'
@@ -33,10 +36,12 @@ export async function handlePageNavigation(interaction) {
     
     const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, newPage, totalPages);
     
-    await interaction.update({ embeds: [embed], components: buttons });
-    console.log(` 임베드 페이지 이동: ${currentPage + 1}  ${newPage + 1}`);
+    await interaction.editReply({ embeds: [embed], components: buttons });
+    console.log(`📄 임베드 페이지 이동: ${currentPage + 1} → ${newPage + 1}`);
   } catch (error) {
-    console.error(' 페이지 이동 에러:', error);
-    await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    console.error('❌ 페이지 이동 에러:', error);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', flags: 64 }).catch(() => {});
+    }
   }
 }
