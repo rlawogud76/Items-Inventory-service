@@ -99,8 +99,19 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
     }
 
     const fullInventory = { crafting: crafting };
+    const categories = Object.entries(crafting.categories);
+    
+    // Discord 제한: 최대 25개 필드
+    const maxFields = 25;
+    let fieldCount = 0;
+    let truncated = false;
 
-    for (const [catName, items] of Object.entries(crafting.categories)) {
+    for (const [catName, items] of categories) {
+      if (fieldCount >= maxFields) {
+        truncated = true;
+        break;
+      }
+      
       let categoryText = '';
       const itemEntries = Object.entries(items);
       
@@ -125,11 +136,22 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
         }
       });
       
+      // Field value 길이 검증 (1024자 제한)
+      if (categoryText.length > 1024) {
+        categoryText = categoryText.substring(0, 1000) + '\n...(내용이 잘렸습니다)';
+      }
+      
       embed.addFields({
         name: `📦 **${catName}**`,
         value: categoryText || '제작품 없음',
         inline: false
       });
+      
+      fieldCount++;
+    }
+    
+    if (truncated) {
+      embed.setFooter({ text: `⚠️ 일부 카테고리가 표시되지 않았습니다 (최대 ${maxFields}개 제한) • 마지막 업데이트` });
     }
   }
 
@@ -223,7 +245,19 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
       return embed;
     }
 
-    for (const [catName, items] of Object.entries(inventory.categories)) {
+    const categories = Object.entries(inventory.categories);
+    
+    // Discord 제한: 최대 25개 필드
+    const maxFields = 25;
+    let fieldCount = 0;
+    let truncated = false;
+
+    for (const [catName, items] of categories) {
+      if (fieldCount >= maxFields) {
+        truncated = true;
+        break;
+      }
+      
       let categoryText = '';
       const itemEntries = Object.entries(items);
       
@@ -248,11 +282,22 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
         }
       });
       
+      // Field value 길이 검증 (1024자 제한)
+      if (categoryText.length > 1024) {
+        categoryText = categoryText.substring(0, 1000) + '\n...(내용이 잘렸습니다)';
+      }
+      
       embed.addFields({
         name: `📦 **${catName}**`,
         value: categoryText || '아이템 없음',
         inline: false
       });
+      
+      fieldCount++;
+    }
+    
+    if (truncated) {
+      embed.setFooter({ text: `⚠️ 일부 카테고리가 표시되지 않았습니다 (최대 ${maxFields}개 제한) • 마지막 업데이트` });
     }
   }
 
