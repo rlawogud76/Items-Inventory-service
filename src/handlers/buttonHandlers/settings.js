@@ -66,6 +66,8 @@ export async function handleUiModeButton(interaction) {
     const type = parts[2]; // 'inventory' or 'crafting'
     const category = parts.length > 3 ? parts.slice(3).join('_') : null;
     
+    console.log('📏 UI 모드 변경 시작:', { type, category });
+    
     const inventory = await loadInventory();
     
     // UI 모드 순환: normal -> detailed -> normal
@@ -73,6 +75,8 @@ export async function handleUiModeButton(interaction) {
     let newMode;
     if (currentMode === 'normal') newMode = 'detailed';
     else newMode = 'normal';
+    
+    console.log('📏 모드 변경:', currentMode, '->', newMode);
     
     // 설정 저장
     if (!inventory.settings) inventory.settings = {};
@@ -92,20 +96,27 @@ export async function handleUiModeButton(interaction) {
       embed = createInventoryEmbed(inventory, category, newMode, barLength, 0);
     }
     
+    console.log('📏 Embed 생성 완료, totalPages:', totalPages);
+    
     const messageId = interaction.message.id;
     const isAutoRefreshing = autoRefreshTimers?.has(messageId) || false;
     const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', newMode, barLength, inventory, interaction.user.id, 0, totalPages);
+    
+    console.log('📏 Buttons 생성 완료, rows:', buttons.length);
+    console.log('📏 Embed type:', typeof embed, 'is array:', Array.isArray(embed));
+    console.log('📏 Buttons type:', typeof buttons, 'is array:', Array.isArray(buttons));
     
     // deferUpdate 후에는 webhook을 통해 메시지 수정
     await interaction.webhook.editMessage(interaction.message.id, { 
       embeds: [embed], 
       components: buttons 
     });
-    console.log(`📏 UI 모드 변경: ${currentMode} -> ${newMode}`);
+    console.log(`📏 UI 모드 변경 완료: ${currentMode} -> ${newMode}`);
   } catch (error) {
     console.error('❌ UI 모드 변경 에러:', error);
+    console.error('❌ 에러 스택:', error.stack);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      await interaction.reply({ content: '오류가 발생했습니다.', flags: 64 }).catch(() => {});
     }
   }
 }
