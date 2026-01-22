@@ -4,18 +4,7 @@
 export { handleInventoryCommand } from './inventory.js';
 
 // 제작
-export { 
-  handleCraftingCommand,
-  handleCraftingAddCommand,
-  handleCraftingRemoveCommand
-} from './crafting.js';
-
-// 레시피
-export { 
-  handleRecipeViewCommand,
-  handleRecipeEditCommand,
-  handleRecipeDeleteCommand
-} from './recipe.js';
+export { handleCraftingCommand } from './crafting.js';
 
 // 기타
 export { 

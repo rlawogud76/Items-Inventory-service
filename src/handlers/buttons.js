@@ -227,7 +227,10 @@ export async function handleButtonInteraction(interaction) {
       return await handleRecipeAddSkipButton(interaction);
     }
     
-    else if (interaction.customId.startsWith('add_more_recipe_') || interaction.customId.startsWith('finish_recipe_')) {
+    else if (interaction.customId.startsWith('add_more_recipe_') || 
+             interaction.customId.startsWith('finish_recipe_') ||
+             interaction.customId.startsWith('add_more_recipe_edit_') ||
+             interaction.customId.startsWith('finish_recipe_edit_')) {
       return await handleRecipeMoreFinishButton(interaction);
     }
     

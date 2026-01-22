@@ -62,10 +62,9 @@ client.on('ready', async () => {
   }
   
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📦 재고 관리: /재고, /재고물품추가, /재고물품제거');
-  console.log('🔨 제작 관리: /제작, /제작품목추가, /제작품목제거');
-  console.log('📋 레시피 관리: /레시피조회, /레시피수정, /레시피삭제');
-  console.log('🔧 기타: /도움말, /수정내역');
+  console.log('📦 재고 관리: /재고');
+  console.log('🔨 제작 관리: /제작 (레시피는 제작 화면 버튼으로 관리)');
+  console.log('🔧 기타: /도움말, /수정내역, /통계, /이모지설정, /기여도초기화');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   
   // 변경 감지 시작
@@ -181,75 +180,7 @@ client.on('ready', async () => {
             .setRequired(true)),
       new SlashCommandBuilder()
         .setName('기여도초기화')
-        .setDescription('기여도 통계를 초기화합니다 (수정 내역 삭제)'),
-      new SlashCommandBuilder()
-        .setName('레시피조회')
-        .setDescription('카테고리의 모든 레시피를 확인합니다')
-        .addStringOption(option =>
-          option.setName('카테고리')
-            .setDescription('확인할 카테고리')
-            .setRequired(true)
-            .addChoices(
-              { name: '해양', value: '해양' },
-              { name: '채광', value: '채광' },
-              { name: '요리', value: '요리' }
-            )),
-      new SlashCommandBuilder()
-        .setName('레시피수정')
-        .setDescription('제작품의 레시피를 수정합니다')
-        .addStringOption(option =>
-          option.setName('카테고리')
-            .setDescription('카테고리 선택')
-            .setRequired(true)
-            .addChoices(
-              { name: '해양', value: '해양' },
-              { name: '채광', value: '채광' },
-              { name: '요리', value: '요리' }
-            ))
-        .addStringOption(option =>
-          option.setName('제작품')
-            .setDescription('제작품 이름')
-            .setRequired(true))
-        .addStringOption(option =>
-          option.setName('재료1')
-            .setDescription('첫 번째 재료 이름')
-            .setRequired(true))
-        .addIntegerOption(option =>
-          option.setName('재료1수량')
-            .setDescription('첫 번째 재료 수량')
-            .setRequired(true))
-        .addStringOption(option =>
-          option.setName('재료2')
-            .setDescription('두 번째 재료 이름 (선택사항)')
-            .setRequired(false))
-        .addIntegerOption(option =>
-          option.setName('재료2수량')
-            .setDescription('두 번째 재료 수량 (선택사항)')
-            .setRequired(false))
-        .addStringOption(option =>
-          option.setName('재료3')
-            .setDescription('세 번째 재료 이름 (선택사항)')
-            .setRequired(false))
-        .addIntegerOption(option =>
-          option.setName('재료3수량')
-            .setDescription('세 번째 재료 수량 (선택사항)')
-            .setRequired(false)),
-      new SlashCommandBuilder()
-        .setName('레시피삭제')
-        .setDescription('제작품의 레시피를 삭제합니다')
-        .addStringOption(option =>
-          option.setName('카테고리')
-            .setDescription('카테고리 선택')
-            .setRequired(true)
-            .addChoices(
-              { name: '해양', value: '해양' },
-              { name: '채광', value: '채광' },
-              { name: '요리', value: '요리' }
-            ))
-        .addStringOption(option =>
-          option.setName('제작품')
-            .setDescription('제작품 이름')
-            .setRequired(true))
+        .setDescription('기여도 통계를 초기화합니다 (수정 내역 삭제)')
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);

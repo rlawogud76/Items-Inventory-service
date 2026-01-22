@@ -3,11 +3,6 @@
 import {
   handleInventoryCommand,
   handleCraftingCommand,
-  handleCraftingAddCommand,
-  handleCraftingRemoveCommand,
-  handleRecipeViewCommand,
-  handleRecipeEditCommand,
-  handleRecipeDeleteCommand,
   handleHelpCommand,
   handleEmojiCommand,
   handleHistoryCommand,
@@ -34,23 +29,6 @@ export async function handleCommandInteraction(interaction, activeMessages) {
     // 제작 관련
     else if (commandName === '제작') {
       return await handleCraftingCommand(interaction, activeMessages);
-    }
-    else if (commandName === '제작품목추가') {
-      return await handleCraftingAddCommand(interaction);
-    }
-    else if (commandName === '제작품목제거') {
-      return await handleCraftingRemoveCommand(interaction);
-    }
-    
-    // 레시피 관련
-    else if (commandName === '레시피조회') {
-      return await handleRecipeViewCommand(interaction);
-    }
-    else if (commandName === '레시피수정') {
-      return await handleRecipeEditCommand(interaction);
-    }
-    else if (commandName === '레시피삭제') {
-      return await handleRecipeDeleteCommand(interaction);
     }
     
     // 기타
