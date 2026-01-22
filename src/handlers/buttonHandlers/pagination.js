@@ -4,8 +4,10 @@ import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../
 
 export async function handlePageNavigation(interaction) {
   try {
+    // customId 형식: page_prev_embed_inventory_해양_0 또는 page_next_embed_crafting_채광_2
     const parts = interaction.customId.split('_');
-    const direction = parts[2]; // 'prev' or 'next'
+    const direction = parts[1]; // 'prev' or 'next'
+    // parts[2]는 'embed'
     const type = parts[3]; // 'inventory' or 'crafting'
     const currentPage = parseInt(parts[parts.length - 1]);
     const category = parts.slice(4, -1).join('_');
