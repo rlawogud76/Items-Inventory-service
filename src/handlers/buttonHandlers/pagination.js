@@ -36,8 +36,8 @@ export async function handlePageNavigation(interaction) {
     
     const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, newPage, totalPages);
     
-    // deferUpdate 후에는 webhook을 통해 메시지 수정
-    await interaction.webhook.editMessage(interaction.message.id, { 
+    // interaction.message.edit() 사용
+    await interaction.message.edit({ 
       embeds: [embed], 
       components: buttons 
     });

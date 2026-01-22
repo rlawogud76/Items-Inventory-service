@@ -106,8 +106,8 @@ export async function handleUiModeButton(interaction) {
     console.log('📏 Embed type:', typeof embed, 'is array:', Array.isArray(embed));
     console.log('📏 Buttons type:', typeof buttons, 'is array:', Array.isArray(buttons));
     
-    // deferUpdate 후에는 webhook을 통해 메시지 수정
-    await interaction.webhook.editMessage(interaction.message.id, { 
+    // interaction.message.edit() 사용
+    await interaction.message.edit({ 
       embeds: [embed], 
       components: buttons 
     });
@@ -161,8 +161,8 @@ export async function handleAutoRefreshButton(interaction) {
       const barLength = inventory.settings?.barLength || 15;
       const buttons = createButtons(category, false, type || 'inventory', uiMode, barLength);
       
-      // deferUpdate 후에는 webhook을 통해 메시지 수정
-      await interaction.webhook.editMessage(interaction.message.id, { 
+      // interaction.message.edit() 사용
+      await interaction.message.edit({ 
         embeds: [embed], 
         components: buttons 
       });
@@ -184,8 +184,8 @@ export async function handleAutoRefreshButton(interaction) {
       const barLength = inventory.settings?.barLength || 15;
       const buttons = createButtons(category, true, type || 'inventory', uiMode, barLength);
       
-      // deferUpdate 후에는 webhook을 통해 메시지 수정
-      await interaction.webhook.editMessage(interaction.message.id, { 
+      // interaction.message.edit() 사용
+      await interaction.message.edit({ 
         embeds: [embed], 
         components: buttons 
       });

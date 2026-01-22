@@ -34,8 +34,8 @@ export async function handleRefresh(interaction) {
     
     buttons = createButtons(category, true, type || 'inventory', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
     
-    // deferUpdate 후에는 webhook을 통해 메시지 수정
-    await interaction.webhook.editMessage(interaction.message.id, { 
+    // interaction.message.edit() 사용
+    await interaction.message.edit({ 
       embeds: [embed], 
       components: buttons 
     });
