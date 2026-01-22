@@ -14,15 +14,7 @@
 // ├─ 11. 레시피 플로우 (add_recipe_, skip_recipe_, add_more_recipe_, finish_recipe_) → recipe.js
 // └─ 12. 기여도 초기화 (confirm_contribution_reset, cancel_contribution_reset) → contribution.js
 
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { loadInventory, saveInventory } from '../database.js';
-import { 
-  formatQuantity, 
-  getItemIcon, 
-  addHistory,
-  sendTemporaryReply
-} from '../utils.js';
-import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../embeds.js';
+
 
 // 분리된 핸들러 import
 import { 
