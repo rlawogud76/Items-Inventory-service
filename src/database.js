@@ -206,9 +206,12 @@ export async function loadInventory() {
   }
 }
 
-// 재고 데이터 저장 - markModified 추가
-export async function saveInventory(data) {
+// 재고 데이터 저장 - 재시도 로직 추가
+export async function saveInventory(data, retryCount = 0) {
+  const maxRetries = 3;
+  
   try {
+    // 최신 데이터를 다시 가져와서 충돌 방지
     const inventory = await Inventory.getInstance();
     
     inventory.categories = data.categories || {};
@@ -249,6 +252,26 @@ export async function saveInventory(data) {
     
     return true;
   } catch (error) {
+    // 버전 충돌 에러인 경우 재시도
+    if (error.name === 'VersionError' && retryCount < maxRetries) {
+      console.log(`⚠️ 버전 충돌 감지 - 재시도 ${retryCount + 1}/${maxRetries}`);
+      // 짧은 대기 후 재시도
+      await new Promise(resolve => setTimeout(resolve, 100 * (retryCount + 1)));
+      
+      // 최신 데이터를 다시 로드하여 병합
+      const latestInventory = await loadInventory();
+      
+      // 데이터 병합 (새 데이터 우선)
+      const mergedData = {
+        ...latestInventory,
+        ...data,
+        // history는 합치기
+        history: data.history || latestInventory.history || []
+      };
+      
+      return saveInventory(mergedData, retryCount + 1);
+    }
+    
     console.error('❌ 재고 저장 실패:', error.message);
     throw error;
   }
