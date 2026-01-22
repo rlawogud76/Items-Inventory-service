@@ -65,8 +65,8 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
-          `**현재 수량:** ${current.items}개/${current.sets}세트/${current.boxes}상자 (총 ${data.quantity}개)`,
-          `**충족 수량:** ${required.items}개/${required.sets}세트/${required.boxes}상자 (총 ${data.required}개)`,
+          `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 (${data.quantity}개)`,
+          `**충족:** ${required.items}개/${required.sets}세트/${required.boxes}상자 (${data.required}개)`,
           `**진행률:** ${percentage}% ${status}`,
           `${progressBar}${craftingText}`
         ].join('\n');
@@ -80,7 +80,7 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       
       // 마지막 아이템이 아니면 구분선 추가
       if (index < limitedItems.length - 1) {
-        fieldValue += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+        fieldValue += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       }
 
       embed.addFields({
@@ -190,8 +190,8 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
       if (uiMode === 'detailed') {
         // 상세 모드: 더 많은 정보
         fieldValue = [
-          `**현재 수량:** ${current.items}개/${current.sets}세트/${current.boxes}상자 (총 ${data.quantity}개)`,
-          `**충족 수량:** ${required.items}개/${required.sets}세트/${required.boxes}상자 (총 ${data.required}개)`,
+          `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 (${data.quantity}개)`,
+          `**충족:** ${required.items}개/${required.sets}세트/${required.boxes}상자 (${data.required}개)`,
           `**진행률:** ${percentage}% ${status}`,
           `${progressBar}${collectingText}`
         ].join('\n');

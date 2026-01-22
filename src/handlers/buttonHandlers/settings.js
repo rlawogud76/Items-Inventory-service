@@ -107,11 +107,36 @@ export async function handleUiModeButton(interaction) {
     try {
       // Embed를 JSON으로 변환
       const embedJSON = embed.toJSON ? embed.toJSON() : embed;
-      console.log('📏 Embed fields:', embedJSON.fields?.length);
-      console.log('📏 Embed description length:', embedJSON.description?.length);
       
+      // Discord 제한 검증
+      if (embedJSON.description && embedJSON.description.length > 4096) {
+        console.error('❌ Embed description이 너무 깁니다:', embedJSON.description.length);
+        throw new Error('Embed description이 4096자를 초과했습니다.');
+      }
+      
+      if (embedJSON.fields) {
+        for (let i = 0; i < embedJSON.fields.length; i++) {
+          const field = embedJSON.fields[i];
+          if (field.name && field.name.length > 256) {
+            console.error(`❌ Field ${i} name이 너무 깁니다:`, field.name.length);
+            throw new Error(`Field name이 256자를 초과했습니다.`);
+          }
+          if (field.value && field.value.length > 1024) {
+            console.error(`❌ Field ${i} value가 너무 깁니다:`, field.value.length);
+            throw new Error(`Field value가 1024자를 초과했습니다.`);
+          }
+        }
+      }
+      
+      // 전체 embed 크기 계산
       const embedString = JSON.stringify(embedJSON);
-      console.log('📏 Embed JSON 크기:', embedString.length, 'bytes');
+      const embedSize = embedString.length;
+      console.log('📏 Embed 크기:', embedSize, 'bytes');
+      
+      if (embedSize > 6000) {
+        console.error('❌ Embed 전체 크기가 너무 큽니다:', embedSize);
+        throw new Error('Embed 전체 크기가 6000자를 초과했습니다.');
+      }
       
       // Components를 JSON으로 변환
       const componentsJSON = buttons.map(row => row.toJSON ? row.toJSON() : row);
