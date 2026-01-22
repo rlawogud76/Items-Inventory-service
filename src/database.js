@@ -105,6 +105,11 @@ inventorySchema.statics.getInstance = async function() {
 
 export const Inventory = mongoose.model('Inventory', inventorySchema);
 
+// 캐시 설정
+const CACHE_TTL = 5000; // 5초
+let inventoryCache = null;
+let cacheTimestamp = null;
+
 // 마지막 업데이트 시간 추적
 let lastUpdateTime = null;
 
@@ -159,9 +164,17 @@ export function removeChangeListener(listener) {
   changeListeners.delete(listener);
 }
 
-// 재고 데이터 로드 - 단순화
+// 재고 데이터 로드 - 캐싱 추가
 export async function loadInventory() {
   try {
+    // 캐시 확인
+    const now = Date.now();
+    if (inventoryCache && cacheTimestamp && (now - cacheTimestamp) < CACHE_TTL) {
+      console.log('📦 캐시에서 재고 로드');
+      return JSON.parse(JSON.stringify(inventoryCache)); // Deep copy
+    }
+    
+    console.log('🔄 DB에서 재고 로드');
     const inventory = await Inventory.getInstance();
     const data = inventory.toObject();
     
@@ -199,7 +212,11 @@ export async function loadInventory() {
       };
     }
     
-    return data;
+    // 캐시 업데이트
+    inventoryCache = data;
+    cacheTimestamp = Date.now();
+    
+    return JSON.parse(JSON.stringify(data)); // Deep copy
   } catch (error) {
     console.error('❌ 재고 로드 실패:', error.message);
     throw error;
@@ -265,6 +282,12 @@ export async function saveInventory(data, retryCount = 0) {
     // 저장 후 즉시 변경 리스너 트리거 (실시간 업데이트)
     const updatedInventory = await Inventory.findById(inventory._id);
     lastUpdateTime = updatedInventory.updatedAt?.getTime();
+    
+    // 캐시 무효화
+    inventoryCache = null;
+    cacheTimestamp = null;
+    console.log('🗑️ 캐시 무효화');
+    
     changeListeners.forEach(listener => {
       try {
         listener({ operationType: 'update' });
