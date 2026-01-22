@@ -17,6 +17,7 @@ import { createCraftingEmbed, createInventoryEmbed, createButtons } from './src/
 import { handleButtonInteraction } from './src/handlers/buttons.js';
 import { handleSelectInteraction } from './src/handlers/selects.js';
 import { handleModalInteraction } from './src/handlers/modals.js';
+import { handleCommandInteraction } from './src/handlers/commands.js';
 
 // .env 파일 로드
 dotenv.config();
@@ -215,13 +216,11 @@ client.on('interactionCreate', async (interaction) => {
   console.log('인터랙션 수신:', interaction.type, '/ customId:', interaction.customId || 'N/A');
   
   if (interaction.isCommand()) {
-    const { commandName } = interaction;
+    return await handleCommandInteraction(interaction, activeMessages);
+  }
 
-    try {
-      if (commandName === '재고') {
-        const category = interaction.options.getString('카테고리');
-        
-        // 먼저 응답 (3초 제한 회피)
+  // 버튼 인터랙션 처리
+  if (interaction.isButton()) {
         await interaction.deferReply();
         
         try {
@@ -1103,55 +1102,6 @@ client.on('interactionCreate', async (interaction) => {
         
         await sendTemporaryReply(interaction, { embeds: [successEmbed] });
       }
-
-      else if (commandName === '기여도초기화') {
-        const inventory = await loadInventory();
-        
-        // 기여도 데이터 확인
-        const historyCount = inventory.history?.length || 0;
-        
-        if (historyCount === 0) {
-          return await sendTemporaryReply(interaction, '❌ 초기화할 기여도 데이터가 없습니다.');
-        }
-        
-        // 확인 버튼 생성
-        const confirmRow = new ActionRowBuilder()
-          .addComponents(
-            new ButtonBuilder()
-              .setCustomId('confirm_contribution_reset')
-              .setLabel('✅ 확인')
-              .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-              .setCustomId('cancel_contribution_reset')
-              .setLabel('❌ 취소')
-              .setStyle(ButtonStyle.Secondary)
-          );
-        
-        const confirmEmbed = new EmbedBuilder()
-          .setColor(0xED4245)
-          .setTitle('⚠️ 기여도 초기화 확인')
-          .setDescription([
-            '**모든 수정 내역이 삭제됩니다!**',
-            '',
-            `현재 저장된 내역: **${historyCount}개**`,
-            '',
-            '이 작업은 되돌릴 수 없습니다.',
-            '정말로 초기화하시겠습니까?'
-          ].join('\n'));
-        
-        await interaction.reply({ 
-          embeds: [confirmEmbed], 
-          components: [confirmRow], 
-          ephemeral: true 
-        });
-      }
-
-    } catch (error) {
-      console.error('커맨드 실행 에러:', error);
-      await interaction.reply({ content: '❌ 에러가 발생했습니다: ' + error.message, ephemeral: true });
-    }
-  }
-
   // 버튼 인터랙션 처리
   if (interaction.isButton()) {
     return await handleButtonInteraction(interaction);
