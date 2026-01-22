@@ -143,7 +143,7 @@ function createProgressBar(current, required, length = 10) {
 }
 
 // 제작 임베드 생성
-function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', barLength = 10) {
+function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', barLength = 10, page = 0) {
   const embed = new EmbedBuilder()
     .setColor(0xFFA500)
     .setTimestamp()
@@ -165,11 +165,13 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
     
     // Discord 제한: 최대 25개 필드
     const maxFields = 25;
-    const limitedItems = items.slice(0, maxFields);
-    const hasMore = items.length > maxFields;
+    const totalPages = Math.ceil(items.length / maxFields);
+    const startIndex = page * maxFields;
+    const endIndex = Math.min(startIndex + maxFields, items.length);
+    const limitedItems = items.slice(startIndex, endIndex);
     
-    if (hasMore) {
-      embed.setDescription(`⚠️ 제작품이 많아 처음 ${maxFields}개만 표시됩니다. (전체 ${items.length}개)`);
+    if (totalPages > 1) {
+      embed.setDescription(`📄 페이지 ${page + 1}/${totalPages} (전체 ${items.length}개 제작품)`);
     }
     
     limitedItems.forEach(([itemName, data], index) => {
@@ -269,7 +271,7 @@ function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', b
 }
 
 // 재고 임베드 생성
-function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal', barLength = 10) {
+function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal', barLength = 10, page = 0) {
   const embed = new EmbedBuilder()
     .setColor(0x5865F2)
     .setTimestamp()
@@ -288,11 +290,13 @@ function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal',
     
     // Discord 제한: 최대 25개 필드
     const maxFields = 25;
-    const limitedItems = items.slice(0, maxFields);
-    const hasMore = items.length > maxFields;
+    const totalPages = Math.ceil(items.length / maxFields);
+    const startIndex = page * maxFields;
+    const endIndex = Math.min(startIndex + maxFields, items.length);
+    const limitedItems = items.slice(startIndex, endIndex);
     
-    if (hasMore) {
-      embed.setDescription(`⚠️ 아이템이 많아 처음 ${maxFields}개만 표시됩니다. (전체 ${items.length}개)`);
+    if (totalPages > 1) {
+      embed.setDescription(`📄 페이지 ${page + 1}/${totalPages} (전체 ${items.length}개 아이템)`);
     }
     
     limitedItems.forEach(([itemName, data], index) => {
@@ -405,7 +409,7 @@ process.on('SIGTERM', () => {
 });
 
 // 버튼 생성
-function createButtons(categoryName = null, autoRefresh = false, type = 'inventory', uiMode = 'normal', barLength = 10, inventory = null, userId = null) {
+function createButtons(categoryName = null, autoRefresh = false, type = 'inventory', uiMode = 'normal', barLength = 10, inventory = null, userId = null, page = 0, totalPages = 1) {
   const actionId = categoryName ? `${type === 'inventory' ? 'collecting' : 'crafting'}_${categoryName}` : (type === 'inventory' ? 'collecting' : 'crafting');
   const uiModeId = categoryName ? `ui_mode_${type}_${categoryName}` : `ui_mode_${type}`;
   const barSizeId = categoryName ? `bar_size_${type}_${categoryName}` : `bar_size_${type}`;
@@ -431,7 +435,7 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
   }
   
   // UI 모드 버튼 라벨
-  let uiModeLabel = '� 일반';
+  let uiModeLabel = '📏 일반';
   if (uiMode === 'detailed') uiModeLabel = '📏 상세';
   
   const row1Buttons = [
@@ -485,7 +489,44 @@ function createButtons(categoryName = null, autoRefresh = false, type = 'invento
         .setStyle(ButtonStyle.Secondary)
     );
   
-  return [row1, row2];
+  const rows = [row1, row2];
+  
+  // 페이지네이션 버튼 (25개 초과 시)
+  if (totalPages > 1) {
+    const pageButtons = [];
+    
+    // 이전 페이지 버튼
+    pageButtons.push(
+      new ButtonBuilder()
+        .setCustomId(`page_prev_${type}_${categoryName}_${page}`)
+        .setLabel('◀ 이전')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(page === 0)
+    );
+    
+    // 페이지 정보 버튼 (비활성화)
+    pageButtons.push(
+      new ButtonBuilder()
+        .setCustomId(`page_info_${type}_${categoryName}_${page}`)
+        .setLabel(`페이지 ${page + 1}/${totalPages}`)
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true)
+    );
+    
+    // 다음 페이지 버튼
+    pageButtons.push(
+      new ButtonBuilder()
+        .setCustomId(`page_next_${type}_${categoryName}_${page}`)
+        .setLabel('다음 ▶')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(page >= totalPages - 1)
+    );
+    
+    const row3 = new ActionRowBuilder().addComponents(pageButtons);
+    rows.push(row3);
+  }
+  
+  return rows;
 }
 
 
@@ -539,15 +580,19 @@ client.on('ready', async () => {
         const uiMode = inventory.settings?.uiMode || 'normal';
         const barLength = inventory.settings?.barLength || 15;
         
-        let embed;
+        let embed, items, totalPages;
         if (type === 'crafting') {
           const crafting = inventory.crafting || { categories: {}, crafting: {} };
-          embed = createCraftingEmbed(crafting, category, uiMode, barLength);
+          items = Object.entries(crafting.categories[category] || {});
+          totalPages = Math.ceil(items.length / 25);
+          embed = createCraftingEmbed(crafting, category, uiMode, barLength, 0);
         } else {
-          embed = createInventoryEmbed(inventory, category, uiMode, barLength);
+          items = Object.entries(inventory.categories[category] || {});
+          totalPages = Math.ceil(items.length / 25);
+          embed = createInventoryEmbed(inventory, category, uiMode, barLength, 0);
         }
         
-        const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id);
+        const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
         await interaction.editReply({ embeds: [embed], components: buttons });
         
         console.log(`✅ 메시지 업데이트 완료: ${messageId}`);
@@ -671,8 +716,13 @@ client.on('interactionCreate', async (interaction) => {
           const inventory = await loadInventory();
           const uiMode = inventory.settings?.uiMode || 'normal';
           const barLength = inventory.settings?.barLength || 15;
-          const embed = createInventoryEmbed(inventory, category, uiMode, barLength);
-          const buttons = createButtons(category, true, 'inventory', uiMode, barLength, inventory, interaction.user.id);
+          
+          // 페이지 계산
+          const items = Object.entries(inventory.categories[category] || {});
+          const totalPages = Math.ceil(items.length / 25);
+          
+          const embed = createInventoryEmbed(inventory, category, uiMode, barLength, 0);
+          const buttons = createButtons(category, true, 'inventory', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
           const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
           
           // 활성 메시지로 등록 (변경 감지용)
@@ -1248,8 +1298,13 @@ client.on('interactionCreate', async (interaction) => {
           const crafting = inventory.crafting || { categories: {}, crafting: {} };
           const uiMode = inventory.settings?.uiMode || 'normal';
           const barLength = inventory.settings?.barLength || 15;
-          const embed = createCraftingEmbed(crafting, category, uiMode, barLength);
-          const buttons = createButtons(category, true, 'crafting', uiMode, barLength, inventory, interaction.user.id);
+          
+          // 페이지 계산
+          const items = Object.entries(crafting.categories[category] || {});
+          const totalPages = Math.ceil(items.length / 25);
+          
+          const embed = createCraftingEmbed(crafting, category, uiMode, barLength, 0);
+          const buttons = createButtons(category, true, 'crafting', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
           const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
           
           // 활성 메시지로 등록 (변경 감지용)
@@ -1589,7 +1644,44 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton()) {
     console.log('버튼 클릭 감지! customId:', interaction.customId);
     
-    if (interaction.customId.startsWith('refresh')) {
+    if (interaction.customId.startsWith('page_prev_') || interaction.customId.startsWith('page_next_')) {
+      try {
+        const parts = interaction.customId.split('_');
+        const direction = parts[1]; // 'prev' or 'next'
+        const type = parts[2]; // 'inventory' or 'crafting'
+        const currentPage = parseInt(parts[parts.length - 1]);
+        const category = parts.slice(3, -1).join('_');
+        
+        const newPage = direction === 'prev' ? currentPage - 1 : currentPage + 1;
+        
+        const inventory = await loadInventory();
+        const uiMode = inventory.settings?.uiMode || 'normal';
+        const barLength = inventory.settings?.barLength || 15;
+        
+        let embed, items, totalPages;
+        
+        if (type === 'crafting') {
+          const crafting = inventory.crafting || { categories: {}, crafting: {} };
+          items = Object.entries(crafting.categories[category] || {});
+          totalPages = Math.ceil(items.length / 25);
+          embed = createCraftingEmbed(crafting, category, uiMode, barLength, newPage);
+        } else {
+          items = Object.entries(inventory.categories[category] || {});
+          totalPages = Math.ceil(items.length / 25);
+          embed = createInventoryEmbed(inventory, category, uiMode, barLength, newPage);
+        }
+        
+        const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, newPage, totalPages);
+        
+        await interaction.update({ embeds: [embed], components: buttons });
+        console.log(`📄 페이지 이동: ${currentPage + 1} → ${newPage + 1}`);
+      } catch (error) {
+        console.error('❌ 페이지 이동 에러:', error);
+        await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      }
+    }
+    
+    else if (interaction.customId.startsWith('refresh')) {
       try {
         const parts = interaction.customId.split('_');
         const type = parts[1]; // 'inventory' or 'crafting'
