@@ -107,14 +107,7 @@ export async function handleEditSelect(interaction) {
     
     await interaction.showModal(modal);
     
-    // 모달 표시 후 원래 메시지 삭제
-    setTimeout(async () => {
-      try {
-        await interaction.message.delete();
-      } catch (error) {
-        // 이미 삭제되었거나 삭제할 수 없는 경우 무시
-      }
-    }, 500);
+    // 모달 표시 후 원래 메시지는 유지 (모달 제출 후 삭제됨)
     
   } catch (error) {
     console.error('❌ 이름 수정 선택 에러:', error);

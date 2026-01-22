@@ -190,11 +190,7 @@ export async function handleTagItemSelect(interaction) {
     
     await interaction.showModal(modal);
     
-    setTimeout(async () => {
-      try {
-        await interaction.message.delete();
-      } catch (error) {}
-    }, 500);
+    // 모달 표시 후 원래 메시지는 유지 (모달 제출 후 삭제됨)
     
   } catch (error) {
     console.error('❌ 태그 아이템 선택 에러:', error);
