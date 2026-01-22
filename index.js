@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+﻿import { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import dotenv from 'dotenv';
 import { connectDatabase, loadInventory, saveInventory, migrateFromDataFile, watchInventoryChanges, addChangeListener, removeChangeListener } from './src/database.js';
 import { 
@@ -181,7 +181,75 @@ client.on('ready', async () => {
             .setRequired(true)),
       new SlashCommandBuilder()
         .setName('기여도초기화')
-        .setDescription('기여도 통계를 초기화합니다 (수정 내역 삭제)')
+        .setDescription('기여도 통계를 초기화합니다 (수정 내역 삭제)'),
+      new SlashCommandBuilder()
+        .setName('레시피조회')
+        .setDescription('카테고리의 모든 레시피를 확인합니다')
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('확인할 카테고리')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            )),
+      new SlashCommandBuilder()
+        .setName('레시피수정')
+        .setDescription('제작품의 레시피를 수정합니다')
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('카테고리 선택')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            ))
+        .addStringOption(option =>
+          option.setName('제작품')
+            .setDescription('제작품 이름')
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('재료1')
+            .setDescription('첫 번째 재료 이름')
+            .setRequired(true))
+        .addIntegerOption(option =>
+          option.setName('재료1수량')
+            .setDescription('첫 번째 재료 수량')
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('재료2')
+            .setDescription('두 번째 재료 이름 (선택사항)')
+            .setRequired(false))
+        .addIntegerOption(option =>
+          option.setName('재료2수량')
+            .setDescription('두 번째 재료 수량 (선택사항)')
+            .setRequired(false))
+        .addStringOption(option =>
+          option.setName('재료3')
+            .setDescription('세 번째 재료 이름 (선택사항)')
+            .setRequired(false))
+        .addIntegerOption(option =>
+          option.setName('재료3수량')
+            .setDescription('세 번째 재료 수량 (선택사항)')
+            .setRequired(false)),
+      new SlashCommandBuilder()
+        .setName('레시피삭제')
+        .setDescription('제작품의 레시피를 삭제합니다')
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('카테고리 선택')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            ))
+        .addStringOption(option =>
+          option.setName('제작품')
+            .setDescription('제작품 이름')
+            .setRequired(true))
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);
