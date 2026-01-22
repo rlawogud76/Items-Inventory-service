@@ -65,7 +65,9 @@ export async function handleRemoveSelect(interaction) {
     
   } catch (error) {
     console.error('❌ 삭제 선택 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+      console.error('❌ 삭제 선택 에러 응답 실패:', err);
+    });
   }
 }
 
@@ -111,6 +113,8 @@ export async function handleEditSelect(interaction) {
     
   } catch (error) {
     console.error('❌ 이름 수정 선택 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+      console.error('❌ 이름 수정 선택 에러 응답 실패:', err);
+    });
   }
 }

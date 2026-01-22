@@ -222,7 +222,9 @@ export async function handleWorkButton(interaction) {
     
   } catch (error) {
     console.error('❌ 버튼 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+      console.error('❌ 작업 버튼 에러 응답 실패:', err);
+    });
   }
 }
 
@@ -343,7 +345,9 @@ export async function handleWorkPageButton(interaction) {
     
   } catch (error) {
     console.error('❌ 페이지 이동 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 작업 페이지 이동 에러 응답 실패:', err);
+    });
   }
 }
 
@@ -437,6 +441,8 @@ export async function handleStopWorkButton(interaction) {
     await interaction.reply({ 
       content: `❌ 오류가 발생했습니다: ${error.message}`, 
       ephemeral: true 
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error('❌ 작업 확인 에러 응답 실패:', err);
+    });
   }
 }

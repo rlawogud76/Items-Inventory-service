@@ -45,7 +45,9 @@ export async function handleCraftingCommand(interaction, activeMessages) {
       content: `❌ 제작 현황을 표시하는 중 오류가 발생했습니다.\n${error.message}`,
       embeds: [],
       components: []
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error('❌ 제작 표시 에러 응답 실패:', err);
+    });
   }
 }
 

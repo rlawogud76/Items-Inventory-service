@@ -38,7 +38,9 @@ export async function handlePageNavigation(interaction) {
   } catch (error) {
     console.error('❌ 페이지 이동 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', flags: 64 }).catch(() => {});
+      await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', flags: 64 }).catch((err) => {
+        console.error('❌ 페이지 이동 에러 응답 실패:', err);
+      });
     }
   }
 }

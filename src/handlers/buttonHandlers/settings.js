@@ -49,7 +49,9 @@ export async function handleBarSizeButton(interaction) {
     console.log(`📊 바 크기 설정 모달 표시 (현재: ${Math.round(currentLength * 10)}%)`);
   } catch (error) {
     console.error('❌ 바 크기 변경 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 바 크기 변경 에러 응답 실패:', err);
+    });
   }
 }
 
@@ -162,7 +164,9 @@ export async function handleUiModeButton(interaction) {
     console.error('❌ UI 모드 변경 에러:', error);
     console.error('❌ 에러 스택:', error.stack);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '오류가 발생했습니다.', flags: 64 }).catch(() => {});
+      await interaction.reply({ content: '오류가 발생했습니다.', flags: 64 }).catch((err) => {
+        console.error('❌ UI 모드 변경 에러 응답 실패:', err);
+      });
     }
   }
 }
@@ -275,7 +279,9 @@ export async function handleAutoRefreshButton(interaction) {
   } catch (error) {
     console.error('❌ 자동 새로고침 토글 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+        console.error('❌ 자동 새로고침 토글 에러 응답 실패:', err);
+      });
     }
   }
 }

@@ -84,7 +84,9 @@ export async function handleRecipeEditQuantityModal(interaction) {
     
   } catch (error) {
     console.error('❌ 레시피 수정 모달 제출 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+      console.error('❌ 레시피 수정 모달 응답 실패:', err);
+    });
   }
 }
 
@@ -173,6 +175,8 @@ export async function handleRecipeQuantityModal(interaction) {
     
   } catch (error) {
     console.error('❌ 레시피 수량 모달 제출 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+      console.error('❌ 레시피 수량 모달 응답 실패:', err);
+    });
   }
 }

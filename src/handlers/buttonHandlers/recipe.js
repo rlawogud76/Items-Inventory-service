@@ -35,7 +35,9 @@ export async function handleRecipeButton(interaction) {
   } catch (error) {
     console.error('❌ 레시피 버튼 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+        console.error('❌ 레시피 버튼 에러 응답 실패:', err);
+      });
     }
   }
 }
@@ -118,7 +120,9 @@ export async function handleRecipeViewButton(interaction) {
     
   } catch (error) {
     console.error('❌ 레시피 조회 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 레시피 조회 에러 응답 실패:', err);
+    });
   }
 }
 
@@ -205,7 +209,9 @@ export async function handleRecipeEditButton(interaction) {
     
   } catch (error) {
     console.error('❌ 레시피 수정 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 레시피 수정 에러 응답 실패:', err);
+    });
   }
 }
 
@@ -309,7 +315,9 @@ export async function handleRecipeAddSkipButton(interaction) {
     
   } catch (error) {
     console.error('❌ 레시피 추가 버튼 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+      console.error('❌ 레시피 추가 버튼 에러 응답 실패:', err);
+    });
   }
 }
 
@@ -386,6 +394,8 @@ export async function handleRecipeMoreFinishButton(interaction) {
     
   } catch (error) {
     console.error('❌ 레시피 버튼 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+      console.error('❌ 레시피 버튼 에러 응답 실패:', err);
+    });
   }
 }

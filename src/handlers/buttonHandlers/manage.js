@@ -66,7 +66,9 @@ export async function handleManageButton(interaction) {
   } catch (error) {
     console.error('❌ 관리 버튼 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+        console.error('❌ 관리 버튼 에러 응답 실패:', err);
+      });
     }
   }
 }
@@ -141,7 +143,9 @@ export async function handleManageAddButton(interaction) {
   } catch (error) {
     console.error('❌ 추가 모달 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+        console.error('❌ 추가 모달 에러 응답 실패:', err);
+      });
     }
   }
 }
@@ -241,7 +245,9 @@ export async function handleManageRemoveButton(interaction) {
   } catch (error) {
     console.error('❌ 삭제 선택 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+        console.error('❌ 삭제 선택 에러 응답 실패:', err);
+      });
     }
   }
 }
@@ -341,7 +347,9 @@ export async function handleManageEditButton(interaction) {
   } catch (error) {
     console.error('❌ 이름 수정 선택 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+        console.error('❌ 이름 수정 선택 에러 응답 실패:', err);
+      });
     }
   }
 }
@@ -421,7 +429,9 @@ export async function handleManageRemovePageButton(interaction) {
     
   } catch (error) {
     console.error('❌ 삭제 페이지 이동 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 삭제 페이지 이동 에러 응답 실패:', err);
+    });
   }
 }
 
@@ -499,6 +509,8 @@ export async function handleManageEditPageButton(interaction) {
     
   } catch (error) {
     console.error('❌ 수정 페이지 이동 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 수정 페이지 이동 에러 응답 실패:', err);
+    });
   }
 }

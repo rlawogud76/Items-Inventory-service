@@ -50,7 +50,9 @@ export async function handleResetButton(interaction) {
   } catch (error) {
     console.error('❌ 초기화 버튼 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await sendTemporaryReply(interaction, '오류가 발생했습니다: ' + error.message).catch(() => {});
+      await sendTemporaryReply(interaction, '오류가 발생했습니다: ' + error.message).catch((err) => {
+        console.error('❌ 초기화 버튼 에러 응답 실패:', err);
+      });
     }
   }
 }
@@ -205,7 +207,9 @@ export async function handleResetTypeButton(interaction) {
   } catch (error) {
     console.error('❌ 초기화 타입 선택 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await sendTemporaryReply(interaction, '오류가 발생했습니다: ' + error.message).catch(() => {});
+      await sendTemporaryReply(interaction, '오류가 발생했습니다: ' + error.message).catch((err) => {
+        console.error('❌ 초기화 타입 선택 에러 응답 실패:', err);
+      });
     }
   }
 }
@@ -287,6 +291,8 @@ export async function handleResetPageButton(interaction) {
     
   } catch (error) {
     console.error('❌ 초기화 페이지 이동 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 초기화 페이지 이동 에러 응답 실패:', err);
+    });
   }
 }

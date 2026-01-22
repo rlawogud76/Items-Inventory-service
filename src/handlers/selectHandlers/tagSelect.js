@@ -91,7 +91,9 @@ export async function handleTagItemsSelect(interaction) {
     
   } catch (error) {
     console.error('❌ 태그 항목 선택 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+      console.error('❌ 태그 항목 선택 에러 응답 실패:', err);
+    });
   }
 }
 
@@ -152,7 +154,9 @@ export async function handleConfirmTagRemoveSelect(interaction) {
     
   } catch (error) {
     console.error('❌ 태그 제거 확인 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+      console.error('❌ 태그 제거 확인 에러 응답 실패:', err);
+    });
   }
 }
 
@@ -194,6 +198,8 @@ export async function handleTagItemSelect(interaction) {
     
   } catch (error) {
     console.error('❌ 태그 아이템 선택 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+      console.error('❌ 태그 아이템 선택 에러 응답 실패:', err);
+    });
   }
 }

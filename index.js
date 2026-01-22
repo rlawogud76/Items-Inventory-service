@@ -297,7 +297,9 @@ client.on('interactionCreate', async (interaction) => {
         
       } catch (error) {
         console.error('❌ 레시피 수정 선택 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+          console.error('❌ 레시피 수정 선택 응답 실패:', err);
+        });
       }
     }
     // 나머지 모든 select 핸들러는 분리된 핸들러로 처리
@@ -358,7 +360,9 @@ client.on('interactionCreate', async (interaction) => {
         console.log(`📊 바 크기 변경: ${percentage}% (길이: ${newLength})`);
       } catch (error) {
         console.error('❌ 바 크기 모달 제출 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+          console.error('❌ 바 크기 모달 응답 실패:', err);
+        });
       }
     }
 
@@ -673,7 +677,9 @@ client.on('interactionCreate', async (interaction) => {
         
       } catch (error) {
         console.error('❌ 모달 제출 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+          console.error('❌ 모달 제출 응답 실패:', err);
+        });
       }
     }
     } // if (!handled) 닫기

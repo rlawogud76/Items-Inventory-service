@@ -42,6 +42,8 @@ export async function handleInventoryCommand(interaction, activeMessages) {
       content: `❌ 재고를 표시하는 중 오류가 발생했습니다.\n${error.message}`,
       embeds: [],
       components: []
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error('❌ 재고 표시 에러 응답 실패:', err);
+    });
   }
 }

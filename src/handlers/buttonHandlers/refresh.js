@@ -36,7 +36,9 @@ export async function handleRefresh(interaction) {
   } catch (error) {
     console.error('❌ 새로고침 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '새로고침 중 오류가 발생했습니다.', flags: 64 }).catch(() => {});
+      await interaction.reply({ content: '새로고침 중 오류가 발생했습니다.', flags: 64 }).catch((err) => {
+        console.error('❌ 새로고침 에러 응답 실패:', err);
+      });
     }
   }
 }

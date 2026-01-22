@@ -99,7 +99,9 @@ export async function handleRecipeMaterialPagination(interaction) {
     
   } catch (error) {
     console.error('❌ 레시피 재료 페이지네이션 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 레시피 재료 페이지네이션 응답 실패:', err);
+    });
   }
 }
 
@@ -176,6 +178,8 @@ export async function handleRecipeEditPagination(interaction) {
     
   } catch (error) {
     console.error('❌ 레시피 수정 페이지네이션 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 레시피 수정 페이지네이션 응답 실패:', err);
+    });
   }
 }
