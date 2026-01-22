@@ -1,4 +1,19 @@
 ﻿// 버튼 인터랙션 핸들러
+// 
+// 📋 목차:
+// ├─ 1. 페이지네이션 (page_prev_embed_, page_next_embed_)
+// ├─ 2. 새로고침 (refresh)
+// ├─ 3. 수량관리 (quantity)
+// ├─ 4. 초기화 (reset, reset_individual, reset_batch)
+// ├─ 5. 물품/품목 관리 (manage, manage_add, manage_remove, manage_edit)
+// ├─ 6. 레시피 (recipe_crafting_, recipe_view_, recipe_edit_)
+// ├─ 7. 태그 (manage_tag, tag_set_, tag_remove_, tag_view_)
+// ├─ 8. 설정 (ui_mode, bar_size)
+// ├─ 9. 작업 (collecting, crafting, stop_collecting_, stop_crafting_)
+// ├─ 10. 수량 액션 (quantity_add_, quantity_edit_, quantity_subtract_)
+// ├─ 11. 레시피 플로우 (add_recipe_, skip_recipe_, add_more_recipe_, finish_recipe_)
+// └─ 12. 기여도 초기화 (confirm_contribution_reset, cancel_contribution_reset)
+
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, saveInventory } from '../database.js';
 import { 
@@ -1994,4 +2009,3 @@ export async function handleButtonInteraction(interaction) {
       }
     }
   }
-}
