@@ -1,7 +1,8 @@
 // 수량 관리 핸들러
-import { ActionRowBuilder } from 'discord.js';
+import { ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 import { loadInventory } from '../../database.js';
 import { formatQuantity, getItemIcon } from '../../utils.js';
+import { paginateItems, createPaginationButtons, getPaginationInfo } from '../../paginationUtils.js';
 
 /**
  * 수량 관리 버튼 핸들러
@@ -57,56 +58,30 @@ export async function handleQuantityButton(interaction) {
       };
     });
     
-    // Discord 제한: 최대 25개 옵션 - 페이지네이션
-    const pageSize = 25;
-    const totalPages = Math.ceil(itemOptions.length / pageSize);
+    // 페이지네이션 적용
     const page = 0; // 첫 페이지
-    const startIdx = page * pageSize;
-    const endIdx = startIdx + pageSize;
-    const limitedOptions = itemOptions.slice(startIdx, endIdx);
+    const { pagedItems, totalPages, startIndex, endIndex } = paginateItems(itemOptions, page);
     
     // 선택 메뉴 생성
-    const { StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId(`select_quantity_${type}_${category}`)
       .setPlaceholder('수량을 관리할 아이템을 선택하세요')
-      .addOptions(limitedOptions);
+      .addOptions(pagedItems);
     
     const rows = [new ActionRowBuilder().addComponents(selectMenu)];
     
     // 페이지네이션 버튼 추가 (2페이지 이상일 때)
     if (totalPages > 1) {
-      const prevButton = new ButtonBuilder()
-        .setCustomId(`page_prev_quantity_${type}_${category}_${page}`)
-        .setLabel('◀ 이전')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(page === 0);
-      
-      const nextButton = new ButtonBuilder()
-        .setCustomId(`page_next_quantity_${type}_${category}_${page}`)
-        .setLabel('다음 ▶')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(page === totalPages - 1);
-      
-      const pageInfo = new ButtonBuilder()
-        .setCustomId(`page_info_${page}`)
-        .setLabel(`${page + 1} / ${totalPages}`)
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(true);
-      
-      rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
+      const paginationRow = createPaginationButtons(`page_quantity_${type}_${category}`, page, totalPages);
+      rows.push(paginationRow);
     }
     
-    let contentMessage = `📊 **${category}** 카테고리에서 수량을 관리할 아이템을 선택하세요:`;
-    if (totalPages > 1) {
-      contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
-    }
+    const paginationInfo = getPaginationInfo(page, totalPages, itemOptions.length, startIndex, endIndex);
     
-    const reply = await interaction.reply({
-      content: contentMessage,
+    await interaction.reply({
+      content: `📊 **${category}** 카테고리 수량 관리\n${paginationInfo}\n\n수량을 관리할 아이템을 선택하세요:`,
       components: rows,
-      ephemeral: true,
-      fetchReply: true
+      ephemeral: true
     });
     
     // 15초 후 자동 삭제
@@ -158,47 +133,25 @@ export async function handleQuantityPageButton(interaction) {
       };
     });
     
-    // 페이지네이션
-    const pageSize = 25;
-    const totalPages = Math.ceil(itemOptions.length / pageSize);
-    const startIdx = newPage * pageSize;
-    const endIdx = startIdx + pageSize;
-    const limitedOptions = itemOptions.slice(startIdx, endIdx);
+    // 페이지네이션 적용
+    const { pagedItems, totalPages, startIndex, endIndex } = paginateItems(itemOptions, newPage);
     
-    const { StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+    const { StringSelectMenuBuilder } = await import('discord.js');
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId(`select_quantity_${type}_${category}`)
       .setPlaceholder('수량을 관리할 아이템을 선택하세요')
-      .addOptions(limitedOptions);
+      .addOptions(pagedItems);
     
     const rows = [new ActionRowBuilder().addComponents(selectMenu)];
     
     // 페이지네이션 버튼
-    const prevButton = new ButtonBuilder()
-      .setCustomId(`page_prev_quantity_${type}_${category}_${newPage}`)
-      .setLabel('◀ 이전')
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(newPage === 0);
+    const paginationRow = createPaginationButtons(`page_quantity_${type}_${category}`, newPage, totalPages);
+    rows.push(paginationRow);
     
-    const nextButton = new ButtonBuilder()
-      .setCustomId(`page_next_quantity_${type}_${category}_${newPage}`)
-      .setLabel('다음 ▶')
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(newPage === totalPages - 1);
-    
-    const pageInfo = new ButtonBuilder()
-      .setCustomId(`page_info_${newPage}`)
-      .setLabel(`${newPage + 1} / ${totalPages}`)
-      .setStyle(ButtonStyle.Primary)
-      .setDisabled(true);
-    
-    rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
-    
-    let contentMessage = `📊 **${category}** 카테고리에서 수량을 관리할 아이템을 선택하세요:`;
-    contentMessage += `\n\n📄 페이지 ${newPage + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
+    const paginationInfo = getPaginationInfo(newPage, totalPages, itemOptions.length, startIndex, endIndex);
     
     await interaction.update({
-      content: contentMessage,
+      content: `📊 **${category}** 카테고리 수량 관리\n${paginationInfo}\n\n수량을 관리할 아이템을 선택하세요:`,
       components: rows
     });
     
