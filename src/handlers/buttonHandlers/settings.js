@@ -59,9 +59,6 @@ export async function handleBarSizeButton(interaction) {
  */
 export async function handleUiModeButton(interaction) {
   try {
-    // 먼저 응답 지연 처리 (3초 제한 회피)
-    await interaction.deferUpdate();
-    
     const parts = interaction.customId.split('_');
     const type = parts[2]; // 'inventory' or 'crafting'
     const category = parts.length > 3 ? parts.slice(3).join('_') : null;
@@ -102,12 +99,10 @@ export async function handleUiModeButton(interaction) {
     const isAutoRefreshing = autoRefreshTimers?.has(messageId) || false;
     const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', newMode, barLength, inventory, interaction.user.id, 0, totalPages);
     
-    console.log('📏 Buttons 생성 완료, rows:', buttons.length);
-    console.log('📏 Embed type:', typeof embed, 'is array:', Array.isArray(embed));
-    console.log('📏 Buttons type:', typeof buttons, 'is array:', Array.isArray(buttons));
+    console.log('📏 Buttons 생성 완료, rows:', buttons?.length);
     
-    // interaction.message.edit() 사용
-    await interaction.message.edit({ 
+    // deferUpdate 없이 바로 update 사용
+    await interaction.update({ 
       embeds: [embed], 
       components: buttons 
     });
@@ -127,9 +122,6 @@ export async function handleUiModeButton(interaction) {
  */
 export async function handleAutoRefreshButton(interaction) {
   try {
-    // 먼저 응답 지연 처리 (3초 제한 회피)
-    await interaction.deferUpdate();
-    
     const parts = interaction.customId.split('_');
     const type = parts[2]; // 'inventory' or 'crafting'
     const category = parts.length > 3 ? parts.slice(3).join('_') : null;
@@ -137,7 +129,7 @@ export async function handleAutoRefreshButton(interaction) {
     
     if (!autoRefreshTimers) {
       console.error('❌ autoRefreshTimers가 설정되지 않았습니다');
-      return await interaction.editReply({ content: '오류가 발생했습니다.' });
+      return await interaction.reply({ content: '오류가 발생했습니다.', flags: 64 });
     }
     
     // 자동 새로고침 토글
@@ -161,11 +153,7 @@ export async function handleAutoRefreshButton(interaction) {
       const barLength = inventory.settings?.barLength || 15;
       const buttons = createButtons(category, false, type || 'inventory', uiMode, barLength);
       
-      // interaction.message.edit() 사용
-      await interaction.message.edit({ 
-        embeds: [embed], 
-        components: buttons 
-      });
+      await interaction.update({ embeds: [embed], components: buttons });
     } else {
       // 시작
       console.log('▶️ 자동 새로고침 시작:', messageId, '/ 타입:', type, '/ 카테고리:', category || '전체');
@@ -184,11 +172,7 @@ export async function handleAutoRefreshButton(interaction) {
       const barLength = inventory.settings?.barLength || 15;
       const buttons = createButtons(category, true, type || 'inventory', uiMode, barLength);
       
-      // interaction.message.edit() 사용
-      await interaction.message.edit({ 
-        embeds: [embed], 
-        components: buttons 
-      });
+      await interaction.update({ embeds: [embed], components: buttons });
       
       // 5초마다 자동 새로고침
       const timer = setInterval(async () => {
