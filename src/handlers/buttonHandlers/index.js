@@ -4,6 +4,12 @@
 export { handlePageNavigation } from './pagination.js';
 export { handleRefresh } from './refresh.js';
 
+// 선택 메뉴 페이지네이션
+export { 
+  handleRecipeMaterialPagination,
+  handleRecipeEditPagination
+} from './selectPagination.js';
+
 // 수량 관리
 export { handleQuantityButton, handleQuantityPageButton } from './quantity.js';
 
@@ -60,4 +66,3 @@ export {
   handleConfirmContributionReset, 
   handleCancelContributionReset 
 } from './contribution.js';
-

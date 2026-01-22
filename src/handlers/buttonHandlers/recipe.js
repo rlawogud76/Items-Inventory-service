@@ -139,7 +139,14 @@ export async function handleRecipeEditButton(interaction) {
     }
     
     const items = Object.keys(inventory.crafting.categories[category]);
-    const itemOptions = items.map(item => ({
+    const page = 0; // 첫 페이지
+    const itemsPerPage = 25;
+    const totalPages = Math.ceil(items.length / itemsPerPage);
+    const startIndex = page * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, items.length);
+    const pageItems = items.slice(startIndex, endIndex);
+    
+    const itemOptions = pageItems.map(item => ({
       label: item,
       value: item,
       emoji: getItemIcon(item, inventory)
@@ -151,11 +158,42 @@ export async function handleRecipeEditButton(interaction) {
       .setPlaceholder('레시피를 수정할 제작품을 선택하세요')
       .addOptions(itemOptions);
     
-    const row = new ActionRowBuilder().addComponents(selectMenu);
+    const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+    
+    // 페이지네이션 버튼 추가 (25개 초과 시)
+    if (totalPages > 1) {
+      const pageButtons = [];
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_prev_recipe_edit_${category}_${page}`)
+          .setLabel('◀ 이전')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page === 0)
+      );
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_info_recipe_edit_${category}_${page}`)
+          .setLabel(`페이지 ${page + 1}/${totalPages}`)
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
+      );
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_next_recipe_edit_${category}_${page}`)
+          .setLabel('다음 ▶')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page >= totalPages - 1)
+      );
+      
+      rows.push(new ActionRowBuilder().addComponents(pageButtons));
+    }
     
     await interaction.update({
-      content: `✏️ **${category}** 카테고리에서 레시피를 수정할 제작품을 선택하세요:`,
-      components: [row]
+      content: `✏️ **${category}** 카테고리에서 레시피를 수정할 제작품을 선택하세요${totalPages > 1 ? ` (${items.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}:`,
+      components: rows
     });
     
     // 30초 후 자동 삭제
@@ -211,7 +249,14 @@ export async function handleRecipeAddSkipButton(interaction) {
     }
     
     const materials = Object.keys(inventory.categories[category]);
-    const materialOptions = materials.map(mat => ({
+    const page = 0; // 첫 페이지
+    const itemsPerPage = 25;
+    const totalPages = Math.ceil(materials.length / itemsPerPage);
+    const startIndex = page * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, materials.length);
+    const pageMaterials = materials.slice(startIndex, endIndex);
+    
+    const materialOptions = pageMaterials.map(mat => ({
       label: mat,
       value: mat,
       emoji: getItemIcon(mat, inventory)
@@ -223,12 +268,43 @@ export async function handleRecipeAddSkipButton(interaction) {
       .setPlaceholder('재료 1을 선택하세요 (필수)')
       .addOptions(materialOptions);
     
-    const row = new ActionRowBuilder().addComponents(selectMenu);
+    const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+    
+    // 페이지네이션 버튼 추가 (25개 초과 시)
+    if (totalPages > 1) {
+      const pageButtons = [];
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_prev_recipe_material_${category}_${itemName}_1_${page}`)
+          .setLabel('◀ 이전')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page === 0)
+      );
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_info_recipe_material_${category}_${itemName}_1_${page}`)
+          .setLabel(`페이지 ${page + 1}/${totalPages}`)
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
+      );
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_next_recipe_material_${category}_${itemName}_1_${page}`)
+          .setLabel('다음 ▶')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page >= totalPages - 1)
+      );
+      
+      rows.push(new ActionRowBuilder().addComponents(pageButtons));
+    }
     
     await interaction.update({
-      content: `📝 **${itemName}** 레시피 추가\n\n**1단계:** 첫 번째 재료를 선택하세요`,
+      content: `📝 **${itemName}** 레시피 추가\n\n**1단계:** 첫 번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
       embeds: [],
-      components: [row]
+      components: rows
     });
     
   } catch (error) {

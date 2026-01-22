@@ -57,7 +57,9 @@ import {
   handleStopWorkButton,
   handleQuantityActionButton,
   handleConfirmContributionReset,
-  handleCancelContributionReset
+  handleCancelContributionReset,
+  handleRecipeMaterialPagination,
+  handleRecipeEditPagination
 } from './buttonHandlers/index.js';
 
 // 자동 새로고침 타이머 저장소
@@ -184,8 +186,16 @@ export async function handleButtonInteraction(interaction) {
     }
     
     else if (interaction.customId.startsWith('page_prev_') || interaction.customId.startsWith('page_next_')) {
+      // 레시피 재료 선택 페이지 이동
+      if (interaction.customId.includes('_recipe_material_')) {
+        return await handleRecipeMaterialPagination(interaction);
+      }
+      // 레시피 수정 제작품 선택 페이지 이동
+      else if (interaction.customId.includes('_recipe_edit_')) {
+        return await handleRecipeEditPagination(interaction);
+      }
       // 작업 페이지 이동 (collecting/crafting)
-      if (interaction.customId.includes('_collecting_') || interaction.customId.includes('_crafting_')) {
+      else if (interaction.customId.includes('_collecting_') || interaction.customId.includes('_crafting_')) {
         return await handleWorkPageButton(interaction);
       }
       // 수량관리 페이지 이동
