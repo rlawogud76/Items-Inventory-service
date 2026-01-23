@@ -166,6 +166,13 @@ export async function handleAddItemModalStep2(interaction) {
         if (!inventory.crafting.categories[category]) {
           inventory.crafting.categories[category] = {};
         }
+        // 제작 섹션에도 실제 아이템 생성
+        inventory.crafting.categories[category][itemName] = {
+          quantity: initialTotal,
+          required: requiredTotal,
+          itemType: 'intermediate',
+          linkedItem: `inventory/${category}/${itemName}`
+        };
         // 연동 정보 저장
         inventory.categories[category][itemName].linkedItem = `crafting/${category}/${itemName}`;
       }
