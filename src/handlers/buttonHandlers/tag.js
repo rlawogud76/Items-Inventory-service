@@ -29,16 +29,22 @@ export async function handleManageTagButton(interaction) {
       .setLabel('🗑️ 태그 제거')
       .setStyle(ButtonStyle.Secondary);
     
+    const colorTagButton = new ButtonBuilder()
+      .setCustomId(`tag_color_${type}_${category}`)
+      .setLabel('🎨 색상 변경')
+      .setStyle(ButtonStyle.Secondary);
+    
     const viewTagsButton = new ButtonBuilder()
       .setCustomId(`tag_view_${type}_${category}`)
       .setLabel('👁️ 태그 보기')
       .setStyle(ButtonStyle.Secondary);
     
-    const row = new ActionRowBuilder().addComponents(setTagButton, removeTagButton, viewTagsButton);
+    const row1 = new ActionRowBuilder().addComponents(setTagButton, removeTagButton);
+    const row2 = new ActionRowBuilder().addComponents(colorTagButton, viewTagsButton);
     
     await interaction.update({
       content: `🏷️ **${category}** 카테고리 태그 관리\n\n태그를 사용하면 관련 물품들을 그룹으로 묶을 수 있습니다.\n예: "산호 블럭", "뇌 산호 블럭" → "산호" 태그\n\n원하는 작업을 선택하세요:`,
-      components: [row]
+      components: [row1, row2]
     });
     
     // 30초 후 자동 삭제
@@ -223,5 +229,72 @@ export async function handleTagViewButton(interaction) {
   } catch (error) {
     console.error('❌ 태그 보기 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+  }
+}
+/**
+ * 태그 색상 변경 버튼 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleTagColorButton(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[2];
+    const category = parts.slice(3).join('_');
+    
+    const inventory = await loadInventory();
+    const tags = inventory.tags?.[type]?.[category];
+    
+    if (!tags || Object.keys(tags).length === 0) {
+      return await interaction.update({ 
+        content: `❌ "${category}" 카테고리에 태그가 없습니다.`,
+        components: []
+      });
+    }
+    
+    // 태그 선택 메뉴 생성
+    const tagOptions = Object.entries(tags).map(([tagName, tagData]) => {
+      const items = Array.isArray(tagData) ? tagData : tagData.items || [];
+      const color = Array.isArray(tagData) ? 'default' : tagData.color || 'default';
+      
+      const colorEmoji = {
+        'red': '🔴', 'green': '🟢', 'blue': '🔵', 'yellow': '🟡',
+        'purple': '🟣', 'cyan': '🔵', 'white': '⚪', 'default': '🏷️'
+      }[color] || '🏷️';
+      
+      return {
+        label: tagName,
+        value: tagName,
+        description: `현재: ${color} (${items.length}개 항목)`,
+        emoji: colorEmoji
+      };
+    });
+    
+    const { StringSelectMenuBuilder } = await import('discord.js');
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`select_tag_for_color_${type}_${category}`)
+      .setPlaceholder('색상을 변경할 태그를 선택하세요')
+      .setMinValues(1)
+      .setMaxValues(1)
+      .addOptions(tagOptions);
+    
+    const row = new ActionRowBuilder().addComponents(selectMenu);
+    
+    await interaction.update({
+      content: `🎨 **태그 색상 변경**\n\n색상을 변경할 태그를 선택하세요.`,
+      components: [row]
+    });
+    
+    // 30초 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, 30000);
+    
+  } catch (error) {
+    console.error('❌ 태그 색상 버튼 에러:', error);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+    }
   }
 }

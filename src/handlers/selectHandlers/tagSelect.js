@@ -278,3 +278,116 @@ export async function handleTagColorSelect(interaction) {
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }
+
+/**
+ * 색상 변경할 태그 선택 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleTagForColorSelect(interaction) {
+  try {
+    await interaction.deferUpdate();
+    
+    const parts = interaction.customId.replace('select_tag_for_color_', '').split('_');
+    const type = parts[0];
+    const category = parts.slice(1).join('_');
+    const selectedTag = interaction.values[0];
+    
+    // 색상 선택 메뉴 생성
+    const colorOptions = [
+      { label: '기본', value: 'default', emoji: '🏷️', description: '기본 색상' },
+      { label: '빨강', value: 'red', emoji: '🔴', description: '빨간색' },
+      { label: '초록', value: 'green', emoji: '🟢', description: '초록색' },
+      { label: '파랑', value: 'blue', emoji: '🔵', description: '파란색' },
+      { label: '노랑', value: 'yellow', emoji: '🟡', description: '노란색' },
+      { label: '보라', value: 'purple', emoji: '🟣', description: '보라색' },
+      { label: '청록', value: 'cyan', emoji: '🔵', description: '청록색' },
+      { label: '흰색', value: 'white', emoji: '⚪', description: '흰색' }
+    ];
+    
+    const { StringSelectMenuBuilder } = await import('discord.js');
+    const colorSelectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`change_tag_color_${type}_${category}_${selectedTag}`)
+      .setPlaceholder('새로운 색상을 선택하세요')
+      .addOptions(colorOptions);
+    
+    const row = new ActionRowBuilder().addComponents(colorSelectMenu);
+    
+    await interaction.editReply({
+      content: `🎨 **"${selectedTag}" 태그 색상 변경**\n\n새로운 색상을 선택하세요:`,
+      components: [row]
+    });
+    
+  } catch (error) {
+    console.error('❌ 태그 색상 선택 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 태그 색상 변경 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleChangeTagColor(interaction) {
+  try {
+    await interaction.deferUpdate();
+    
+    const parts = interaction.customId.replace('change_tag_color_', '').split('_');
+    const tagName = parts[parts.length - 1];
+    const type = parts[0];
+    const category = parts.slice(1, -1).join('_');
+    const newColor = interaction.values[0];
+    
+    const inventory = await loadInventory();
+    
+    if (!inventory.tags?.[type]?.[category]?.[tagName]) {
+      return await interaction.editReply({
+        content: `❌ 태그 "${tagName}"을 찾을 수 없습니다.`,
+        components: []
+      });
+    }
+    
+    // 태그 색상 업데이트
+    const tagData = inventory.tags[type][category][tagName];
+    if (Array.isArray(tagData)) {
+      // 기존 배열 형식을 객체 형식으로 변환
+      inventory.tags[type][category][tagName] = {
+        items: tagData,
+        color: newColor
+      };
+    } else {
+      // 이미 객체 형식
+      tagData.color = newColor;
+    }
+    
+    await saveInventory(inventory);
+    
+    const colorNames = {
+      'default': '기본 🏷️',
+      'red': '빨강 🔴',
+      'green': '초록 🟢',
+      'blue': '파랑 🔵',
+      'yellow': '노랑 🟡',
+      'purple': '보라 🟣',
+      'cyan': '청록 🔵',
+      'white': '흰색 ⚪'
+    };
+    
+    const colorName = colorNames[newColor] || newColor;
+    
+    await interaction.editReply({
+      content: `✅ **"${tagName}" 태그 색상 변경 완료!**\n\n새로운 색상: ${colorName}\n\n이제 해당 태그의 모든 아이템이 새로운 색상으로 표시됩니다.`,
+      components: []
+    });
+    
+    // 15초 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, 15000);
+    
+  } catch (error) {
+    console.error('❌ 태그 색상 변경 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}

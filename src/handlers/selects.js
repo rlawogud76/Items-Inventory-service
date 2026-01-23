@@ -11,7 +11,9 @@ import {
   handleTagItemSelect,
   handleRecipeMaterialEditSelect,
   handleRecipeMaterialSelect,
-  handleTagColorSelect
+  handleTagColorSelect,
+  handleTagForColorSelect,
+  handleChangeTagColor
 } from './selectHandlers/index.js';
 
 /**
@@ -44,6 +46,16 @@ export async function handleSelectInteraction(interaction) {
   // 작업 항목 선택
   else if (interaction.customId.startsWith('select_item_')) {
     return await handleWorkItemSelect(interaction);
+  }
+  
+  // 색상 변경할 태그 선택
+  else if (interaction.customId.startsWith('select_tag_for_color_')) {
+    return await handleTagForColorSelect(interaction);
+  }
+  
+  // 태그 색상 변경
+  else if (interaction.customId.startsWith('change_tag_color_')) {
+    return await handleChangeTagColor(interaction);
   }
   
   // 태그 색상 선택

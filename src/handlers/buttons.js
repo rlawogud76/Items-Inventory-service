@@ -35,7 +35,7 @@ import {
   handleManageTagButton,
   handleTagSetButton,
   handleTagRemoveButton,
-  handleTagViewButton,
+  handleTagColorButton,
   handleRecipeButton,
   handleRecipeViewButton,
   handleRecipeEditButton,
@@ -151,6 +151,10 @@ export async function handleButtonInteraction(interaction) {
     
     else if (interaction.customId.startsWith('tag_remove_')) {
       return await handleTagRemoveButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('tag_color_')) {
+      return await handleTagColorButton(interaction);
     }
     
     else if (interaction.customId.startsWith('tag_view_')) {

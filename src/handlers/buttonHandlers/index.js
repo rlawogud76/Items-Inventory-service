@@ -32,7 +32,8 @@ export {
   handleManageTagButton, 
   handleTagSetButton, 
   handleTagRemoveButton, 
-  handleTagViewButton 
+  handleTagViewButton,
+  handleTagColorButton
 } from './tag.js';
 
 // 레시피
