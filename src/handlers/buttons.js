@@ -18,7 +18,8 @@
 
 // 분리된 핸들러 import
 import { 
-  handlePageNavigation, 
+  handlePageNavigation,
+  handleRecipeMaterialPageNavigation,
   handleRefresh,
   handleQuantityButton,
   handleQuantityPageButton,
@@ -206,7 +207,7 @@ export async function handleButtonInteraction(interaction) {
     else if (interaction.customId.startsWith('page_prev_') || interaction.customId.startsWith('page_next_')) {
       // 레시피 재료 선택 페이지 이동
       if (interaction.customId.includes('_recipe_material_')) {
-        return await handleRecipeMaterialPagination(interaction);
+        return await handleRecipeMaterialPageNavigation(interaction);
       }
       // 레시피 수정 제작품 선택 페이지 이동
       else if (interaction.customId.includes('_recipe_edit_')) {

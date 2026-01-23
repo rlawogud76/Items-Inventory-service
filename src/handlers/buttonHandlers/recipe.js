@@ -383,7 +383,14 @@ export async function handleRecipeMoreFinishButton(interaction) {
     
     // 다음 재료 선택
     const materials = Object.keys(inventory.categories[category]);
-    const materialOptions = materials.map(mat => ({
+    const page = 0; // 첫 페이지
+    const itemsPerPage = 25;
+    const totalPages = Math.ceil(materials.length / itemsPerPage);
+    const startIndex = page * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, materials.length);
+    const pageMaterials = materials.slice(startIndex, endIndex);
+    
+    const materialOptions = pageMaterials.map(mat => ({
       label: mat,
       value: mat,
       emoji: validateEmoji(getItemIcon(mat, inventory))
@@ -395,15 +402,46 @@ export async function handleRecipeMoreFinishButton(interaction) {
       .setPlaceholder(`재료 ${step}을 선택하세요`)
       .addOptions(materialOptions);
     
-    const row = new ActionRowBuilder().addComponents(selectMenu);
+    const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+    
+    // 페이지네이션 버튼 추가 (25개 초과 시)
+    if (totalPages > 1) {
+      const pageButtons = [];
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_prev_recipe_material${isEdit ? '_edit' : ''}_${category}_${itemName}_${step}_${page}`)
+          .setLabel('◀ 이전')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page === 0)
+      );
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_info_recipe_material${isEdit ? '_edit' : ''}_${category}_${itemName}_${step}_${page}`)
+          .setLabel(`페이지 ${page + 1}/${totalPages}`)
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
+      );
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_next_recipe_material${isEdit ? '_edit' : ''}_${category}_${itemName}_${step}_${page}`)
+          .setLabel('다음 ▶')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page >= totalPages - 1)
+      );
+      
+      rows.push(new ActionRowBuilder().addComponents(pageButtons));
+    }
     
     const currentRecipe = inventory.crafting.recipes[category][itemName]
       .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
       .join('\n');
     
     await interaction.update({
-      content: `${isEdit ? '✏️' : '📝'} ${itemName}\n레시피 ${isEdit ? '수정' : '추가'}\n\n**현재 레시피:**\n${currentRecipe}\n\n**${step}단계:** ${step}번째 재료를 선택하세요`,
-      components: [row]
+      content: `${isEdit ? '✏️' : '📝'} ${itemName}\n레시피 ${isEdit ? '수정' : '추가'}\n\n**현재 레시피:**\n${currentRecipe}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
+      components: rows
     });
     
   } catch (error) {

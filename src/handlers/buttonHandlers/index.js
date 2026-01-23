@@ -1,7 +1,7 @@
 // 모든 버튼 핸들러 export
 
 // 페이지네이션 & 새로고침
-export { handlePageNavigation } from './pagination.js';
+export { handlePageNavigation, handleRecipeMaterialPageNavigation } from './pagination.js';
 export { handleRefresh } from './refresh.js';
 
 // 선택 메뉴 페이지네이션

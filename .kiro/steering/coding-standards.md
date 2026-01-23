@@ -2,6 +2,11 @@
 
 ## 작업 이력
 
+### 2025-01-24: 레시피 핸들러 이모지 검증 추가
+- **수정된 파일**: recipe.js
+- **이모지 검증**: `validateEmoji()` 함수 추가 및 모든 select menu options에 적용
+- **해결된 에러**: DiscordAPIError[50035] Invalid emoji in recipe add button
+
 ### 2025-01-23: 수량 관리 시스템 전면 검토 및 수정
 - **Optional Chaining 일관성 적용**: 모든 핸들러에서 `targetData?.categories?.[category]` 패턴 적용
 - **수정된 파일**: quantity.js, quantitySelect.js, quantityActions.js, quantityModal.js, resetSelect.js, work.js, reset.js
