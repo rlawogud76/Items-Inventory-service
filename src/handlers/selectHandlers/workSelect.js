@@ -15,6 +15,14 @@ export async function handleWorkItemSelect(interaction) {
     const userId = interaction.user.id;
     const userName = interaction.user.displayName || interaction.user.username;
     
+    console.log('🔍 Work Select Debug:', {
+      customId: interaction.customId,
+      parts,
+      isCrafting,
+      category,
+      selectedValue
+    });
+    
     const inventory = await loadInventory();
     
     // 태그인지 아이템인지 확인
@@ -46,8 +54,13 @@ export async function handleWorkItemSelect(interaction) {
     
     // 각 아이템 처리
     for (const selectedItem of itemsToProcess) {
+      console.log('🔍 Processing item:', selectedItem);
       const itemData = targetData.categories?.[category]?.[selectedItem];
-      if (!itemData) continue;
+      console.log('🔍 Item data:', itemData);
+      if (!itemData) {
+        console.log('⚠️ Item not found:', { category, selectedItem, availableItems: Object.keys(targetData.categories?.[category] || {}) });
+        continue;
+      }
       
       const percentage = (itemData.quantity / itemData.required) * 100;
       
