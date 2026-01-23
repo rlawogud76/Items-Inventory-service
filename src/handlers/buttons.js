@@ -148,12 +148,12 @@ export async function handleButtonInteraction(interaction) {
     // ============================================
     // 7. 태그 핸들러 (분리됨)
     // ============================================
-    else if (interaction.customId.startsWith('manage_tag')) {
-      return await handleManageTagButton(interaction);
-    }
-    
     else if (interaction.customId.startsWith('manage_type_')) {
       return await handleManageTypeButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('manage_tag')) {
+      return await handleManageTagButton(interaction);
     }
     
     else if (interaction.customId.startsWith('tag_set_')) {
