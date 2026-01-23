@@ -437,15 +437,17 @@ export async function handleManageRemovePageButton(interaction) {
  */
 export async function handleAddItemStep2Button(interaction) {
   try {
+    // add_item_step2_btn_inventory_해양_산호_1234_material 형식
     const parts = interaction.customId.split('_');
+    const itemType = parts[parts.length - 1]; // 마지막이 물품 유형 (material/intermediate/final)
+    const initialTotal = parts[parts.length - 2]; // 마지막에서 두번째가 초기 수량
+    const itemName = parts[parts.length - 3]; // 마지막에서 세번째가 아이템명
     const type = parts[4]; // 'inventory' or 'crafting'
-    const initialTotal = parts[parts.length - 1]; // 마지막이 초기 수량
-    const itemName = parts[parts.length - 2]; // 마지막에서 두번째가 아이템명
-    const category = parts.slice(5, -2).join('_'); // 중간이 카테고리
+    const category = parts.slice(5, -3).join('_'); // 중간이 카테고리
     
     // Step 2 모달 표시
     const modal = new ModalBuilder()
-      .setCustomId(`add_item_modal_step2_${type}_${category}_${itemName}_${initialTotal}`)
+      .setCustomId(`add_item_modal_step2_${type}_${category}_${itemName}_${initialTotal}_${itemType}`)
       .setTitle(`➕ ${type === 'inventory' ? '물품' : '품목'} 추가 (2/2) - ${category}`);
     
     const requiredBoxesInput = new TextInputBuilder()
