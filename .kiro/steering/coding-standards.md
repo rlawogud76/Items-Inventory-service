@@ -2,10 +2,13 @@
 
 ## 작업 이력
 
-### 2025-01-24: 레시피 핸들러 이모지 검증 추가
-- **수정된 파일**: recipe.js
+### 2025-01-24: 레시피 핸들러 이모지 검증 및 페이지네이션 추가
+- **수정된 파일**: recipe.js, pagination.js, buttons.js, index.js
 - **이모지 검증**: `validateEmoji()` 함수 추가 및 모든 select menu options에 적용
-- **해결된 에러**: DiscordAPIError[50035] Invalid emoji in recipe add button
+- **페이지네이션 추가**: 25개 초과 재료 선택 시 페이지네이션 지원 (`handleRecipeMaterialPageNavigation`)
+- **해결된 에러**: 
+  - DiscordAPIError[50035] Invalid emoji in recipe add button
+  - ExpectedConstraintError: Select menu options exceeds 25 limit
 
 ### 2025-01-23: 수량 관리 시스템 전면 검토 및 수정
 - **Optional Chaining 일관성 적용**: 모든 핸들러에서 `targetData?.categories?.[category]` 패턴 적용
@@ -20,14 +23,17 @@
 ## 최근 발견된 이슈 및 해결 방법
 
 ### Discord API 제한 사항
-1. **Select Menu Description 제한**: 최대 100자
+1. **Select Menu Options 제한**: 최대 25개
+   - 해결: 25개 초과 시 페이지네이션 버튼 추가
+
+2. **Select Menu Description 제한**: 최대 100자
    - 해결: 100자 초과 시 자동 truncate (`description.substring(0, 97) + '...'`)
 
-2. **Select Menu Emoji 제한**: 유니코드 이모지만 허용
+3. **Select Menu Emoji 제한**: 유니코드 이모지만 허용
    - 커스텀 Discord 이모지(`<:name:id>`) 사용 불가
    - 해결: `validateEmoji()` 함수로 검증 후 기본 이모지로 대체
 
-3. **Modal Input 기본값 처리**: 빈 입력값은 `''`가 아닌 `'0'`으로 처리
+4. **Modal Input 기본값 처리**: 빈 입력값은 `''`가 아닌 `'0'`으로 처리
    - `sanitizeNumber('')`는 `null` 반환
    - 해결: `?.trim() || '0'`로 기본값 설정
 

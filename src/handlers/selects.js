@@ -11,6 +11,8 @@ import {
   handleTagItemSelect,
   handleRecipeMaterialEditSelect,
   handleRecipeMaterialSelect,
+  handleRecipeAddSelect,
+  handleRecipeMaterialStandaloneSelect,
   handleTagColorSelect,
   handleTagForColorSelect,
   handleChangeTagColor,
@@ -86,6 +88,11 @@ export async function handleSelectInteraction(interaction) {
     return await handleTagItemSelect(interaction);
   }
   
+  // 레시피 재료 선택 (독립 실행)
+  else if (interaction.customId.startsWith('select_recipe_material_standalone_')) {
+    return await handleRecipeMaterialStandaloneSelect(interaction);
+  }
+  
   // 레시피 재료 선택 (수정)
   else if (interaction.customId.startsWith('select_recipe_material_edit_')) {
     return await handleRecipeMaterialEditSelect(interaction);
@@ -94,6 +101,11 @@ export async function handleSelectInteraction(interaction) {
   // 레시피 재료 선택 (추가)
   else if (interaction.customId.startsWith('select_recipe_material_')) {
     return await handleRecipeMaterialSelect(interaction);
+  }
+  
+  // 레시피 추가 제작품 선택
+  else if (interaction.customId.startsWith('select_recipe_add_')) {
+    return await handleRecipeAddSelect(interaction);
   }
   
   // 유형 변경할 아이템 선택

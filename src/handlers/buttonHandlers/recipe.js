@@ -33,12 +33,17 @@ export async function handleRecipeButton(interaction) {
       .setLabel('📖 조회')
       .setStyle(ButtonStyle.Primary);
     
+    const addButton = new ButtonBuilder()
+      .setCustomId(`recipe_add_${category}`)
+      .setLabel('➕ 추가')
+      .setStyle(ButtonStyle.Success);
+    
     const editButton = new ButtonBuilder()
       .setCustomId(`recipe_edit_${category}`)
       .setLabel('✏️ 수정')
       .setStyle(ButtonStyle.Primary);
     
-    const row = new ActionRowBuilder().addComponents(viewButton, editButton);
+    const row = new ActionRowBuilder().addComponents(viewButton, addButton, editButton);
     
     await interaction.reply({
       content: `📋 **${category}** 카테고리 레시피 관리\n\n원하는 작업을 선택하세요:`,
@@ -225,6 +230,95 @@ export async function handleRecipeEditButton(interaction) {
     console.error('❌ 레시피 수정 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
       console.error('❌ 레시피 수정 에러 응답 실패:', err);
+    });
+  }
+}
+
+/**
+ * 레시피 추가 버튼 핸들러 (독립 실행)
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleRecipeAddButton(interaction) {
+  try {
+    const category = interaction.customId.replace('recipe_add_', '');
+    const inventory = await loadInventory();
+    
+    if (!inventory.crafting?.categories?.[category] || Object.keys(inventory.crafting.categories[category]).length === 0) {
+      return await interaction.update({
+        content: `❌ "${category}" 카테고리에 제작품이 없습니다.`,
+        components: []
+      });
+    }
+    
+    const items = Object.keys(inventory.crafting.categories[category]);
+    const page = 0; // 첫 페이지
+    const itemsPerPage = 25;
+    const totalPages = Math.ceil(items.length / itemsPerPage);
+    const startIndex = page * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, items.length);
+    const pageItems = items.slice(startIndex, endIndex);
+    
+    const itemOptions = pageItems.map(item => ({
+      label: item,
+      value: item,
+      emoji: validateEmoji(getItemIcon(item, inventory))
+    }));
+    
+    const { StringSelectMenuBuilder } = await import('discord.js');
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`select_recipe_add_${category}`)
+      .setPlaceholder('레시피를 추가할 제작품을 선택하세요')
+      .addOptions(itemOptions);
+    
+    const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+    
+    // 페이지네이션 버튼 추가 (25개 초과 시)
+    if (totalPages > 1) {
+      const pageButtons = [];
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_prev_recipe_add_${category}_${page}`)
+          .setLabel('◀ 이전')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page === 0)
+      );
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_info_recipe_add_${category}_${page}`)
+          .setLabel(`페이지 ${page + 1}/${totalPages}`)
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
+      );
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_next_recipe_add_${category}_${page}`)
+          .setLabel('다음 ▶')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page >= totalPages - 1)
+      );
+      
+      rows.push(new ActionRowBuilder().addComponents(pageButtons));
+    }
+    
+    await interaction.update({
+      content: `➕ **${category}** 카테고리에서 레시피를 추가할 제작품을 선택하세요${totalPages > 1 ? ` (${items.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}:`,
+      components: rows
+    });
+    
+    // 30초 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, 30000);
+    
+  } catch (error) {
+    console.error('❌ 레시피 추가 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 레시피 추가 에러 응답 실패:', err);
     });
   }
 }
@@ -448,6 +542,111 @@ export async function handleRecipeMoreFinishButton(interaction) {
     console.error('❌ 레시피 버튼 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
       console.error('❌ 레시피 버튼 에러 응답 실패:', err);
+    });
+  }
+}
+
+/**
+ * 레시피 추가 더하기/완료 버튼 핸들러 (독립 실행)
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleRecipeStandaloneMoreFinishButton(interaction) {
+  try {
+    const isFinish = interaction.customId.startsWith('finish_recipe_standalone_');
+    const prefix = isFinish ? 'finish_recipe_standalone_' : 'add_more_recipe_standalone_';
+    const parts = interaction.customId.replace(prefix, '').split('_');
+    const category = parts[0];
+    const step = isFinish ? null : parseInt(parts[parts.length - 1]);
+    const itemName = isFinish ? parts.slice(1).join('_') : parts.slice(1, -1).join('_');
+    
+    const inventory = await loadInventory();
+    
+    if (isFinish) {
+      const recipe = inventory.crafting.recipes?.[category]?.[itemName] || [];
+      const recipeText = recipe
+        .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
+        .join('\n');
+      
+      await interaction.update({
+        content: `✅ ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${recipeText}`,
+        components: []
+      });
+      
+      setTimeout(async () => {
+        try {
+          await interaction.deleteReply();
+        } catch (error) {}
+      }, 15000);
+      return;
+    }
+    
+    // 다음 재료 선택
+    const materials = Object.keys(inventory.categories[category]);
+    const page = 0;
+    const itemsPerPage = 25;
+    const totalPages = Math.ceil(materials.length / itemsPerPage);
+    const startIndex = page * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, materials.length);
+    const pageMaterials = materials.slice(startIndex, endIndex);
+    
+    const materialOptions = pageMaterials.map(mat => ({
+      label: mat,
+      value: mat,
+      emoji: validateEmoji(getItemIcon(mat, inventory))
+    }));
+    
+    const { StringSelectMenuBuilder } = await import('discord.js');
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`select_recipe_material_standalone_${category}_${itemName}_${step}`)
+      .setPlaceholder(`재료 ${step}을 선택하세요`)
+      .addOptions(materialOptions);
+    
+    const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+    
+    // 페이지네이션 버튼 추가 (25개 초과 시)
+    if (totalPages > 1) {
+      const pageButtons = [];
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_prev_recipe_material_standalone_${category}_${itemName}_${step}_${page}`)
+          .setLabel('◀ 이전')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page === 0)
+      );
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_info_recipe_material_standalone_${category}_${itemName}_${step}_${page}`)
+          .setLabel(`페이지 ${page + 1}/${totalPages}`)
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
+      );
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`page_next_recipe_material_standalone_${category}_${itemName}_${step}_${page}`)
+          .setLabel('다음 ▶')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page >= totalPages - 1)
+      );
+      
+      rows.push(new ActionRowBuilder().addComponents(pageButtons));
+    }
+    
+    const currentRecipe = inventory.crafting.recipes[category][itemName]
+      .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
+      .join('\n');
+    
+    await interaction.update({
+      content: `📝 ${itemName}\n레시피 추가\n\n**현재 레시피:**\n${currentRecipe}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
+      components: rows
+    });
+    
+  } catch (error) {
+    console.error('❌ 레시피 추가 버튼 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+      console.error('❌ 레시피 추가 버튼 에러 응답 실패:', err);
     });
   }
 }

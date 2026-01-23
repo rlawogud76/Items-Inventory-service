@@ -3,7 +3,8 @@
 // 레시피
 export { 
   handleRecipeEditQuantityModal, 
-  handleRecipeQuantityModal 
+  handleRecipeQuantityModal,
+  handleRecipeStandaloneQuantityModal
 } from './recipeModal.js';
 
 // 관리 (추가/수정)

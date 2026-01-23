@@ -3,6 +3,7 @@
 import {
   handleRecipeEditQuantityModal,
   handleRecipeQuantityModal,
+  handleRecipeStandaloneQuantityModal,
   handleAddItemModalStep1,
   handleAddItemModalStep2,
   handleEditNameModal,
@@ -21,6 +22,12 @@ export async function handleModalInteraction(interaction) {
   // 레시피 수정 수량
   if (interaction.customId.startsWith('recipe_edit_quantity_modal_')) {
     await handleRecipeEditQuantityModal(interaction);
+    return true;
+  }
+  
+  // 레시피 추가 수량 (독립 실행)
+  else if (interaction.customId.startsWith('recipe_standalone_quantity_modal_')) {
+    await handleRecipeStandaloneQuantityModal(interaction);
     return true;
   }
   

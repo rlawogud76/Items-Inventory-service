@@ -1,7 +1,12 @@
 // 모든 버튼 핸들러 export
 
 // 페이지네이션 & 새로고침
-export { handlePageNavigation, handleRecipeMaterialPageNavigation } from './pagination.js';
+export { 
+  handlePageNavigation, 
+  handleRecipeMaterialPageNavigation,
+  handleRecipeMaterialStandalonePageNavigation,
+  handleRecipeAddPageNavigation
+} from './pagination.js';
 export { handleRefresh } from './refresh.js';
 
 // 선택 메뉴 페이지네이션
@@ -43,9 +48,11 @@ export {
 export { 
   handleRecipeButton, 
   handleRecipeViewButton, 
+  handleRecipeAddButton,
   handleRecipeEditButton,
   handleRecipeAddSkipButton,
-  handleRecipeMoreFinishButton
+  handleRecipeMoreFinishButton,
+  handleRecipeStandaloneMoreFinishButton
 } from './recipe.js';
 
 // 설정 (UI 모드, 바 크기, 자동 새로고침)

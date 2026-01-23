@@ -20,6 +20,8 @@
 import { 
   handlePageNavigation,
   handleRecipeMaterialPageNavigation,
+  handleRecipeMaterialStandalonePageNavigation,
+  handleRecipeAddPageNavigation,
   handleRefresh,
   handleQuantityButton,
   handleQuantityPageButton,
@@ -43,9 +45,11 @@ import {
   handleTagViewButton,
   handleRecipeButton,
   handleRecipeViewButton,
+  handleRecipeAddButton,
   handleRecipeEditButton,
   handleRecipeAddSkipButton,
   handleRecipeMoreFinishButton,
+  handleRecipeStandaloneMoreFinishButton,
   handleBarSizeButton,
   handleUiModeButton,
   handleAutoRefreshButton,
@@ -148,6 +152,10 @@ export async function handleButtonInteraction(interaction) {
       return await handleRecipeViewButton(interaction);
     }
     
+    else if (interaction.customId.startsWith('recipe_add_')) {
+      return await handleRecipeAddButton(interaction);
+    }
+    
     else if (interaction.customId.startsWith('recipe_edit_')) {
       return await handleRecipeEditButton(interaction);
     }
@@ -205,9 +213,17 @@ export async function handleButtonInteraction(interaction) {
     }
     
     else if (interaction.customId.startsWith('page_prev_') || interaction.customId.startsWith('page_next_')) {
+      // 레시피 재료 선택 페이지 이동 (독립 실행)
+      if (interaction.customId.includes('_recipe_material_standalone_')) {
+        return await handleRecipeMaterialStandalonePageNavigation(interaction);
+      }
       // 레시피 재료 선택 페이지 이동
-      if (interaction.customId.includes('_recipe_material_')) {
+      else if (interaction.customId.includes('_recipe_material_')) {
         return await handleRecipeMaterialPageNavigation(interaction);
+      }
+      // 레시피 추가 제작품 선택 페이지 이동
+      else if (interaction.customId.includes('_recipe_add_')) {
+        return await handleRecipeAddPageNavigation(interaction);
       }
       // 레시피 수정 제작품 선택 페이지 이동
       else if (interaction.customId.includes('_recipe_edit_')) {
@@ -265,6 +281,11 @@ export async function handleButtonInteraction(interaction) {
              interaction.customId.startsWith('add_more_recipe_edit_') ||
              interaction.customId.startsWith('finish_recipe_edit_')) {
       return await handleRecipeMoreFinishButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('add_more_recipe_standalone_') ||
+             interaction.customId.startsWith('finish_recipe_standalone_')) {
+      return await handleRecipeStandaloneMoreFinishButton(interaction);
     }
     
     // ============================================

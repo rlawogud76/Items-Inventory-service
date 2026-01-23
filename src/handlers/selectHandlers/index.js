@@ -28,5 +28,7 @@ export {
 // 레시피
 export { 
   handleRecipeMaterialEditSelect, 
-  handleRecipeMaterialSelect 
+  handleRecipeMaterialSelect,
+  handleRecipeAddSelect,
+  handleRecipeMaterialStandaloneSelect
 } from './recipeSelect.js';
