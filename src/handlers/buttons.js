@@ -106,7 +106,7 @@ export async function handleButtonInteraction(interaction) {
     // ============================================
     // 5. 물품/품목 관리 핸들러 (분리됨)
     // ============================================
-    else if (interaction.customId.startsWith('manage') && !interaction.customId.startsWith('manage_add') && !interaction.customId.startsWith('manage_remove') && !interaction.customId.startsWith('manage_edit') && !interaction.customId.startsWith('manage_tag')) {
+    else if (interaction.customId.startsWith('manage') && !interaction.customId.startsWith('manage_add') && !interaction.customId.startsWith('manage_remove') && !interaction.customId.startsWith('manage_edit') && !interaction.customId.startsWith('manage_tag') && !interaction.customId.startsWith('manage_type')) {
       return await handleManageButton(interaction);
     }
     
