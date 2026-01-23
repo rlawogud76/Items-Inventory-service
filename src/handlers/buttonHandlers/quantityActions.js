@@ -39,9 +39,9 @@ export async function handleQuantityActionButton(interaction) {
     const inventory = await loadInventory();
     const targetData = type === 'inventory' ? inventory : inventory.crafting;
     
-    console.log('  - targetData.categories:', Object.keys(targetData.categories || {}));
+    console.log('  - targetData.categories:', Object.keys(targetData?.categories || {}));
     
-    if (!targetData.categories[category]) {
+    if (!targetData?.categories?.[category]) {
       console.error('❌ 카테고리를 찾을 수 없습니다:', category);
       return await interaction.reply({ 
         content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, 
@@ -49,7 +49,7 @@ export async function handleQuantityActionButton(interaction) {
       });
     }
     
-    if (!targetData.categories[category][selectedItem]) {
+    if (!targetData?.categories?.[category]?.[selectedItem]) {
       console.error('❌ 아이템을 찾을 수 없습니다:', selectedItem);
       return await interaction.reply({ 
         content: `❌ "${selectedItem}" 아이템을 "${category}" 카테고리에서 찾을 수 없습니다.`, 

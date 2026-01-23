@@ -39,6 +39,15 @@ export async function handleQuantitySelect(interaction) {
     
     const inventory = await loadInventory();
     const targetData = type === 'inventory' ? inventory : inventory.crafting;
+    
+    // 안전한 데이터 접근
+    if (!targetData?.categories?.[category]?.[selectedItem]) {
+      return await interaction.reply({ 
+        content: `❌ "${selectedItem}" 아이템을 찾을 수 없습니다.`, 
+        ephemeral: true 
+      }).catch(() => {});
+    }
+    
     const itemData = targetData.categories[category][selectedItem];
     const formatted = formatQuantity(itemData.quantity);
     const icon = getItemIcon(selectedItem, inventory);

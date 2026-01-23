@@ -54,20 +54,20 @@ export async function handleQuantityModal(interaction) {
     const inventory = await loadInventory();
     const targetData = type === 'inventory' ? inventory : inventory.crafting;
     
-    console.log('  - targetData.categories:', Object.keys(targetData.categories || {}));
+    console.log('  - targetData.categories:', Object.keys(targetData?.categories || {}));
     
-    if (!targetData.categories[category]) {
+    if (!targetData?.categories?.[category]) {
       console.error(`❌ 카테고리 "${category}"를 찾을 수 없습니다.`);
-      console.error('  - 사용 가능한 카테고리:', Object.keys(targetData.categories || {}));
+      console.error('  - 사용 가능한 카테고리:', Object.keys(targetData?.categories || {}));
       return await interaction.reply({ 
-        content: `❌ "${category}" 카테고리를 찾을 수 없습니다. (타입: ${type})\n사용 가능한 카테고리: ${Object.keys(targetData.categories || {}).join(', ')}`, 
+        content: `❌ "${category}" 카테고리를 찾을 수 없습니다. (타입: ${type})\n사용 가능한 카테고리: ${Object.keys(targetData?.categories || {}).join(', ')}`, 
         ephemeral: true 
       });
     }
     
-    if (!targetData.categories[category][itemName]) {
+    if (!targetData?.categories?.[category]?.[itemName]) {
       console.error(`❌ 아이템 "${itemName}"을 카테고리 "${category}"에서 찾을 수 없습니다.`);
-      console.error('  - 사용 가능한 아이템:', Object.keys(targetData.categories[category] || {}));
+      console.error('  - 사용 가능한 아이템:', Object.keys(targetData?.categories?.[category] || {}));
       return await interaction.reply({ 
         content: `❌ "${itemName}" 아이템을 찾을 수 없습니다.`, 
         ephemeral: true 
