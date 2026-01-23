@@ -486,3 +486,193 @@ export function addChangeListener(listener) {
 export function removeChangeListener(listener) {
   changeListeners.delete(listener);
 }
+
+// ==================== 자동 마이그레이션 ====================
+
+// 기존 스키마 (마이그레이션용)
+const oldInventorySchema = new mongoose.Schema({
+  categories: mongoose.Schema.Types.Mixed,
+  collecting: mongoose.Schema.Types.Mixed,
+  crafting: mongoose.Schema.Types.Mixed,
+  tags: mongoose.Schema.Types.Mixed,
+  settings: {
+    uiMode: String,
+    barLength: Number
+  },
+  history: Array
+}, { timestamps: true, minimize: false });
+
+const OldInventory = mongoose.model('OldInventory', oldInventorySchema, 'inventories');
+
+// 마이그레이션 필요 여부 확인
+export async function needsMigration() {
+  try {
+    const oldDataExists = await OldInventory.countDocuments() > 0;
+    const newDataExists = await InventoryItem.countDocuments() > 0;
+    
+    // 기존 데이터는 있는데 새 데이터가 없으면 마이그레이션 필요
+    return oldDataExists && !newDataExists;
+  } catch (error) {
+    console.error('❌ 마이그레이션 확인 실패:', error.message);
+    return false;
+  }
+}
+
+// 자동 마이그레이션 실행
+export async function autoMigrate() {
+  try {
+    console.log('\n' + '='.repeat(60));
+    console.log('🚀 자동 마이그레이션 시작');
+    console.log('='.repeat(60));
+    
+    // 기존 데이터 로드
+    console.log('📦 기존 데이터 로드 중...');
+    const oldData = await OldInventory.findOne();
+    
+    if (!oldData) {
+      console.log('⚠️ 기존 데이터가 없습니다.');
+      return false;
+    }
+    
+    console.log('✅ 기존 데이터 로드 완료');
+    console.log(`   - 재고 카테고리: ${Object.keys(oldData.categories || {}).length}개`);
+    console.log(`   - 제작 카테고리: ${Object.keys(oldData.crafting?.categories || {}).length}개`);
+    console.log(`   - 히스토리: ${(oldData.history || []).length}개`);
+    
+    // 트랜잭션 시작
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      let totalItems = 0;
+      let totalRecipes = 0;
+      let totalTags = 0;
+      let totalHistory = 0;
+      
+      // 1. 재고 아이템 마이그레이션
+      console.log('\n📦 재고 아이템 마이그레이션 중...');
+      const inventoryItems = [];
+      
+      for (const [category, items] of Object.entries(oldData.categories || {})) {
+        for (const [name, itemData] of Object.entries(items)) {
+          inventoryItems.push({
+            type: 'inventory',
+            category,
+            name,
+            quantity: itemData.quantity || 0,
+            required: itemData.required || 0,
+            emoji: itemData.emoji || null
+          });
+        }
+      }
+      
+      for (const [category, items] of Object.entries(oldData.crafting?.categories || {})) {
+        for (const [name, itemData] of Object.entries(items)) {
+          inventoryItems.push({
+            type: 'crafting',
+            category,
+            name,
+            quantity: itemData.quantity || 0,
+            required: itemData.required || 0,
+            emoji: itemData.emoji || null
+          });
+        }
+      }
+      
+      if (inventoryItems.length > 0) {
+        await InventoryItem.insertMany(inventoryItems, { session });
+        totalItems = inventoryItems.length;
+        console.log(`✅ 아이템 ${totalItems}개 마이그레이션 완료`);
+      }
+      
+      // 2. 레시피 마이그레이션
+      console.log('📝 레시피 마이그레이션 중...');
+      const recipes = [];
+      
+      for (const [category, items] of Object.entries(oldData.crafting?.recipes || {})) {
+        for (const [itemName, materials] of Object.entries(items)) {
+          recipes.push({
+            type: 'crafting',
+            category,
+            itemName,
+            materials: materials || []
+          });
+        }
+      }
+      
+      if (recipes.length > 0) {
+        await Recipe.insertMany(recipes, { session });
+        totalRecipes = recipes.length;
+        console.log(`✅ 레시피 ${totalRecipes}개 마이그레이션 완료`);
+      }
+      
+      // 3. 태그 마이그레이션
+      console.log('🏷️ 태그 마이그레이션 중...');
+      const tags = [];
+      
+      for (const [type, categories] of Object.entries(oldData.tags || {})) {
+        for (const [category, tagData] of Object.entries(categories)) {
+          for (const [tagName, items] of Object.entries(tagData)) {
+            tags.push({
+              type,
+              category,
+              tagName,
+              items: items || []
+            });
+          }
+        }
+      }
+      
+      if (tags.length > 0) {
+        await Tag.insertMany(tags, { session });
+        totalTags = tags.length;
+        console.log(`✅ 태그 ${totalTags}개 마이그레이션 완료`);
+      }
+      
+      // 4. 히스토리 마이그레이션 (최근 1000개만)
+      console.log('📜 히스토리 마이그레이션 중...');
+      const history = (oldData.history || []).slice(-1000);
+      
+      if (history.length > 0) {
+        await History.insertMany(history, { session });
+        totalHistory = history.length;
+        console.log(`✅ 히스토리 ${totalHistory}개 마이그레이션 완료`);
+      }
+      
+      // 5. 설정 마이그레이션
+      console.log('⚙️ 설정 마이그레이션 중...');
+      await Settings.create([{
+        uiMode: oldData.settings?.uiMode || 'normal',
+        barLength: oldData.settings?.barLength || 15
+      }], { session });
+      console.log('✅ 설정 마이그레이션 완료');
+      
+      // 트랜잭션 커밋
+      await session.commitTransaction();
+      
+      console.log('\n' + '='.repeat(60));
+      console.log('🎉 자동 마이그레이션 완료!');
+      console.log('='.repeat(60));
+      console.log(`📦 아이템: ${totalItems}개`);
+      console.log(`📝 레시피: ${totalRecipes}개`);
+      console.log(`🏷️ 태그: ${totalTags}개`);
+      console.log(`📜 히스토리: ${totalHistory}개`);
+      console.log(`⚙️ 설정: 1개`);
+      console.log('='.repeat(60));
+      console.log('✅ 기존 데이터는 inventories 컬렉션에 그대로 보존됩니다.\n');
+      
+      return true;
+      
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+    
+  } catch (error) {
+    console.error('\n❌ 자동 마이그레이션 실패:', error.message);
+    console.error('💡 수동 마이그레이션을 실행하세요: npm run migrate');
+    return false;
+  }
+}
