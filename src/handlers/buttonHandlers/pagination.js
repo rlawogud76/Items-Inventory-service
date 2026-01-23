@@ -180,6 +180,15 @@ export async function handleRecipeMaterialStandalonePageNavigation(interaction) 
     const newPage = direction === 'prev' ? currentPage - 1 : currentPage + 1;
     
     const inventory = await loadInventory();
+    
+    // 카테고리 존재 확인
+    if (!inventory.categories?.[category]) {
+      return await interaction.update({
+        content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`,
+        components: []
+      });
+    }
+    
     const materials = Object.keys(inventory.categories[category]);
     const itemsPerPage = 25;
     const totalPages = Math.ceil(materials.length / itemsPerPage);
@@ -229,12 +238,13 @@ export async function handleRecipeMaterialStandalonePageNavigation(interaction) 
     
     rows.push(new ActionRowBuilder().addComponents(pageButtons));
     
-    const currentRecipe = inventory.crafting.recipes[category][itemName]
+    const currentRecipe = inventory.crafting?.recipes?.[category]?.[itemName] || [];
+    const recipeText = currentRecipe
       .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
       .join('\n');
     
     await interaction.update({
-      content: `📝 ${itemName}\n레시피 추가\n\n**현재 레시피:**\n${currentRecipe}\n\n**${step}단계:** ${step}번째 재료를 선택하세요 (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)`,
+      content: `📝 ${itemName}\n레시피 추가\n\n**현재 레시피:**\n${recipeText || '없음'}\n\n**${step}단계:** ${step}번째 재료를 선택하세요 (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)`,
       components: rows
     });
     

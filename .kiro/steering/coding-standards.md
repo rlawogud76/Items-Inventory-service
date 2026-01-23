@@ -2,6 +2,19 @@
 
 ## 작업 이력
 
+### 2025-01-24: 레시피 독립 추가 기능 구현
+- **새 기능**: 레시피 메뉴에서 직접 레시피 추가 가능 (품목 추가와 별도)
+- **수정된 파일**: recipe.js, recipeSelect.js, recipeModal.js, pagination.js, buttons.js, selects.js, modals.js, index.js (3개)
+- **추가된 핸들러**:
+  - `handleRecipeAddButton`: 레시피 추가 버튼 (➕ 추가)
+  - `handleRecipeAddSelect`: 제작품 선택
+  - `handleRecipeMaterialStandaloneSelect`: 재료 선택
+  - `handleRecipeStandaloneQuantityModal`: 수량 입력
+  - `handleRecipeStandaloneMoreFinishButton`: 재료 추가/완료
+  - `handleRecipeMaterialStandalonePageNavigation`: 재료 페이지네이션
+  - `handleRecipeAddPageNavigation`: 제작품 페이지네이션
+- **해결된 문제**: 품목 추가 중 중단 시 레시피 추가 불가 → 독립 실행으로 해결
+
 ### 2025-01-24: 레시피 핸들러 이모지 검증 및 페이지네이션 추가
 - **수정된 파일**: recipe.js, pagination.js, buttons.js, index.js
 - **이모지 검증**: `validateEmoji()` 함수 추가 및 모든 select menu options에 적용
