@@ -187,14 +187,23 @@ export async function handleTagViewButton(interaction) {
       .setTitle(`🏷️ ${category} 카테고리 태그 목록`)
       .setDescription('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
-    for (const [tagName, items] of Object.entries(tags)) {
+    for (const [tagName, tagData] of Object.entries(tags)) {
+      // 새 형식과 기존 형식 모두 지원
+      const items = Array.isArray(tagData) ? tagData : tagData.items || [];
+      const color = Array.isArray(tagData) ? 'default' : tagData.color || 'default';
+      
       const itemList = items.map(item => {
         const icon = getItemIcon(item, inventory);
         return `${icon} ${item}`;
       }).join('\n');
       
+      const colorEmoji = {
+        'red': '🔴', 'green': '🟢', 'blue': '🔵', 'yellow': '🟡',
+        'purple': '🟣', 'cyan': '🔵', 'white': '⚪', 'default': '🏷️'
+      }[color] || '🏷️';
+      
       embed.addFields({
-        name: `🏷️ **${tagName}** (${items.length}개)`,
+        name: `${colorEmoji} **${tagName}** (${items.length}개)`,
         value: itemList || '없음',
         inline: false
       });

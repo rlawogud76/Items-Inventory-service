@@ -144,7 +144,8 @@ export async function handleConfirmTagRemoveSelect(interaction) {
       });
     }
     
-    const itemCount = inventory.tags[type][category][tagName].length;
+    const tagData = inventory.tags[type][category][tagName];
+    const itemCount = Array.isArray(tagData) ? tagData.length : tagData.items?.length || 0;
     
     // 태그 제거
     delete inventory.tags[type][category][tagName];

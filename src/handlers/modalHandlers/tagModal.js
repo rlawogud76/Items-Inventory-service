@@ -143,20 +143,38 @@ export async function handleTagNameModal(interaction) {
     // 기존 태그에서 제거
     const oldTag = getItemTag(itemName, category, type, inventory);
     if (oldTag && inventory.tags[type][category][oldTag]) {
-      inventory.tags[type][category][oldTag] = inventory.tags[type][category][oldTag].filter(item => item !== itemName);
-      // 빈 태그 삭제
-      if (inventory.tags[type][category][oldTag].length === 0) {
-        delete inventory.tags[type][category][oldTag];
+      const oldTagData = inventory.tags[type][category][oldTag];
+      if (Array.isArray(oldTagData)) {
+        // 기존 형식 (배열)
+        inventory.tags[type][category][oldTag] = oldTagData.filter(item => item !== itemName);
+        if (inventory.tags[type][category][oldTag].length === 0) {
+          delete inventory.tags[type][category][oldTag];
+        }
+      } else if (oldTagData.items) {
+        // 새 형식 (객체)
+        oldTagData.items = oldTagData.items.filter(item => item !== itemName);
+        if (oldTagData.items.length === 0) {
+          delete inventory.tags[type][category][oldTag];
+        }
       }
     }
     
     // 새 태그에 추가
     if (!inventory.tags[type][category][tagName]) {
-      inventory.tags[type][category][tagName] = [];
+      inventory.tags[type][category][tagName] = {
+        items: [],
+        color: 'default'
+      };
+    } else if (Array.isArray(inventory.tags[type][category][tagName])) {
+      // 기존 배열 형식을 객체 형식으로 변환
+      inventory.tags[type][category][tagName] = {
+        items: inventory.tags[type][category][tagName],
+        color: 'default'
+      };
     }
     
-    if (!inventory.tags[type][category][tagName].includes(itemName)) {
-      inventory.tags[type][category][tagName].push(itemName);
+    if (!inventory.tags[type][category][tagName].items.includes(itemName)) {
+      inventory.tags[type][category][tagName].items.push(itemName);
     }
     
     await saveInventory(inventory);

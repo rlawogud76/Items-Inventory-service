@@ -162,29 +162,31 @@ export function getItemTagColor(itemName, category, type, inventory) {
   return null;
 }
 
-// 색상 적용 함수
+// 색상 적용 함수 (이모지 사용)
 export function applyTagColor(text, color) {
   if (!color || color === 'default') return text;
   
-  const COLOR_OPTIONS = {
-    'red': '[2;31m',
-    'green': '[2;32m', 
-    'blue': '[2;34m',
-    'yellow': '[2;33m',
-    'purple': '[2;35m',
-    'cyan': '[2;36m',
-    'white': '[2;37m'
+  const COLOR_EMOJIS = {
+    'red': '🔴',
+    'green': '🟢', 
+    'blue': '🔵',
+    'yellow': '🟡',
+    'purple': '🟣',
+    'cyan': '🔵',
+    'white': '⚪'
   };
   
-  const ansiCode = COLOR_OPTIONS[color];
-  if (!ansiCode) return text;
-  
-  return `\`\`\`ansi\n${ansiCode}${text}[0m\n\`\`\``;
+  const emoji = COLOR_EMOJIS[color];
+  return emoji ? `${emoji} ${text}` : text;
 }
 
 // 태그에 속한 모든 아이템 가져오기
 export function getItemsByTag(tagName, category, type, inventory) {
-  return inventory.tags?.[type]?.[category]?.[tagName] || [];
+  const tagData = inventory.tags?.[type]?.[category]?.[tagName];
+  if (!tagData) return [];
+  
+  // 새 형식과 기존 형식 모두 지원
+  return Array.isArray(tagData) ? tagData : tagData.items || [];
 }
 
 // 카테고리의 모든 태그 가져오기
