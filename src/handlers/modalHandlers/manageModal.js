@@ -17,10 +17,9 @@ export async function handleAddItemModal(interaction) {
     const itemNameRaw = interaction.fields.getTextInputValue('item_name').trim();
     const itemName = sanitizeInput(itemNameRaw, { maxLength: 50 });
     
-    const initialSets = interaction.fields.getTextInputValue('initial_sets')?.trim() || '0';
-    const initialItems = interaction.fields.getTextInputValue('initial_items')?.trim() || '0';
-    const requiredSets = interaction.fields.getTextInputValue('required_sets')?.trim() || '0';
-    const requiredItems = interaction.fields.getTextInputValue('required_items')?.trim() || '0';
+    // 새로운 형식: "세트,낱개" 파싱
+    const initialQuantityRaw = interaction.fields.getTextInputValue('initial_quantity')?.trim() || '0,0';
+    const requiredQuantityRaw = interaction.fields.getTextInputValue('required_quantity')?.trim() || '0,0';
     
     // 이름 검증
     if (!isValidName(itemName)) {
@@ -30,23 +29,31 @@ export async function handleAddItemModal(interaction) {
       });
     }
     
-    // 숫자 검증
-    const initialSetsNum = sanitizeNumber(initialSets, { min: 0, max: 100000 });
-    const initialItemsNum = sanitizeNumber(initialItems, { min: 0, max: 63 });
-    const requiredSetsNum = sanitizeNumber(requiredSets, { min: 0, max: 100000 });
-    const requiredItemsNum = sanitizeNumber(requiredItems, { min: 0, max: 63 });
+    // 수량 파싱 함수
+    const parseQuantity = (quantityStr) => {
+      const parts = quantityStr.split(',').map(s => s.trim());
+      if (parts.length !== 2) {
+        return null;
+      }
+      const sets = sanitizeNumber(parts[0], { min: 0, max: 100000 });
+      const items = sanitizeNumber(parts[1], { min: 0, max: 63 });
+      if (sets === null || items === null) {
+        return null;
+      }
+      return { sets, items, total: (sets * 64) + items };
+    };
     
-    if (initialSetsNum === null || initialItemsNum === null || requiredSetsNum === null || requiredItemsNum === null) {
+    const initialQty = parseQuantity(initialQuantityRaw);
+    const requiredQty = parseQuantity(requiredQuantityRaw);
+    
+    if (!initialQty || !requiredQty) {
       return await interaction.reply({ 
-        content: '❌ 수량을 올바르게 입력해주세요. (세트: 0-100000, 개: 0-63)', 
+        content: '❌ 수량 형식이 올바르지 않습니다. "세트,낱개" 형식으로 입력해주세요.\n예: 5,32 (5세트 32개)', 
         ephemeral: true 
       });
     }
     
-    const initialQty = (initialSetsNum * 64) + initialItemsNum;
-    const requiredQty = (requiredSetsNum * 64) + requiredItemsNum;
-    
-    if (requiredQty === 0) {
+    if (requiredQty.total === 0) {
       return await interaction.reply({ 
         content: '❌ 충족 수량은 0보다 커야 합니다.', 
         ephemeral: true 
@@ -68,12 +75,12 @@ export async function handleAddItemModal(interaction) {
       }
       
       inventory.categories[category][itemName] = {
-        quantity: initialQty,
-        required: requiredQty
+        quantity: initialQty.total,
+        required: requiredQty.total
       };
       
       addHistory(inventory, 'inventory', category, itemName, 'add', 
-        `초기: ${initialQty}개, 목표: ${requiredQty}개`, 
+        `초기: ${initialQty.total}개, 목표: ${requiredQty.total}개`, 
         interaction.user.displayName || interaction.user.username);
       
     } else {
@@ -92,20 +99,20 @@ export async function handleAddItemModal(interaction) {
       }
       
       inventory.crafting.categories[category][itemName] = {
-        quantity: initialQty,
-        required: requiredQty
+        quantity: initialQty.total,
+        required: requiredQty.total
       };
       
       addHistory(inventory, 'crafting', category, itemName, 'add', 
-        `초기: ${initialQty}개, 목표: ${requiredQty}개`, 
+        `초기: ${initialQty.total}개, 목표: ${requiredQty.total}개`, 
         interaction.user.displayName || interaction.user.username);
     }
     
     await saveInventory(inventory);
     
     const icon = getItemIcon(itemName, inventory);
-    const initialFormatted = formatQuantity(initialQty);
-    const requiredFormatted = formatQuantity(requiredQty);
+    const initialFormatted = formatQuantity(initialQty.total);
+    const requiredFormatted = formatQuantity(requiredQty.total);
     
     // 제작 품목인 경우 레시피 입력 버튼 추가
     if (type === 'crafting') {

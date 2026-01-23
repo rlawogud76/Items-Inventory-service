@@ -100,42 +100,27 @@ export async function handleManageAddButton(interaction) {
       .setPlaceholder('예: 다이아몬드')
       .setRequired(true);
     
-    const initialSetsInput = new TextInputBuilder()
-      .setCustomId('initial_sets')
-      .setLabel('초기 수량 - 세트 (1세트 = 64개)')
+    // 초기 수량 (통합)
+    const initialQuantityInput = new TextInputBuilder()
+      .setCustomId('initial_quantity')
+      .setLabel('초기 수량 (세트,낱개 형식)')
       .setStyle(TextInputStyle.Short)
-      .setPlaceholder('예: 0')
-      .setValue('0')
+      .setPlaceholder('예: 0,0 또는 5,32 (5세트 32개)')
+      .setValue('0,0')
       .setRequired(false);
     
-    const initialItemsInput = new TextInputBuilder()
-      .setCustomId('initial_items')
-      .setLabel('초기 수량 - 낱개')
+    // 충족 수량 (통합)
+    const requiredQuantityInput = new TextInputBuilder()
+      .setCustomId('required_quantity')
+      .setLabel('충족 수량 (세트,낱개 형식)')
       .setStyle(TextInputStyle.Short)
-      .setPlaceholder('예: 0')
-      .setValue('0')
-      .setRequired(false);
-    
-    const requiredSetsInput = new TextInputBuilder()
-      .setCustomId('required_sets')
-      .setLabel('충족 수량 - 세트 (1세트 = 64개)')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('예: 10')
-      .setRequired(false);
-    
-    const requiredItemsInput = new TextInputBuilder()
-      .setCustomId('required_items')
-      .setLabel('충족 수량 - 낱개')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('예: 32')
-      .setRequired(false);
+      .setPlaceholder('예: 10,0 (10세트)')
+      .setRequired(true);
     
     modal.addComponents(
       new ActionRowBuilder().addComponents(nameInput),
-      new ActionRowBuilder().addComponents(initialSetsInput),
-      new ActionRowBuilder().addComponents(initialItemsInput),
-      new ActionRowBuilder().addComponents(requiredSetsInput),
-      new ActionRowBuilder().addComponents(requiredItemsInput)
+      new ActionRowBuilder().addComponents(initialQuantityInput),
+      new ActionRowBuilder().addComponents(requiredQuantityInput)
     );
     
     await interaction.showModal(modal);
