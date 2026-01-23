@@ -317,6 +317,15 @@ client.on('interactionCreate', async (interaction) => {
           components: rows
         });
         
+        // 30초 후 자동 삭제
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {
+            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+          }
+        }, 30000);
+        
       } catch (error) {
         console.error('❌ 레시피 수정 선택 에러:', error);
         await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
