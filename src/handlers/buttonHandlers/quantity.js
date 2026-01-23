@@ -43,7 +43,7 @@ export async function handleQuantityButton(interaction) {
     
     const targetData = type === 'inventory' ? inventory : inventory.crafting;
     
-    if (!targetData.categories[category]) {
+    if (!targetData?.categories?.[category]) {
       return await interaction.reply({ 
         content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, 
         ephemeral: true 
@@ -61,7 +61,9 @@ export async function handleQuantityButton(interaction) {
     }
     
     const itemOptions = items.map(item => {
-      const itemData = targetData.categories[category][item];
+      const itemData = targetData?.categories?.[category]?.[item];
+      if (!itemData) return null;
+      
       const customEmoji = itemData?.emoji;
       // Discord 제한: description은 최대 100자
       let description = `현재: ${itemData.quantity}개 / 목표: ${itemData.required}개`;
@@ -77,7 +79,7 @@ export async function handleQuantityButton(interaction) {
         emoji: emoji,
         description: description
       };
-    });
+    }).filter(item => item !== null);
     
     // 페이지네이션 적용
     const page = 0; // 첫 페이지

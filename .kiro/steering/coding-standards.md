@@ -1,5 +1,30 @@
 # 코딩 표준
 
+## 최근 발견된 이슈 및 해결 방법
+
+### Discord API 제한 사항
+1. **Select Menu Description 제한**: 최대 100자
+   - 해결: 100자 초과 시 자동 truncate (`description.substring(0, 97) + '...'`)
+
+2. **Select Menu Emoji 제한**: 유니코드 이모지만 허용
+   - 커스텀 Discord 이모지(`<:name:id>`) 사용 불가
+   - 해결: `validateEmoji()` 함수로 검증 후 기본 이모지로 대체
+
+3. **Modal Input 기본값 처리**: 빈 입력값은 `''`가 아닌 `'0'`으로 처리
+   - `sanitizeNumber('')`는 `null` 반환
+   - 해결: `?.trim() || '0'`로 기본값 설정
+
+### 버튼 라우팅 규칙
+- **페이지네이션 버튼 형식**: `page_quantity_${type}_${category}_${direction}_${page}`
+  - 예: `page_quantity_inventory_해양_next_0`
+  - 라우팅: `startsWith('page_quantity_')` 조건 필요
+  - `page_prev_` 또는 `page_next_`로 시작하지 않음!
+
+### CustomId 파싱 패턴
+- 카테고리명에 `_`가 포함될 수 있음 (예: `해양_심해`)
+- 마지막 요소부터 역순으로 파싱 권장
+- 예: `parts.slice(3, -2).join('_')` (마지막 2개 제외)
+
 ## JavaScript 규칙
 
 ### 안전한 객체 접근
