@@ -65,44 +65,22 @@ export async function handleAddItemModalStep1(interaction) {
       });
     }
     
-    // Step 2 모달 표시
-    const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
+    // Step 2로 넘어가는 버튼 표시
+    const initialFormatted = formatQuantity(initialTotal);
     
-    const modal = new ModalBuilder()
-      .setCustomId(`add_item_modal_step2_${type}_${category}_${itemName}_${initialTotal}`)
-      .setTitle(`➕ ${type === 'inventory' ? '물품' : '품목'} 추가 (2/2) - ${category}`);
+    const continueButton = new ButtonBuilder()
+      .setCustomId(`add_item_step2_btn_${type}_${category}_${itemName}_${initialTotal}`)
+      .setLabel('➡️ 다음: 목표 수량 입력')
+      .setStyle(ButtonStyle.Primary);
     
-    const requiredBoxesInput = new TextInputBuilder()
-      .setCustomId('required_boxes')
-      .setLabel('목표 수량 - 상자 (1상자 = 54세트 = 3456개)')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('예: 0')
-      .setValue('0')
-      .setRequired(false);
+    const row = new ActionRowBuilder().addComponents(continueButton);
     
-    const requiredSetsInput = new TextInputBuilder()
-      .setCustomId('required_sets')
-      .setLabel('목표 수량 - 세트 (1세트 = 64개)')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('예: 0')
-      .setValue('0')
-      .setRequired(false);
+    const embed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setTitle(`✅ Step 1 완료`)
+      .setDescription(`**아이템:** ${itemName}\n**초기 수량:** ${initialTotal}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n\n다음 버튼을 눌러 목표 수량을 입력하세요.`);
     
-    const requiredItemsInput = new TextInputBuilder()
-      .setCustomId('required_items')
-      .setLabel('목표 수량 - 낱개')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('예: 0')
-      .setValue('0')
-      .setRequired(false);
-    
-    modal.addComponents(
-      new ActionRowBuilder().addComponents(requiredBoxesInput),
-      new ActionRowBuilder().addComponents(requiredSetsInput),
-      new ActionRowBuilder().addComponents(requiredItemsInput)
-    );
-    
-    await interaction.showModal(modal);
+    await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
     
   } catch (error) {
     console.error('❌ Step 1 모달 제출 에러:', error);

@@ -27,6 +27,7 @@ import {
   handleResetPageButton,
   handleManageButton,
   handleManageAddButton,
+  handleAddItemStep2Button,
   handleManageRemoveButton,
   handleManageEditButton,
   handleManageRemovePageButton,
@@ -108,6 +109,10 @@ export async function handleButtonInteraction(interaction) {
     
     else if (interaction.customId.startsWith('manage_add')) {
       return await handleManageAddButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('add_item_step2_btn_')) {
+      return await handleAddItemStep2Button(interaction);
     }
     
     else if (interaction.customId.startsWith('manage_remove')) {

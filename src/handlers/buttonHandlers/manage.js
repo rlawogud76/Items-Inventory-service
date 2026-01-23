@@ -430,6 +430,63 @@ export async function handleManageRemovePageButton(interaction) {
 }
 
 /**
+ * Step 2 버튼 핸들러 - 목표 수량 입력 모달 표시
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleAddItemStep2Button(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[4]; // 'inventory' or 'crafting'
+    const initialTotal = parts[parts.length - 1]; // 마지막이 초기 수량
+    const itemName = parts[parts.length - 2]; // 마지막에서 두번째가 아이템명
+    const category = parts.slice(5, -2).join('_'); // 중간이 카테고리
+    
+    // Step 2 모달 표시
+    const modal = new ModalBuilder()
+      .setCustomId(`add_item_modal_step2_${type}_${category}_${itemName}_${initialTotal}`)
+      .setTitle(`➕ ${type === 'inventory' ? '물품' : '품목'} 추가 (2/2) - ${category}`);
+    
+    const requiredBoxesInput = new TextInputBuilder()
+      .setCustomId('required_boxes')
+      .setLabel('목표 수량 - 상자 (1상자 = 54세트 = 3456개)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('예: 0')
+      .setValue('0')
+      .setRequired(false);
+    
+    const requiredSetsInput = new TextInputBuilder()
+      .setCustomId('required_sets')
+      .setLabel('목표 수량 - 세트 (1세트 = 64개)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('예: 0')
+      .setValue('0')
+      .setRequired(false);
+    
+    const requiredItemsInput = new TextInputBuilder()
+      .setCustomId('required_items')
+      .setLabel('목표 수량 - 낱개')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('예: 0')
+      .setValue('0')
+      .setRequired(false);
+    
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(requiredBoxesInput),
+      new ActionRowBuilder().addComponents(requiredSetsInput),
+      new ActionRowBuilder().addComponents(requiredItemsInput)
+    );
+    
+    await interaction.showModal(modal);
+    
+  } catch (error) {
+    console.error('❌ Step 2 버튼 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ Step 2 버튼 에러 응답 실패:', err);
+    });
+  }
+}
+
+/**
  * 수정 페이지 이동 핸들러
  * @param {Interaction} interaction - Discord 인터랙션
  */

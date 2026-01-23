@@ -19,7 +19,8 @@ export { handleResetButton, handleResetTypeButton, handleResetPageButton } from 
 // 물품/품목 관리
 export { 
   handleManageButton, 
-  handleManageAddButton, 
+  handleManageAddButton,
+  handleAddItemStep2Button,
   handleManageRemoveButton, 
   handleManageEditButton,
   handleManageRemovePageButton,
