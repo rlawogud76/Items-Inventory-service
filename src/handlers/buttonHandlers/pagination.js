@@ -172,10 +172,11 @@ export async function handleRecipeMaterialStandalonePageNavigation(interaction) 
     const parts = interaction.customId.split('_');
     const direction = parts[1]; // 'prev' or 'next'
     
-    const category = parts[4];
+    // parts[4] = 'standalone'이므로 실제 카테고리는 parts[5]부터
+    const category = parts[5];
     const currentPage = parseInt(parts[parts.length - 1]);
     const step = parseInt(parts[parts.length - 2]);
-    const itemName = parts.slice(5, -2).join('_');
+    const itemName = parts.slice(6, -2).join('_');
     
     const newPage = direction === 'prev' ? currentPage - 1 : currentPage + 1;
     
