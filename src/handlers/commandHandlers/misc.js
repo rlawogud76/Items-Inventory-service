@@ -189,7 +189,7 @@ export async function handleHistoryCommand(interaction) {
       'add': '추가',
       'remove': '제거',
       'update_quantity': '현재 수량 변경',
-      'update_required': '충족 수량 변경',
+      'update_required': '목표 수량 변경',
       'reset': '초기화'
     }[history.action] || history.action;
     

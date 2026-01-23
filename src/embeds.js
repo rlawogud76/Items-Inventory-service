@@ -66,14 +66,14 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
         // 상세 모드: 더 많은 정보
         fieldValue = [
           `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 (${data.quantity}개)`,
-          `**충족:** ${required.items}개/${required.sets}세트/${required.boxes}상자 (${data.required}개)`,
+          `**목표:** ${required.items}개/${required.sets}세트/${required.boxes}상자 (${data.required}개)`,
           `**진행률:** ${percentage}% ${status}`,
           `${progressBar}${craftingText}`
         ].join('\n');
       } else {
         // 일반 모드
         fieldValue = [
-          `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 │ **충족:** ${required.items}개/${required.sets}세트/${required.boxes}상자`,
+          `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 │ **목표:** ${required.items}개/${required.sets}세트/${required.boxes}상자`,
           `${progressBar} ${percentage}% ${status}${craftingText}`
         ].join('\n');
       }
@@ -213,14 +213,14 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
         // 상세 모드: 더 많은 정보
         fieldValue = [
           `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 (${data.quantity}개)`,
-          `**충족:** ${required.items}개/${required.sets}세트/${required.boxes}상자 (${data.required}개)`,
+          `**목표:** ${required.items}개/${required.sets}세트/${required.boxes}상자 (${data.required}개)`,
           `**진행률:** ${percentage}% ${status}`,
           `${progressBar}${collectingText}`
         ].join('\n');
       } else {
         // 일반 모드
         fieldValue = [
-          `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 │ **충족:** ${required.items}개/${required.sets}세트/${required.boxes}상자`,
+          `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 │ **목표:** ${required.items}개/${required.sets}세트/${required.boxes}상자`,
           `${progressBar} ${percentage}% ${status}${collectingText}`
         ].join('\n');
       }

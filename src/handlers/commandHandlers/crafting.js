@@ -57,7 +57,7 @@ export async function handleCraftingCommand(interaction, activeMessages) {
 export async function handleCraftingAddCommand(interaction) {
   const category = interaction.options.getString('카테고리');
   const itemName = interaction.options.getString('제작품');
-  const requiredQuantity = interaction.options.getInteger('충족수량');
+  const requiredQuantity = interaction.options.getInteger('목표수량');
   const initialQuantity = interaction.options.getInteger('초기수량');
   const emoji = interaction.options.getString('이모지');
   
@@ -147,7 +147,7 @@ export async function handleCraftingAddCommand(interaction) {
   const successEmbed = new EmbedBuilder()
     .setColor(0x57F287)
     .setTitle('✅ 제작 목록 추가 완료')
-    .setDescription(`**카테고리:** ${category}\n${icon} **${itemName}**이(가) 제작 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**충족 수량:** ${requiredQuantity}개\n\n**레시피 (1개 제작 시):**\n${recipeText}`);
+    .setDescription(`**카테고리:** ${category}\n${icon} **${itemName}**이(가) 제작 목록에 추가되었습니다!\n\n**초기 수량:** ${initialQuantity}개\n**목표 수량:** ${requiredQuantity}개\n\n**레시피 (1개 제작 시):**\n${recipeText}`);
   
   await sendTemporaryReply(interaction, { embeds: [successEmbed] });
 }
