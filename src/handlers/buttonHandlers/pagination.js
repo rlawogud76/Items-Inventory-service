@@ -92,6 +92,15 @@ export async function handleRecipeMaterialPageNavigation(interaction) {
     const newPage = direction === 'prev' ? currentPage - 1 : currentPage + 1;
     
     const inventory = await loadInventory();
+    
+    // 카테고리 존재 확인
+    if (!inventory.categories?.[category]) {
+      return await interaction.update({
+        content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`,
+        components: []
+      });
+    }
+    
     const materials = Object.keys(inventory.categories[category]);
     const itemsPerPage = 25;
     const totalPages = Math.ceil(materials.length / itemsPerPage);
