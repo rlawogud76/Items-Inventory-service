@@ -154,8 +154,17 @@ export async function handleQuantityPageButton(interaction) {
     const targetData = type === 'inventory' ? inventory : inventory.crafting;
     const items = Object.keys(targetData?.categories?.[category] || {});
     
+    if (items.length === 0) {
+      return await interaction.reply({ 
+        content: `❌ "${category}" 카테고리에 아이템이 없습니다.`, 
+        ephemeral: true 
+      }).catch(() => {});
+    }
+    
     const itemOptions = items.map(item => {
-      const itemData = targetData.categories[category][item];
+      const itemData = targetData?.categories?.[category]?.[item];
+      if (!itemData) return null;
+      
       const customEmoji = itemData?.emoji;
       // Discord 제한: description은 최대 100자
       let description = `현재: ${itemData.quantity}개 / 목표: ${itemData.required}개`;
@@ -171,12 +180,18 @@ export async function handleQuantityPageButton(interaction) {
         emoji: emoji,
         description: description
       };
-    });
+    }).filter(item => item !== null);
     
     // 페이지네이션 적용
     const { pagedItems, totalPages, startIndex, endIndex } = paginateItems(itemOptions, newPage);
     
-    const { StringSelectMenuBuilder } = await import('discord.js');
+    if (pagedItems.length === 0) {
+      return await interaction.reply({ 
+        content: `❌ 해당 페이지에 아이템이 없습니다.`, 
+        ephemeral: true 
+      }).catch(() => {});
+    }
+    
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId(`select_quantity_${type}_${category}`)
       .setPlaceholder('수량을 관리할 아이템을 선택하세요')
@@ -197,7 +212,8 @@ export async function handleQuantityPageButton(interaction) {
     
   } catch (error) {
     console.error('❌ 수량관리 페이지 이동 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+    console.error('❌ 에러 스택:', error.stack);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
       console.error('❌ 수량관리 페이지 이동 에러 응답 실패:', err);
     });
   }
