@@ -229,7 +229,8 @@ client.on('interactionCreate', async (interaction) => {
   // 선택 메뉴 인터랙션 처리
   if (interaction.isStringSelectMenu()) {
     // select_recipe_edit는 여기서 처리 (레시피 수정 시작)
-    if (interaction.customId.startsWith('select_recipe_edit_')) {
+    // 주의: select_recipe_material_edit_와 구분하기 위해 정확한 패턴 매칭 필요
+    if (interaction.customId.startsWith('select_recipe_edit_') && !interaction.customId.startsWith('select_recipe_material_edit_') && !interaction.customId.startsWith('select_recipe_add_')) {
       try {
         const category = interaction.customId.replace('select_recipe_edit_', '');
         const selectedItem = interaction.values[0];
