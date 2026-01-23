@@ -24,6 +24,19 @@ export async function connectDatabase() {
       socketTimeoutMS: 45000, // 45초
     });
     
+    // 연결 이벤트 핸들러
+    mongoose.connection.on('disconnected', () => {
+      console.log('⚠️ MongoDB 연결 끊김');
+    });
+    
+    mongoose.connection.on('reconnected', () => {
+      console.log('✅ MongoDB 재연결 성공');
+    });
+    
+    mongoose.connection.on('error', (err) => {
+      console.error('❌ MongoDB 연결 에러:', err.message);
+    });
+    
     console.log('✅ MongoDB 연결 성공!');
     return true;
   } catch (error) {
@@ -120,6 +133,12 @@ export function watchInventoryChanges() {
   // 3초마다 체크
   setInterval(async () => {
     try {
+      // MongoDB 연결 상태 확인
+      if (mongoose.connection.readyState !== 1) {
+        console.log('⚠️ MongoDB 연결 끊김 - 재연결 대기 중...');
+        return;
+      }
+      
       const inventory = await Inventory.findOne().select('updatedAt').lean();
       if (!inventory) return;
       
@@ -145,6 +164,11 @@ export function watchInventoryChanges() {
         });
       }
     } catch (error) {
+      // 연결 에러는 조용히 처리 (너무 많은 로그 방지)
+      if (error.message.includes('timed out') || error.message.includes('interrupted')) {
+        // 타임아웃은 무시 (다음 폴링에서 재시도)
+        return;
+      }
       console.error('❌ 변경 감지 에러:', error.message);
     }
   }, 3000); // 3초
