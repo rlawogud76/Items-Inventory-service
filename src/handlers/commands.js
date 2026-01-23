@@ -7,7 +7,8 @@ import {
   handleEmojiCommand,
   handleHistoryCommand,
   handleContributionResetCommand,
-  handleStatsCommand
+  handleStatsCommand,
+  handleRepairCommand
 } from './commandHandlers/index.js';
 
 /**
@@ -46,6 +47,9 @@ export async function handleCommandInteraction(interaction, activeMessages) {
     }
     else if (commandName === '기여도초기화') {
       return await handleContributionResetCommand(interaction);
+    }
+    else if (commandName === '복구') {
+      return await handleRepairCommand(interaction);
     }
     
   } catch (error) {

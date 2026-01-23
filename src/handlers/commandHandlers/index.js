@@ -16,3 +16,6 @@ export {
 
 // 통계
 export { handleStatsCommand } from './stats.js';
+
+// 복구
+export { handleRepairCommand } from './repair.js';

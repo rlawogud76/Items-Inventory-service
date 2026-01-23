@@ -181,7 +181,10 @@ client.on('ready', async () => {
             .setRequired(true)),
       new SlashCommandBuilder()
         .setName('기여도초기화')
-        .setDescription('기여도 통계를 초기화합니다 (수정 내역 삭제)')
+        .setDescription('기여도 통계를 초기화합니다 (수정 내역 삭제)'),
+      new SlashCommandBuilder()
+        .setName('복구')
+        .setDescription('중간 제작품 연동을 복구합니다 (재고-제작 연결 수정)')
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);
