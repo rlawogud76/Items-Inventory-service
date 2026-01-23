@@ -1,5 +1,17 @@
 # 코딩 표준
 
+## 작업 이력
+
+### 2025-01-23: 수량 관리 시스템 전면 검토 및 수정
+- **Optional Chaining 일관성 적용**: 모든 핸들러에서 `targetData?.categories?.[category]` 패턴 적용
+- **수정된 파일**: quantity.js, quantitySelect.js, quantityActions.js, quantityModal.js, resetSelect.js, work.js, reset.js
+- **버튼 라우팅 수정**: `page_quantity_` 페이지네이션 버튼 라우팅 추가
+- **이모지 검증**: `validateEmoji()` 함수로 커스텀 Discord 이모지 필터링
+- **Description 길이 제한**: Select menu description 100자 제한 적용
+- **Modal 입력 처리**: 빈 입력값 기본값 `'0'` 처리
+- **자동 삭제 로직**: 성공 메시지 15초 자동 삭제 추가
+- **Null 필터링**: 모든 `.map()` 함수에 `.filter(item => item !== null)` 추가
+
 ## 최근 발견된 이슈 및 해결 방법
 
 ### Discord API 제한 사항
@@ -48,8 +60,27 @@
 ### Interaction 처리
 - 모든 interaction 응답은 에러 처리 포함
 - `interaction.reply()`, `interaction.update()` 등은 `.catch()` 추가
-- ephemeral 메시지는 15초 후 자동 삭제
+- **ephemeral 메시지는 15초 후 자동 삭제 필수**
+  - 성공 메시지: 15초 후 삭제
+  - 에러 메시지: 에러 핸들러에서는 자동 삭제 불필요 (사용자가 읽어야 함)
+  - 단, 일반 에러가 아닌 검증 실패 메시지는 15초 후 삭제
 - 3초 이상 걸리는 작업은 `deferReply()` 먼저 호출
+
+### 자동 삭제 패턴
+```javascript
+// 성공 메시지 (15초 후 삭제)
+await interaction.reply({ content: '✅ 완료!', ephemeral: true });
+setTimeout(async () => {
+  try {
+    await interaction.deleteReply();
+  } catch (error) {}
+}, 15000);
+
+// 에러 메시지 (catch 블록 - 삭제 안함)
+catch (error) {
+  await interaction.reply({ content: '❌ 오류', ephemeral: true }).catch(() => {});
+}
+```
 
 ### 데이터 검증
 - 사용자 입력은 항상 sanitize (utils.js의 sanitizeInput 사용)

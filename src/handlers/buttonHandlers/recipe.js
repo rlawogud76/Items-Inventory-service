@@ -4,6 +4,20 @@ import { loadInventory } from '../../database-old.js';
 import { getItemIcon } from '../../utils.js';
 
 /**
+ * 이모지 검증 함수 - Select Menu는 유니코드 이모지만 허용
+ * @param {string} emoji - 검증할 이모지
+ * @returns {string} - 유효한 이모지 또는 기본 이모지
+ */
+function validateEmoji(emoji) {
+  if (!emoji) return '📦';
+  // 커스텀 Discord 이모지 형식(<:name:id> 또는 <a:name:id>)이거나 잘못된 형식이면 기본 이모지 사용
+  if (emoji.startsWith('<') || emoji.length > 10) {
+    return '📦';
+  }
+  return emoji;
+}
+
+/**
  * 레시피 메인 버튼 핸들러
  * @param {Interaction} interaction - Discord 인터랙션
  */
@@ -153,7 +167,7 @@ export async function handleRecipeEditButton(interaction) {
     const itemOptions = pageItems.map(item => ({
       label: item,
       value: item,
-      emoji: getItemIcon(item, inventory)
+      emoji: validateEmoji(getItemIcon(item, inventory))
     }));
     
     const { StringSelectMenuBuilder } = await import('discord.js');
@@ -265,7 +279,7 @@ export async function handleRecipeAddSkipButton(interaction) {
     const materialOptions = pageMaterials.map(mat => ({
       label: mat,
       value: mat,
-      emoji: getItemIcon(mat, inventory)
+      emoji: validateEmoji(getItemIcon(mat, inventory))
     }));
     
     const { StringSelectMenuBuilder } = await import('discord.js');
@@ -372,7 +386,7 @@ export async function handleRecipeMoreFinishButton(interaction) {
     const materialOptions = materials.map(mat => ({
       label: mat,
       value: mat,
-      emoji: getItemIcon(mat, inventory)
+      emoji: validateEmoji(getItemIcon(mat, inventory))
     }));
     
     const { StringSelectMenuBuilder } = await import('discord.js');
