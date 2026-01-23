@@ -50,7 +50,7 @@ export async function handleWorkButton(interaction) {
     
     const targetData = isCrafting ? inventory.crafting : inventory;
     
-    if (!targetData.categories[category]) {
+    if (!targetData?.categories?.[category]) {
       return await interaction.reply({ 
         content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`, 
         ephemeral: true 
@@ -113,7 +113,9 @@ export async function handleWorkButton(interaction) {
     const tags = getAllTags(category, isCrafting ? 'crafting' : 'inventory', inventory);
     
     const itemOptions = items.map(item => {
-      const itemData = targetData.categories[category][item];
+      const itemData = targetData?.categories?.[category]?.[item];
+      if (!itemData) return null;
+      
       const customEmoji = itemData?.emoji;
       const percentage = (itemData.quantity / itemData.required) * 100;
       const tag = getItemTag(item, category, isCrafting ? 'crafting' : 'inventory', inventory);
@@ -145,7 +147,7 @@ export async function handleWorkButton(interaction) {
         emoji: customEmoji || getItemIcon(item, inventory),
         description: description
       };
-    });
+    }).filter(item => item !== null);
     
     // 태그 옵션 추가
     const tagOptions = tags.map(tagName => {
@@ -247,7 +249,7 @@ export async function handleWorkPageButton(interaction) {
     const inventory = await loadInventory();
     const targetData = isCrafting ? inventory.crafting : inventory;
     const tags = getAllTags(category, isCrafting ? 'crafting' : 'inventory', inventory);
-    const items = Object.keys(targetData.categories[category]);
+    const items = Object.keys(targetData?.categories?.[category] || {});
     
     // 태그 옵션
     const tagOptions = tags.map(tagName => {
@@ -261,7 +263,9 @@ export async function handleWorkPageButton(interaction) {
     
     // 아이템 옵션
     const itemOptions = items.map(item => {
-      const itemData = targetData.categories[category][item];
+      const itemData = targetData?.categories?.[category]?.[item];
+      if (!itemData) return null;
+      
       const customEmoji = itemData?.emoji;
       const percentage = (itemData.quantity / itemData.required) * 100;
       const tag = getItemTag(item, category, isCrafting ? 'crafting' : 'inventory', inventory);
@@ -292,7 +296,7 @@ export async function handleWorkPageButton(interaction) {
         emoji: customEmoji || getItemIcon(item, inventory),
         description: description
       };
-    });
+    }).filter(item => item !== null);
     
     const allOptions = [...tagOptions, ...itemOptions];
     

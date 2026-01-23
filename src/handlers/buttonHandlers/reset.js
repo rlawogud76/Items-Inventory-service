@@ -71,7 +71,7 @@ export async function handleResetTypeButton(interaction) {
     const inventory = await loadInventory();
     const targetData = type === 'inventory' ? inventory : inventory.crafting;
     
-    if (!targetData.categories[category]) {
+    if (!targetData?.categories?.[category]) {
       return await interaction.update({ 
         content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`,
         components: []
@@ -137,7 +137,9 @@ export async function handleResetTypeButton(interaction) {
       }
       
       const itemOptions = items.map(item => {
-        const itemData = targetData.categories[category][item];
+        const itemData = targetData?.categories?.[category]?.[item];
+        if (!itemData) return null;
+        
         const customEmoji = itemData?.emoji;
         return {
           label: item,
@@ -145,7 +147,7 @@ export async function handleResetTypeButton(interaction) {
           emoji: customEmoji || getItemIcon(item, inventory),
           description: `현재: ${itemData.quantity}개`
         };
-      });
+      }).filter(item => item !== null);
       
       // Discord 제한: 최대 25개 옵션 - 페이지네이션
       const pageSize = 25;
@@ -232,10 +234,12 @@ export async function handleResetPageButton(interaction) {
     
     const inventory = await loadInventory();
     const targetData = type === 'inventory' ? inventory : inventory.crafting;
-    const items = Object.keys(targetData.categories[category]);
+    const items = Object.keys(targetData?.categories?.[category] || {});
     
     const itemOptions = items.map(item => {
-      const itemData = targetData.categories[category][item];
+      const itemData = targetData?.categories?.[category]?.[item];
+      if (!itemData) return null;
+      
       const customEmoji = itemData?.emoji;
       return {
         label: item,
@@ -243,7 +247,7 @@ export async function handleResetPageButton(interaction) {
         emoji: customEmoji || getItemIcon(item, inventory),
         description: `현재: ${itemData.quantity}개`
       };
-    });
+    }).filter(item => item !== null);
     
     // 페이지네이션
     const pageSize = 25;

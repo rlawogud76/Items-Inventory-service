@@ -17,7 +17,7 @@ export async function handleResetSelect(interaction) {
     const inventory = await loadInventory();
     const targetData = type === 'inventory' ? inventory : inventory.crafting;
     
-    if (!targetData.categories[category][selectedItem]) {
+    if (!targetData?.categories?.[category]?.[selectedItem]) {
       return await interaction.update({
         content: `❌ "${selectedItem}"을(를) 찾을 수 없습니다.`,
         components: []
