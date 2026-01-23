@@ -46,14 +46,14 @@ export async function handleSelectInteraction(interaction) {
     return await handleEditSelect(interaction);
   }
   
+  // 물품 유형 선택 (must be before select_item_ to avoid conflict)
+  else if (interaction.customId.startsWith('select_item_type_')) {
+    return await handleItemTypeSelect(interaction);
+  }
+  
   // 작업 항목 선택
   else if (interaction.customId.startsWith('select_item_')) {
     return await handleWorkItemSelect(interaction);
-  }
-  
-  // 물품 유형 선택
-  else if (interaction.customId.startsWith('select_item_type_')) {
-    return await handleItemTypeSelect(interaction);
   }
   
   // 색상 변경할 태그 선택
