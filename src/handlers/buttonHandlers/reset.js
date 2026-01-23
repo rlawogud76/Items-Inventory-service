@@ -1,6 +1,6 @@
 // 초기화 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, saveInventory } from '../../database-old.js';
 import { getItemIcon, addHistory, sendTemporaryReply } from '../../utils.js';
 
 /**

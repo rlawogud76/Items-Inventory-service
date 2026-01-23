@@ -1,6 +1,6 @@
 // 설정 핸들러 (UI 모드, 바 크기)
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, saveInventory } from '../../database-old.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 
 // autoRefreshTimers는 buttons.js에서 import 필요

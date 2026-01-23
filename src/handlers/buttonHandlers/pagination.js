@@ -1,5 +1,5 @@
 ﻿// 페이지네이션 핸들러
-import { loadInventory } from '../../database.js';
+import { loadInventory } from '../../database-old.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 
 export async function handlePageNavigation(interaction) {

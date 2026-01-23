@@ -1,6 +1,6 @@
 // 관리(추가/수정) modal 핸들러
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, saveInventory } from '../../database-old.js';
 import { formatQuantity, getItemIcon, addHistory, sanitizeInput, sanitizeNumber, isValidName } from '../../utils.js';
 
 /**

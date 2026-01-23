@@ -1,7 +1,7 @@
 // 재고 커맨드 핸들러
 
 import { createInventoryEmbed, createButtons } from '../../embeds.js';
-import { loadInventory } from '../../database.js';
+import { loadInventory } from '../../database-old.js';
 
 /**
  * /재고 커맨드 처리

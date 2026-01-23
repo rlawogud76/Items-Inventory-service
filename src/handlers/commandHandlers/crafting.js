@@ -2,7 +2,7 @@
 
 import { EmbedBuilder } from 'discord.js';
 import { createCraftingEmbed, createButtons } from '../../embeds.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, saveInventory } from '../../database-old.js';
 import { getItemIcon, addHistory, sendTemporaryReply } from '../../utils.js';
 
 /**

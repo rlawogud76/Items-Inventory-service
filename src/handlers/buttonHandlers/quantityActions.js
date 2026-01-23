@@ -1,6 +1,6 @@
 // 수량 액션 핸들러 (추가/수정/차감)
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
-import { loadInventory } from '../../database.js';
+import { loadInventory } from '../../database-old.js';
 import { formatQuantity } from '../../utils.js';
 
 /**

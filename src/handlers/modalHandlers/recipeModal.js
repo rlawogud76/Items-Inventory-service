@@ -1,6 +1,6 @@
 // 레시피 modal 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, saveInventory } from '../../database-old.js';
 import { getItemIcon } from '../../utils.js';
 
 /**

@@ -1,6 +1,6 @@
 // 선택 메뉴 페이지네이션 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { loadInventory } from '../../database.js';
+import { loadInventory } from '../../database-old.js';
 import { getItemIcon } from '../../utils.js';
 
 /**

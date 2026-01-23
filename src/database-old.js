@@ -191,16 +191,22 @@ export function removeChangeListener(listener) {
 // 재고 데이터 로드 - 캐싱 추가
 export async function loadInventory() {
   try {
-    // 캐시 확인
-    const now = Date.now();
-    if (inventoryCache && cacheTimestamp && (now - cacheTimestamp) < CACHE_TTL) {
-      console.log('📦 캐시에서 재고 로드');
-      return JSON.parse(JSON.stringify(inventoryCache)); // Deep copy
-    }
+    // 캐시 확인 - 일단 비활성화
+    // const now = Date.now();
+    // if (inventoryCache && cacheTimestamp && (now - cacheTimestamp) < CACHE_TTL) {
+    //   console.log('📦 캐시에서 재고 로드');
+    //   return JSON.parse(JSON.stringify(inventoryCache)); // Deep copy
+    // }
     
     console.log('🔄 DB에서 재고 로드');
     const inventory = await Inventory.getInstance();
     const data = inventory.toObject();
+    
+    console.log('📊 로드된 데이터:', {
+      categories: Object.keys(data.categories || {}),
+      categoriesCount: Object.keys(data.categories || {}).length,
+      해양Items: data.categories?.해양 ? Object.keys(data.categories.해양).length : 0
+    });
     
     // 메타데이터 제거
     delete data._id;
@@ -243,6 +249,7 @@ export async function loadInventory() {
     return JSON.parse(JSON.stringify(data)); // Deep copy
   } catch (error) {
     console.error('❌ 재고 로드 실패:', error.message);
+    console.error('❌ 스택:', error.stack);
     throw error;
   }
 }

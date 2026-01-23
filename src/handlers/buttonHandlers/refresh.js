@@ -1,5 +1,5 @@
 // 새로고침 핸들러
-import { loadInventory } from '../../database.js';
+import { loadInventory } from '../../database-old.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 
 export async function handleRefresh(interaction) {

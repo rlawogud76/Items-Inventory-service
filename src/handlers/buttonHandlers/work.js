@@ -1,6 +1,6 @@
 // 수집/제작 작업 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, saveInventory } from '../../database-old.js';
 import { getItemIcon, formatQuantity, getAllTags, getItemsByTag, getItemTag } from '../../utils.js';
 
 /**

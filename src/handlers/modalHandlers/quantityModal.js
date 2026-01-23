@@ -1,5 +1,5 @@
 // 수량 관리 modal 핸들러
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, saveInventory } from '../../database-old.js';
 import { addHistory, sanitizeNumber } from '../../utils.js';
 import { consumeRecipeMaterials, returnRecipeMaterials, adjustRecipeMaterials } from '../../recipeService.js';
 

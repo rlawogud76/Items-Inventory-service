@@ -1,6 +1,6 @@
 // 물품/품목 관리 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
-import { loadInventory } from '../../database.js';
+import { loadInventory } from '../../database-old.js';
 import { formatQuantity, getItemIcon } from '../../utils.js';
 
 /**

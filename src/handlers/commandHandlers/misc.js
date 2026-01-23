@@ -1,7 +1,7 @@
 // 기타 커맨드 핸들러 (도움말, 통계, 이모지설정, 수정내역, 기여도초기화)
 
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, saveInventory } from '../../database-old.js';
 import { getItemIcon, sendTemporaryReply } from '../../utils.js';
 
 /**

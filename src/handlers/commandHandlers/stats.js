@@ -1,7 +1,7 @@
 // 통계 커맨드 핸들러
 
 import { EmbedBuilder } from 'discord.js';
-import { loadInventory } from '../../database.js';
+import { loadInventory } from '../../database-old.js';
 import { getItemIcon, sendTemporaryReply } from '../../utils.js';
 
 /**

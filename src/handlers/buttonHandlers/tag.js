@@ -1,6 +1,6 @@
 // 태그 관리 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
-import { loadInventory } from '../../database.js';
+import { loadInventory } from '../../database-old.js';
 import { getItemIcon } from '../../utils.js';
 
 /**

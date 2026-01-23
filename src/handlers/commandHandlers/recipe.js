@@ -1,7 +1,7 @@
 // 레시피 관련 커맨드 핸들러
 
 import { EmbedBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, saveInventory } from '../../database-old.js';
 import { getItemIcon, sendTemporaryReply } from '../../utils.js';
 
 /**
