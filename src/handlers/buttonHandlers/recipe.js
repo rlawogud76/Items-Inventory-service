@@ -354,7 +354,7 @@ export async function handleRecipeAddSkipButton(interaction) {
     const inventory = await loadInventory();
     
     // 같은 카테고리의 재고 아이템 목록 가져오기
-    if (!inventory.categories[category] || Object.keys(inventory.categories[category]).length === 0) {
+    if (!inventory.categories?.[category] || Object.keys(inventory.categories[category]).length === 0) {
       return await interaction.update({
         content: `❌ "${category}" 카테고리에 재료가 없습니다. 먼저 재고 목록에 재료를 추가해주세요.`,
         embeds: [],

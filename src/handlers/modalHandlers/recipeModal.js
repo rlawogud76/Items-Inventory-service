@@ -26,6 +26,11 @@ export async function handleRecipeEditQuantityModal(interaction) {
     
     const inventory = await loadInventory();
     
+    // 레시피 구조 초기화
+    if (!inventory.crafting) inventory.crafting = {};
+    if (!inventory.crafting.recipes) inventory.crafting.recipes = {};
+    if (!inventory.crafting.recipes[category]) inventory.crafting.recipes[category] = {};
+    
     // 첫 번째 재료면 레시피 초기화
     if (step === 1) {
       inventory.crafting.recipes[category][itemName] = [];
@@ -56,22 +61,24 @@ export async function handleRecipeEditQuantityModal(interaction) {
       
       const row = new ActionRowBuilder().addComponents(addMoreButton, finishButton);
       
-      const currentRecipe = inventory.crafting.recipes[category][itemName]
+      const currentRecipe = inventory.crafting?.recipes?.[category]?.[itemName] || [];
+      const recipeText = currentRecipe
         .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
         .join('\n');
       
       await interaction.reply({
-        content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${currentRecipe}\n\n더 추가하시겠습니까? (최대 7개)`,
+        content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${recipeText}\n\n더 추가하시겠습니까? (최대 7개)`,
         components: [row],
         ephemeral: true
       });
     } else {
-      const currentRecipe = inventory.crafting.recipes[category][itemName]
+      const currentRecipe = inventory.crafting?.recipes?.[category]?.[itemName] || [];
+      const recipeText = currentRecipe
         .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
         .join('\n');
       
       await interaction.reply({
-        content: `✅ ${itemName}\n레시피 수정 완료!\n\n**새 레시피:**\n${currentRecipe}`,
+        content: `✅ ${itemName}\n레시피 수정 완료!\n\n**새 레시피:**\n${recipeText}`,
         ephemeral: true
       });
       
@@ -114,6 +121,7 @@ export async function handleRecipeQuantityModal(interaction) {
     const inventory = await loadInventory();
     
     // 레시피 구조 초기화
+    if (!inventory.crafting) inventory.crafting = {};
     if (!inventory.crafting.recipes) inventory.crafting.recipes = {};
     if (!inventory.crafting.recipes[category]) inventory.crafting.recipes[category] = {};
     
@@ -147,22 +155,24 @@ export async function handleRecipeQuantityModal(interaction) {
       
       const row = new ActionRowBuilder().addComponents(addMoreButton, finishButton);
       
-      const currentRecipe = inventory.crafting.recipes[category][itemName]
+      const currentRecipe = inventory.crafting?.recipes?.[category]?.[itemName] || [];
+      const recipeText = currentRecipe
         .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
         .join('\n');
       
       await interaction.reply({
-        content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${currentRecipe}\n\n더 추가하시겠습니까? (최대 7개)`,
+        content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${recipeText}\n\n더 추가하시겠습니까? (최대 7개)`,
         components: [row],
         ephemeral: true
       });
     } else {
-      const currentRecipe = inventory.crafting.recipes[category][itemName]
+      const currentRecipe = inventory.crafting?.recipes?.[category]?.[itemName] || [];
+      const recipeText = currentRecipe
         .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
         .join('\n');
       
       await interaction.reply({
-        content: `✅ ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${currentRecipe}`,
+        content: `✅ ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${recipeText}`,
         ephemeral: true
       });
       
@@ -205,6 +215,7 @@ export async function handleRecipeStandaloneQuantityModal(interaction) {
     const inventory = await loadInventory();
     
     // 레시피 구조 초기화
+    if (!inventory.crafting) inventory.crafting = {};
     if (!inventory.crafting.recipes) inventory.crafting.recipes = {};
     if (!inventory.crafting.recipes[category]) inventory.crafting.recipes[category] = {};
     
@@ -238,22 +249,24 @@ export async function handleRecipeStandaloneQuantityModal(interaction) {
       
       const row = new ActionRowBuilder().addComponents(addMoreButton, finishButton);
       
-      const currentRecipe = inventory.crafting.recipes[category][itemName]
+      const currentRecipe = inventory.crafting?.recipes?.[category]?.[itemName] || [];
+      const recipeText = currentRecipe
         .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
         .join('\n');
       
       await interaction.reply({
-        content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${currentRecipe}\n\n더 추가하시겠습니까? (최대 7개)`,
+        content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${recipeText}\n\n더 추가하시겠습니까? (최대 7개)`,
         components: [row],
         ephemeral: true
       });
     } else {
-      const currentRecipe = inventory.crafting.recipes[category][itemName]
+      const currentRecipe = inventory.crafting?.recipes?.[category]?.[itemName] || [];
+      const recipeText = currentRecipe
         .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
         .join('\n');
       
       await interaction.reply({
-        content: `✅ ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${currentRecipe}`,
+        content: `✅ ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${recipeText}`,
         ephemeral: true
       });
       

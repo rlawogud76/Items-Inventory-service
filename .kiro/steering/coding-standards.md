@@ -55,6 +55,9 @@
   - 예: `page_quantity_inventory_해양_next_0`
   - 라우팅: `startsWith('page_quantity_')` 조건 필요
   - `page_prev_` 또는 `page_next_`로 시작하지 않음!
+- **라우팅 순서 중요**: 더 구체적인 조건을 먼저 체크
+  - 예: `add_more_recipe_standalone_`는 `add_more_recipe_`보다 먼저 체크
+  - `startsWith('add_more_recipe_')`가 `startsWith('add_more_recipe_standalone_')`를 포함하므로 순서 주의
 
 ### CustomId 파싱 패턴
 - 카테고리명에 `_`가 포함될 수 있음 (예: `해양_심해`)
