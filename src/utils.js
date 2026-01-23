@@ -351,7 +351,14 @@ export function isIntermediateItem(type, category, itemName, inventory) {
     ? inventory.categories?.[category]?.[itemName]
     : inventory.crafting?.categories?.[category]?.[itemName];
   
-  return item?.itemType === 'intermediate' && !!item?.linkedItem;
+  // 기존 아이템은 itemType이 없을 수 있음 - 기본값 처리
+  if (!item) return false;
+  if (!item.itemType) {
+    // 기본값: inventory는 material, crafting은 final
+    item.itemType = type === 'inventory' ? 'material' : 'final';
+  }
+  
+  return item.itemType === 'intermediate' && !!item.linkedItem;
 }
 
 /**

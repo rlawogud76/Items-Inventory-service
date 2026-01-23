@@ -29,6 +29,7 @@ import {
   handleManageAddButton,
   handleAddItemStep2Button,
   handleAddItemTypeButton,
+  handleManageTypeButton,
   handleManageRemoveButton,
   handleManageEditButton,
   handleManageRemovePageButton,
@@ -149,6 +150,10 @@ export async function handleButtonInteraction(interaction) {
     // ============================================
     else if (interaction.customId.startsWith('manage_tag')) {
       return await handleManageTagButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('manage_type_')) {
+      return await handleManageTypeButton(interaction);
     }
     
     else if (interaction.customId.startsWith('tag_set_')) {

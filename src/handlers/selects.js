@@ -14,7 +14,9 @@ import {
   handleTagColorSelect,
   handleTagForColorSelect,
   handleChangeTagColor,
-  handleItemTypeSelect
+  handleItemTypeSelect,
+  handleTypeChangeSelect,
+  handleConfirmTypeChange
 } from './selectHandlers/index.js';
 
 /**
@@ -92,5 +94,15 @@ export async function handleSelectInteraction(interaction) {
   // 레시피 재료 선택 (추가)
   else if (interaction.customId.startsWith('select_recipe_material_')) {
     return await handleRecipeMaterialSelect(interaction);
+  }
+  
+  // 유형 변경할 아이템 선택
+  else if (interaction.customId.startsWith('select_type_change_')) {
+    return await handleTypeChangeSelect(interaction);
+  }
+  
+  // 유형 변경 확인
+  else if (interaction.customId.startsWith('confirm_type_change_')) {
+    return await handleConfirmTypeChange(interaction);
   }
 }

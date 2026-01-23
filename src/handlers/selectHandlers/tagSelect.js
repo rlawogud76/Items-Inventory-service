@@ -1,7 +1,7 @@
 // 태그 select 핸들러
 import { EmbedBuilder, ActionRowBuilder } from 'discord.js';
 import { loadInventory, saveInventory } from '../../database-old.js';
-import { getItemIcon, getItemTag } from '../../utils.js';
+import { getItemIcon, getItemTag, getLinkedItem } from '../../utils.js';
 
 /**
  * 태그 항목 선택 핸들러 (태그에 추가할 항목들)
@@ -460,6 +460,193 @@ export async function handleItemTypeSelect(interaction) {
     
   } catch (error) {
     console.error('❌ 물품 유형 선택 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}
+/**
+ * 유형 변경할 아이템 선택 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleTypeChangeSelect(interaction) {
+  try {
+    await interaction.deferUpdate();
+    
+    const parts = interaction.customId.replace('select_type_change_', '').split('_');
+    const type = parts[0];
+    const category = parts.slice(1).join('_');
+    const selectedItem = interaction.values[0];
+    
+    const inventory = await loadInventory();
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    const itemData = targetData[category][selectedItem];
+    const currentType = itemData.itemType || (type === 'inventory' ? 'material' : 'final');
+    
+    // 유형 선택 메뉴 생성
+    const { StringSelectMenuBuilder, EmbedBuilder } = await import('discord.js');
+    const typeOptions = [
+      {
+        label: '📦 재료',
+        value: 'material',
+        description: '채굴/수집하는 기본 재료 (재고에만)',
+        emoji: '📦'
+      },
+      {
+        label: '🔄 중간 제작품',
+        value: 'intermediate',
+        description: '제작하며 재료로도 사용 (재고+제작 연동)',
+        emoji: '🔄'
+      },
+      {
+        label: '⭐ 최종 제작품',
+        value: 'final',
+        description: '최종 완성품 (제작에만)',
+        emoji: '⭐'
+      }
+    ];
+    
+    const typeSelectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`confirm_type_change_${type}_${category}_${selectedItem}`)
+      .setPlaceholder('새로운 유형을 선택하세요')
+      .addOptions(typeOptions);
+    
+    const row = new ActionRowBuilder().addComponents(typeSelectMenu);
+    
+    const typeNames = {
+      'material': '📦 재료',
+      'intermediate': '🔄 중간 제작품',
+      'final': '⭐ 최종 제작품'
+    };
+    
+    const embed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setTitle(`🔄 물품 유형 변경`)
+      .setDescription([
+        `**아이템:** ${selectedItem}`,
+        `**카테고리:** ${category}`,
+        `**현재 유형:** ${typeNames[currentType] || '미설정'}`,
+        ``,
+        `새로운 유형을 선택하세요:`,
+        ``,
+        `📦 **재료** - 기본 재료만`,
+        `🔄 **중간 제작품** - 제작하며 재료로도 사용 (자동 연동)`,
+        `⭐ **최종 제작품** - 완성품만`
+      ].join('\n'));
+    
+    await interaction.editReply({ embeds: [embed], components: [row] });
+    
+  } catch (error) {
+    console.error('❌ 유형 변경 선택 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 유형 변경 확인 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleConfirmTypeChange(interaction) {
+  try {
+    await interaction.deferUpdate();
+    
+    const parts = interaction.customId.replace('confirm_type_change_', '').split('_');
+    const itemName = parts[parts.length - 1];
+    const type = parts[0];
+    const category = parts.slice(1, -1).join('_');
+    const newType = interaction.values[0];
+    
+    const inventory = await loadInventory();
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    const itemData = targetData[category][itemName];
+    const oldType = itemData.itemType || (type === 'inventory' ? 'material' : 'final');
+    
+    if (oldType === newType) {
+      return await interaction.editReply({
+        content: `ℹ️ "${itemName}"의 유형이 이미 ${newType}입니다.`,
+        embeds: [],
+        components: []
+      });
+    }
+    
+    // 유형 변경
+    itemData.itemType = newType;
+    
+    // 중간 제작품으로 변경 시 연동 설정
+    if (newType === 'intermediate') {
+      if (type === 'inventory') {
+        // 재고 → 제작 연동 생성
+        if (!inventory.crafting) {
+          inventory.crafting = { categories: {}, recipes: {} };
+        }
+        if (!inventory.crafting.categories[category]) {
+          inventory.crafting.categories[category] = {};
+        }
+        if (!inventory.crafting.categories[category][itemName]) {
+          inventory.crafting.categories[category][itemName] = {
+            quantity: itemData.quantity,
+            required: itemData.required,
+            itemType: 'intermediate',
+            linkedItem: `inventory/${category}/${itemName}`
+          };
+        }
+        itemData.linkedItem = `crafting/${category}/${itemName}`;
+      } else {
+        // 제작 → 재고 연동 생성
+        if (!inventory.categories[category]) {
+          inventory.categories[category] = {};
+        }
+        if (!inventory.categories[category][itemName]) {
+          inventory.categories[category][itemName] = {
+            quantity: itemData.quantity,
+            required: itemData.required,
+            itemType: 'intermediate',
+            linkedItem: `crafting/${category}/${itemName}`
+          };
+        }
+        itemData.linkedItem = `inventory/${category}/${itemName}`;
+      }
+    } else {
+      // 중간 제작품이 아니면 연동 해제
+      if (itemData.linkedItem) {
+        const linkedItem = getLinkedItem(itemData.linkedItem, inventory);
+        if (linkedItem) {
+          delete linkedItem.linkedItem;
+        }
+        delete itemData.linkedItem;
+      }
+    }
+    
+    await saveInventory(inventory);
+    
+    const typeNames = {
+      'material': '📦 재료',
+      'intermediate': '🔄 중간 제작품',
+      'final': '⭐ 최종 제작품'
+    };
+    
+    const { EmbedBuilder } = await import('discord.js');
+    const successEmbed = new EmbedBuilder()
+      .setColor(0x57F287)
+      .setTitle('✅ 유형 변경 완료')
+      .setDescription([
+        `**아이템:** ${itemName}`,
+        `**카테고리:** ${category}`,
+        ``,
+        `${typeNames[oldType]} → ${typeNames[newType]}`,
+        ``,
+        newType === 'intermediate' ? '🔗 자동 연동이 설정되었습니다!' : oldType === 'intermediate' ? '🔓 연동이 해제되었습니다.' : ''
+      ].filter(Boolean).join('\n'));
+    
+    await interaction.editReply({ embeds: [successEmbed], components: [] });
+    
+    // 15초 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, 15000);
+    
+  } catch (error) {
+    console.error('❌ 유형 변경 확인 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }

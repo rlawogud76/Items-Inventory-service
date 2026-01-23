@@ -37,6 +37,11 @@ export async function handleManageButton(interaction) {
       .setLabel('✏️ 이름 수정')
       .setStyle(ButtonStyle.Primary);
     
+    const typeButton = new ButtonBuilder()
+      .setCustomId(`manage_type_${type}_${category}`)
+      .setLabel('🔄 유형 변경')
+      .setStyle(ButtonStyle.Primary);
+    
     const tagButton = new ButtonBuilder()
       .setCustomId(`manage_tag_${type}_${category}`)
       .setLabel('🏷️ 태그 관리')
@@ -48,7 +53,7 @@ export async function handleManageButton(interaction) {
       .setStyle(ButtonStyle.Danger);
     
     const row1 = new ActionRowBuilder().addComponents(addButton, editButton, removeButton);
-    const row2 = new ActionRowBuilder().addComponents(tagButton);
+    const row2 = new ActionRowBuilder().addComponents(typeButton, tagButton);
     
     await interaction.reply({
       content: `📝 **${category}** 카테고리 ${type === 'inventory' ? '물품' : '품목'} 관리\n\n원하는 작업을 선택하세요:`,
@@ -619,5 +624,84 @@ export async function handleAddItemTypeButton(interaction) {
   } catch (error) {
     console.error('❌ 물품 유형 선택 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}
+/**
+ * 물품 유형 변경 버튼 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleManageTypeButton(interaction) {
+  try {
+    if (interaction.replied || interaction.deferred) {
+      console.log('⚠️ 이미 응답한 인터랙션, 무시');
+      return;
+    }
+    
+    const parts = interaction.customId.split('_');
+    const type = parts[2]; // 'inventory' or 'crafting'
+    const category = parts.slice(3).join('_');
+    
+    const inventory = await loadInventory();
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    
+    if (!targetData?.[category] || Object.keys(targetData[category]).length === 0) {
+      return await interaction.update({
+        content: `❌ "${category}" 카테고리에 ${type === 'inventory' ? '아이템' : '제작품'}이 없습니다.`,
+        components: []
+      });
+    }
+    
+    const items = Object.keys(targetData[category]);
+    const itemOptions = items.map(item => {
+      const itemData = targetData[category][item];
+      const currentType = itemData.itemType || (type === 'inventory' ? 'material' : 'final');
+      const typeEmoji = {
+        'material': '📦',
+        'intermediate': '🔄',
+        'final': '⭐'
+      }[currentType] || '❓';
+      
+      const typeName = {
+        'material': '재료',
+        'intermediate': '중간제작품',
+        'final': '최종제작품'
+      }[currentType] || '미설정';
+      
+      return {
+        label: item,
+        value: item,
+        description: `현재: ${typeName}`,
+        emoji: typeEmoji
+      };
+    });
+    
+    // Discord 제한: 최대 25개 옵션
+    const limitedOptions = itemOptions.slice(0, 25);
+    
+    const { StringSelectMenuBuilder } = await import('discord.js');
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`select_type_change_${type}_${category}`)
+      .setPlaceholder('유형을 변경할 항목을 선택하세요')
+      .addOptions(limitedOptions);
+    
+    const row = new ActionRowBuilder().addComponents(selectMenu);
+    
+    await interaction.update({
+      content: `🔄 **${category}** 카테고리에서 유형을 변경할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:\n\n📦 재료 | 🔄 중간제작품 | ⭐ 최종제작품`,
+      components: [row]
+    });
+    
+    // 30초 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, 30000);
+    
+  } catch (error) {
+    console.error('❌ 유형 변경 선택 에러:', error);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    }
   }
 }

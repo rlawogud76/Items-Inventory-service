@@ -25,7 +25,8 @@ export {
   handleManageRemoveButton, 
   handleManageEditButton,
   handleManageRemovePageButton,
-  handleManageEditPageButton
+  handleManageEditPageButton,
+  handleManageTypeButton
 } from './manage.js';
 
 // 태그 관리
