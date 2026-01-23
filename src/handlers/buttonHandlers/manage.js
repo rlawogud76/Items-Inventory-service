@@ -675,20 +675,53 @@ export async function handleManageTypeButton(interaction) {
       };
     });
     
-    // Discord 제한: 최대 25개 옵션
-    const limitedOptions = itemOptions.slice(0, 25);
+    // Discord 제한: 최대 25개 옵션 - 페이지네이션
+    const pageSize = 25;
+    const totalPages = Math.ceil(itemOptions.length / pageSize);
+    const page = 0; // 첫 페이지
+    const startIdx = page * pageSize;
+    const endIdx = startIdx + pageSize;
+    const limitedOptions = itemOptions.slice(startIdx, endIdx);
     
-    const { StringSelectMenuBuilder } = await import('discord.js');
+    const { StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId(`select_type_change_${type}_${category}`)
       .setPlaceholder('유형을 변경할 항목을 선택하세요')
       .addOptions(limitedOptions);
     
-    const row = new ActionRowBuilder().addComponents(selectMenu);
+    const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+    
+    // 페이지네이션 버튼 추가 (2페이지 이상일 때)
+    if (totalPages > 1) {
+      const prevButton = new ButtonBuilder()
+        .setCustomId(`page_prev_type_${type}_${category}_${page}`)
+        .setLabel('◀ 이전')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(page === 0);
+      
+      const nextButton = new ButtonBuilder()
+        .setCustomId(`page_next_type_${type}_${category}_${page}`)
+        .setLabel('다음 ▶')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(page === totalPages - 1);
+      
+      const pageInfo = new ButtonBuilder()
+        .setCustomId(`page_info_${page}`)
+        .setLabel(`${page + 1} / ${totalPages}`)
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(true);
+      
+      rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
+    }
+    
+    let contentMessage = `🔄 **${category}** 카테고리에서 유형을 변경할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:\n\n📦 재료 | 🔄 중간제작품 | ⭐ 최종제작품`;
+    if (totalPages > 1) {
+      contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
+    }
     
     await interaction.update({
-      content: `🔄 **${category}** 카테고리에서 유형을 변경할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:\n\n📦 재료 | 🔄 중간제작품 | ⭐ 최종제작품`,
-      components: [row]
+      content: contentMessage,
+      components: rows
     });
     
     // 30초 후 자동 삭제
@@ -703,5 +736,99 @@ export async function handleManageTypeButton(interaction) {
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
     }
+  }
+}
+
+/**
+ * 유형 변경 페이지 이동 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleManageTypePageButton(interaction) {
+  try {
+    const isNext = interaction.customId.startsWith('page_next_');
+    const prefix = isNext ? 'page_next_type_' : 'page_prev_type_';
+    const parts = interaction.customId.replace(prefix, '').split('_');
+    const type = parts[0]; // 'inventory' or 'crafting'
+    const currentPage = parseInt(parts[parts.length - 1]);
+    const category = parts.slice(1, -1).join('_');
+    
+    const newPage = isNext ? currentPage + 1 : currentPage - 1;
+    
+    const inventory = await loadInventory();
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    const items = Object.keys(targetData[category]);
+    
+    const itemOptions = items.map(item => {
+      const itemData = targetData[category][item];
+      const currentType = itemData.itemType || (type === 'inventory' ? 'material' : 'final');
+      const typeEmoji = {
+        'material': '📦',
+        'intermediate': '🔄',
+        'final': '⭐'
+      }[currentType] || '❓';
+      
+      const typeName = {
+        'material': '재료',
+        'intermediate': '중간제작품',
+        'final': '최종제작품'
+      }[currentType] || '미설정';
+      
+      return {
+        label: item,
+        value: item,
+        description: `현재: ${typeName}`,
+        emoji: typeEmoji
+      };
+    });
+    
+    // 페이지네이션
+    const pageSize = 25;
+    const totalPages = Math.ceil(itemOptions.length / pageSize);
+    const startIdx = newPage * pageSize;
+    const endIdx = startIdx + pageSize;
+    const limitedOptions = itemOptions.slice(startIdx, endIdx);
+    
+    const { StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`select_type_change_${type}_${category}`)
+      .setPlaceholder('유형을 변경할 항목을 선택하세요')
+      .addOptions(limitedOptions);
+    
+    const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+    
+    // 페이지네이션 버튼
+    const prevButton = new ButtonBuilder()
+      .setCustomId(`page_prev_type_${type}_${category}_${newPage}`)
+      .setLabel('◀ 이전')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(newPage === 0);
+    
+    const nextButton = new ButtonBuilder()
+      .setCustomId(`page_next_type_${type}_${category}_${newPage}`)
+      .setLabel('다음 ▶')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(newPage === totalPages - 1);
+    
+    const pageInfo = new ButtonBuilder()
+      .setCustomId(`page_info_${newPage}`)
+      .setLabel(`${newPage + 1} / ${totalPages}`)
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(true);
+    
+    rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
+    
+    let contentMessage = `🔄 **${category}** 카테고리에서 유형을 변경할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:\n\n📦 재료 | 🔄 중간제작품 | ⭐ 최종제작품`;
+    contentMessage += `\n\n📄 페이지 ${newPage + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
+    
+    await interaction.update({
+      content: contentMessage,
+      components: rows
+    });
+    
+  } catch (error) {
+    console.error('❌ 유형 변경 페이지 이동 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 유형 변경 페이지 이동 에러 응답 실패:', err);
+    });
   }
 }

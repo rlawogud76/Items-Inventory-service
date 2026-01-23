@@ -30,6 +30,7 @@ import {
   handleAddItemStep2Button,
   handleAddItemTypeButton,
   handleManageTypeButton,
+  handleManageTypePageButton,
   handleManageRemoveButton,
   handleManageEditButton,
   handleManageRemovePageButton,
@@ -225,6 +226,10 @@ export async function handleButtonInteraction(interaction) {
       // 수정 페이지 이동
       else if (interaction.customId.includes('_edit_')) {
         return await handleManageEditPageButton(interaction);
+      }
+      // 유형 변경 페이지 이동
+      else if (interaction.customId.includes('_type_')) {
+        return await handleManageTypePageButton(interaction);
       }
     }
     
