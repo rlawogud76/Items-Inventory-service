@@ -89,9 +89,10 @@ export async function handleManageAddButton(interaction) {
     const type = parts[2]; // 'inventory' or 'crafting'
     const category = parts.slice(3).join('_');
     
+    // 1단계 모달: 이름과 초기 수량
     const modal = new ModalBuilder()
-      .setCustomId(`add_item_modal_${type}_${category}`)
-      .setTitle(`➕ ${type === 'inventory' ? '물품' : '품목'} 추가 - ${category}`);
+      .setCustomId(`add_item_modal_step1_${type}_${category}`)
+      .setTitle(`➕ ${type === 'inventory' ? '물품' : '품목'} 추가 (1/2) - ${category}`);
     
     const nameInput = new TextInputBuilder()
       .setCustomId('item_name')
@@ -100,27 +101,35 @@ export async function handleManageAddButton(interaction) {
       .setPlaceholder('예: 다이아몬드')
       .setRequired(true);
     
-    // 초기 수량 (통합)
-    const initialQuantityInput = new TextInputBuilder()
-      .setCustomId('initial_quantity')
-      .setLabel('초기 수량 (세트,낱개 형식)')
+    const initialBoxesInput = new TextInputBuilder()
+      .setCustomId('initial_boxes')
+      .setLabel('초기 수량 - 상자 (1상자 = 54세트 = 3456개)')
       .setStyle(TextInputStyle.Short)
-      .setPlaceholder('예: 0,0 또는 5,32 (5세트 32개)')
-      .setValue('0,0')
+      .setPlaceholder('예: 0')
+      .setValue('0')
       .setRequired(false);
     
-    // 충족 수량 (통합)
-    const requiredQuantityInput = new TextInputBuilder()
-      .setCustomId('required_quantity')
-      .setLabel('충족 수량 (세트,낱개 형식)')
+    const initialSetsInput = new TextInputBuilder()
+      .setCustomId('initial_sets')
+      .setLabel('초기 수량 - 세트 (1세트 = 64개)')
       .setStyle(TextInputStyle.Short)
-      .setPlaceholder('예: 10,0 (10세트)')
-      .setRequired(true);
+      .setPlaceholder('예: 0')
+      .setValue('0')
+      .setRequired(false);
+    
+    const initialItemsInput = new TextInputBuilder()
+      .setCustomId('initial_items')
+      .setLabel('초기 수량 - 낱개')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('예: 0')
+      .setValue('0')
+      .setRequired(false);
     
     modal.addComponents(
       new ActionRowBuilder().addComponents(nameInput),
-      new ActionRowBuilder().addComponents(initialQuantityInput),
-      new ActionRowBuilder().addComponents(requiredQuantityInput)
+      new ActionRowBuilder().addComponents(initialBoxesInput),
+      new ActionRowBuilder().addComponents(initialSetsInput),
+      new ActionRowBuilder().addComponents(initialItemsInput)
     );
     
     await interaction.showModal(modal);

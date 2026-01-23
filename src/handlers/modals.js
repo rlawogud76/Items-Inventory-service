@@ -3,7 +3,8 @@
 import {
   handleRecipeEditQuantityModal,
   handleRecipeQuantityModal,
-  handleAddItemModal,
+  handleAddItemModalStep1,
+  handleAddItemModalStep2,
   handleEditNameModal,
   handleTagNameInputModal,
   handleTagNameModal
@@ -29,9 +30,15 @@ export async function handleModalInteraction(interaction) {
     return true;
   }
   
-  // 물품/품목 추가
-  else if (interaction.customId.startsWith('add_item_modal_')) {
-    await handleAddItemModal(interaction);
+  // 물품/품목 추가 - Step 1 (이름 + 초기 수량)
+  else if (interaction.customId.startsWith('add_item_modal_step1_')) {
+    await handleAddItemModalStep1(interaction);
+    return true;
+  }
+  
+  // 물품/품목 추가 - Step 2 (목표 수량)
+  else if (interaction.customId.startsWith('add_item_modal_step2_')) {
+    await handleAddItemModalStep2(interaction);
     return true;
   }
   

@@ -8,7 +8,8 @@ export {
 
 // 관리 (추가/수정)
 export { 
-  handleAddItemModal, 
+  handleAddItemModalStep1,
+  handleAddItemModalStep2,
   handleEditNameModal 
 } from './manageModal.js';
 
