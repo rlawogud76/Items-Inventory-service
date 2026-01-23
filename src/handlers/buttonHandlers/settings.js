@@ -91,7 +91,7 @@ export async function handleUiModeButton(interaction) {
       const crafting = inventory.crafting || { categories: {}, crafting: {} };
       items = Object.entries(crafting.categories[category] || {});
       totalPages = Math.ceil(items.length / 25);
-      embed = createCraftingEmbed(crafting, category, newMode, barLength, 0);
+      embed = createCraftingEmbed(crafting, category, newMode, barLength, 0, inventory);
     } else {
       items = Object.entries(inventory.categories[category] || {});
       totalPages = Math.ceil(items.length / 25);
@@ -199,7 +199,7 @@ export async function handleAutoRefreshButton(interaction) {
       
       if (type === 'crafting') {
         const crafting = inventory.crafting || { categories: {}, crafting: {} };
-        embed = createCraftingEmbed(crafting, category);
+        embed = createCraftingEmbed(crafting, category, 'normal', 15, 0, inventory);
       } else {
         embed = createInventoryEmbed(inventory, category);
       }
@@ -218,7 +218,7 @@ export async function handleAutoRefreshButton(interaction) {
       
       if (type === 'crafting') {
         const crafting = inventory.crafting || { categories: {}, crafting: {} };
-        embed = createCraftingEmbed(crafting, category);
+        embed = createCraftingEmbed(crafting, category, 'normal', 15, 0, inventory);
       } else {
         embed = createInventoryEmbed(inventory, category);
       }
@@ -246,7 +246,7 @@ export async function handleAutoRefreshButton(interaction) {
           
           if (type === 'crafting') {
             const crafting = inv.crafting || { categories: {}, crafting: {} };
-            emb = createCraftingEmbed(crafting, category);
+            emb = createCraftingEmbed(crafting, category, 'normal', 15, 0, inv);
           } else {
             emb = createInventoryEmbed(inv, category);
           }

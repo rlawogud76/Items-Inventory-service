@@ -24,7 +24,7 @@ export async function handlePageNavigation(interaction) {
       const crafting = inventory.crafting || { categories: {}, crafting: {} };
       items = Object.entries(crafting.categories[category] || {});
       totalPages = Math.ceil(items.length / 25);
-      embed = createCraftingEmbed(crafting, category, uiMode, barLength, newPage);
+      embed = createCraftingEmbed(crafting, category, uiMode, barLength, newPage, inventory);
     } else {
       items = Object.entries(inventory.categories[category] || {});
       totalPages = Math.ceil(items.length / 25);

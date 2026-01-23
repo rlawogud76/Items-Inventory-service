@@ -12,7 +12,7 @@ import {
 } from './utils.js';
 
 // 제작 임베드 생성
-export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', barLength = 10, page = 0) {
+export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', barLength = 10, page = 0, fullInventory = null) {
   const embed = new EmbedBuilder()
     .setColor(0xFFA500)
     .setTimestamp()
@@ -27,8 +27,10 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       return embed;
     }
 
-    // inventory 전체를 전달하기 위해 crafting을 포함한 객체 생성
-    const fullInventory = { crafting: crafting };
+    // fullInventory가 제공되지 않으면 crafting만 포함한 객체 생성
+    if (!fullInventory) {
+      fullInventory = { crafting: crafting };
+    }
 
     const items = Object.entries(crafting.categories[categoryName]);
     
@@ -108,7 +110,10 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       return embed;
     }
 
-    const fullInventory = { crafting: crafting };
+    // fullInventory가 제공되지 않으면 crafting만 포함한 객체 생성
+    if (!fullInventory) {
+      fullInventory = { crafting: crafting };
+    }
     const categories = Object.entries(crafting.categories);
     
     // Discord 제한: 최대 25개 필드

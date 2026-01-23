@@ -26,7 +26,7 @@ export async function handleCraftingCommand(interaction, activeMessages) {
     const items = Object.entries(crafting.categories[category] || {});
     const totalPages = Math.ceil(items.length / 25);
     
-    const embed = createCraftingEmbed(crafting, category, uiMode, barLength, 0);
+    const embed = createCraftingEmbed(crafting, category, uiMode, barLength, 0, inventory);
     const buttons = createButtons(category, true, 'crafting', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
     const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
     
