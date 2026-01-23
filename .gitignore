@@ -5,3 +5,6 @@ node_modules/
 mcp-discord-monitor.js
 .kiro/
 MCP_SETUP.md
+
+# Status logs (generated at runtime)
+discord-status.json
