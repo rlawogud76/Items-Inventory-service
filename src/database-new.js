@@ -359,10 +359,6 @@ export async function saveInventory(data, retryCount = 0) {
           }
         }
       }
-            });
-          }
-        }
-      }
       
       if (tags.length > 0) {
         const bulkOps = tags.map(tag => ({
