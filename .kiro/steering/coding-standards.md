@@ -60,6 +60,9 @@
 - 카테고리명에 `_`가 포함될 수 있음 (예: `해양_심해`)
 - 마지막 요소부터 역순으로 파싱 권장
 - 예: `parts.slice(3, -2).join('_')` (마지막 2개 제외)
+- **주의**: `standalone`, `edit` 등 키워드가 중간에 있을 경우 인덱스 조정 필요
+  - 예: `page_prev_recipe_material_standalone_해양_아이템_2_0`
+  - parts[5]부터 카테고리 시작 (parts[4]는 'standalone')
 
 ## JavaScript 규칙
 

@@ -476,6 +476,13 @@ export async function handleRecipeMoreFinishButton(interaction) {
     }
     
     // 다음 재료 선택
+    if (!inventory.categories?.[category]) {
+      return await interaction.update({
+        content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`,
+        components: []
+      });
+    }
+    
     const materials = Object.keys(inventory.categories[category]);
     const page = 0; // 첫 페이지
     const itemsPerPage = 25;
@@ -581,6 +588,13 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
     }
     
     // 다음 재료 선택
+    if (!inventory.categories?.[category]) {
+      return await interaction.update({
+        content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`,
+        components: []
+      });
+    }
+    
     const materials = Object.keys(inventory.categories[category]);
     const page = 0;
     const itemsPerPage = 25;

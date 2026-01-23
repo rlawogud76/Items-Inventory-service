@@ -276,16 +276,17 @@ export async function handleButtonInteraction(interaction) {
       return await handleRecipeAddSkipButton(interaction);
     }
     
+    // Standalone 핸들러를 먼저 체크 (더 구체적인 조건)
+    else if (interaction.customId.startsWith('add_more_recipe_standalone_') ||
+             interaction.customId.startsWith('finish_recipe_standalone_')) {
+      return await handleRecipeStandaloneMoreFinishButton(interaction);
+    }
+    
     else if (interaction.customId.startsWith('add_more_recipe_') || 
              interaction.customId.startsWith('finish_recipe_') ||
              interaction.customId.startsWith('add_more_recipe_edit_') ||
              interaction.customId.startsWith('finish_recipe_edit_')) {
       return await handleRecipeMoreFinishButton(interaction);
-    }
-    
-    else if (interaction.customId.startsWith('add_more_recipe_standalone_') ||
-             interaction.customId.startsWith('finish_recipe_standalone_')) {
-      return await handleRecipeStandaloneMoreFinishButton(interaction);
     }
     
     // ============================================
