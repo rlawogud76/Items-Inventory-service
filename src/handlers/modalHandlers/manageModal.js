@@ -208,14 +208,14 @@ export async function handleAddItemModalStep2(interaction) {
       const successEmbed = new EmbedBuilder()
         .setColor(0x57F287)
         .setTitle('✅ 제작품 추가 완료')
-        .setDescription(`**카테고리:** ${category}\n${icon} ### ${itemName}\n이(가) 추가되었습니다!\n\n**초기 수량:** ${initialTotal}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n**목표 수량:** ${requiredTotal}개 (${requiredFormatted.items}개/${requiredFormatted.sets}세트/${requiredFormatted.boxes}상자)\n\n레시피를 추가하시겠습니까?`);
+        .setDescription(`**카테고리:** ${category}\n${icon} # ${itemName}\n이(가) 추가되었습니다!\n\n**초기 수량:** ${initialTotal}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n**목표 수량:** ${requiredTotal}개 (${requiredFormatted.items}개/${requiredFormatted.sets}세트/${requiredFormatted.boxes}상자)\n\n레시피를 추가하시겠습니까?`);
       
       await interaction.reply({ embeds: [successEmbed], components: [row], ephemeral: true });
     } else {
       const successEmbed = new EmbedBuilder()
         .setColor(0x57F287)
         .setTitle('✅ 추가 완료')
-        .setDescription(`**카테고리:** ${category}\n${icon} ### ${itemName}\n이(가) 추가되었습니다!\n\n**초기 수량:** ${initialTotal}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n**목표 수량:** ${requiredTotal}개 (${requiredFormatted.items}개/${requiredFormatted.sets}세트/${requiredFormatted.boxes}상자)`);
+        .setDescription(`**카테고리:** ${category}\n${icon} # ${itemName}\n이(가) 추가되었습니다!\n\n**초기 수량:** ${initialTotal}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n**목표 수량:** ${requiredTotal}개 (${requiredFormatted.items}개/${requiredFormatted.sets}세트/${requiredFormatted.boxes}상자)`);
       
       await interaction.reply({ embeds: [successEmbed], ephemeral: true, fetchReply: true });
       
@@ -313,7 +313,7 @@ export async function handleEditNameModal(interaction) {
     const successEmbed = new EmbedBuilder()
       .setColor(0x57F287)
       .setTitle('✅ 이름 수정 완료')
-      .setDescription(`**카테고리:** ${category}\n### ${oldName} → ${newName}\n${recipeUpdated ? '🔄 레시피도 함께 변경되었습니다.' : ''}`);
+      .setDescription(`**카테고리:** ${category}\n# ${oldName} → ${newName}\n${recipeUpdated ? '🔄 레시피도 함께 변경되었습니다.' : ''}`);
     
     await interaction.reply({ embeds: [successEmbed], ephemeral: true });
     

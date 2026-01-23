@@ -84,7 +84,7 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       }
 
       embed.addFields({
-        name: `${icon} ### ${itemName}${tagText}`,
+        name: `${icon} # ${itemName}${tagText}`,
         value: fieldValue,
         inline: false
       });
@@ -125,9 +125,9 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
         const craftingText = craftingInfo ? ` 🔨 **${craftingInfo.userName}**` : '';
         
         if (uiMode === 'detailed') {
-          categoryText += `### ${icon} ${itemName}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${craftingText}\n`;
+          categoryText += `# ${icon} ${itemName}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${craftingText}\n`;
         } else {
-          categoryText += `### ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${craftingText}\n`;
+          categoryText += `# ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${craftingText}\n`;
         }
         
         // 마지막 아이템이 아니면 구분선 추가
@@ -231,7 +231,7 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
       }
 
       embed.addFields({
-        name: `${icon} ### ${itemName}${tagText}`,
+        name: `${icon} # ${itemName}${tagText}`,
         value: fieldValue,
         inline: false
       });
@@ -271,9 +271,9 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
         const collectingText = collectingInfo ? ` 👤 **${collectingInfo.userName}**` : '';
         
         if (uiMode === 'detailed') {
-          categoryText += `### ${icon} ${itemName}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${collectingText}\n`;
+          categoryText += `# ${icon} ${itemName}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${collectingText}\n`;
         } else {
-          categoryText += `### ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${collectingText}\n`;
+          categoryText += `# ${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${collectingText}\n`;
         }
         
         // 마지막 아이템이 아니면 구분선 추가
