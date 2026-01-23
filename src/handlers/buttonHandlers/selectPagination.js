@@ -93,7 +93,7 @@ export async function handleRecipeMaterialPagination(interaction) {
     rows.push(new ActionRowBuilder().addComponents(pageButtons));
     
     await interaction.update({
-      content: `${isEdit ? '✏️' : '📝'} # ${itemName}\n레시피 ${isEdit ? '수정' : '추가'}\n\n**${step}단계:** ${step}번째 재료를 선택하세요 (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)`,
+      content: `${isEdit ? '✏️' : '📝'}\n# ${itemName}\n레시피 ${isEdit ? '수정' : '추가'}\n\n**${step}단계:** ${step}번째 재료를 선택하세요 (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)`,
       components: rows
     });
     

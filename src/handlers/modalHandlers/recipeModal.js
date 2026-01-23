@@ -71,7 +71,7 @@ export async function handleRecipeEditQuantityModal(interaction) {
         .join('\n');
       
       await interaction.reply({
-        content: `✅ # ${itemName}\n레시피 수정 완료!\n\n**새 레시피:**\n${currentRecipe}`,
+        content: `✅\n# ${itemName}\n레시피 수정 완료!\n\n**새 레시피:**\n${currentRecipe}`,
         ephemeral: true
       });
       
@@ -162,7 +162,7 @@ export async function handleRecipeQuantityModal(interaction) {
         .join('\n');
       
       await interaction.reply({
-        content: `✅ # ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${currentRecipe}`,
+        content: `✅\n# ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${currentRecipe}`,
         ephemeral: true
       });
       

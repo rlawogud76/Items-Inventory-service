@@ -86,7 +86,7 @@ export async function handleRecipeViewButton(interaction) {
           ? `${m.quantity}개` 
           : `${m.quantity}개 (보유: ${currentQty}개)`;
         
-        return `${statusIcon} ${matIcon} # ${m.name} × ${qtyDisplay}`;
+        return `${statusIcon} ${matIcon}\n# ${m.name} × ${qtyDisplay}`;
       });
       
       const statusEmoji = canCraft ? '✅' : '⚠️';
@@ -229,7 +229,7 @@ export async function handleRecipeAddSkipButton(interaction) {
     
     if (isSkip) {
       await interaction.update({
-        content: `✅ # ${itemName}\n제작품이 추가되었습니다. 나중에 \`/레시피수정\` 명령어로 레시피를 추가할 수 있습니다.`,
+        content: `✅\n# ${itemName}\n제작품이 추가되었습니다. 나중에 \`/레시피수정\` 명령어로 레시피를 추가할 수 있습니다.`,
         embeds: [],
         components: []
       });
@@ -308,7 +308,7 @@ export async function handleRecipeAddSkipButton(interaction) {
     }
     
     await interaction.update({
-      content: `📝 # ${itemName}\n레시피 추가\n\n**1단계:** 첫 번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
+      content: `📝\n# ${itemName}\n레시피 추가\n\n**1단계:** 첫 번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
       embeds: [],
       components: rows
     });
@@ -355,7 +355,7 @@ export async function handleRecipeMoreFinishButton(interaction) {
         .join('\n');
       
       await interaction.update({
-        content: `✅ # ${itemName}\n레시피 ${isEdit ? '수정' : '추가'} 완료!\n\n**${isEdit ? '새 ' : ''}레시피:**\n${recipeText}`,
+        content: `✅\n# ${itemName}\n레시피 ${isEdit ? '수정' : '추가'} 완료!\n\n**${isEdit ? '새 ' : ''}레시피:**\n${recipeText}`,
         components: []
       });
       
@@ -388,7 +388,7 @@ export async function handleRecipeMoreFinishButton(interaction) {
       .join('\n');
     
     await interaction.update({
-      content: `${isEdit ? '✏️' : '📝'} # ${itemName}\n레시피 ${isEdit ? '수정' : '추가'}\n\n**현재 레시피:**\n${currentRecipe}\n\n**${step}단계:** ${step}번째 재료를 선택하세요`,
+      content: `${isEdit ? '✏️' : '📝'}\n# ${itemName}\n레시피 ${isEdit ? '수정' : '추가'}\n\n**현재 레시피:**\n${currentRecipe}\n\n**${step}단계:** ${step}번째 재료를 선택하세요`,
       components: [row]
     });
     
