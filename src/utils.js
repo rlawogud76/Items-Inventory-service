@@ -129,12 +129,57 @@ export function getItemTag(itemName, category, type, inventory) {
   const tags = inventory.tags?.[type]?.[category];
   if (!tags) return null;
   
-  for (const [tagName, items] of Object.entries(tags)) {
-    if (items.includes(itemName)) {
+  for (const [tagName, tagData] of Object.entries(tags)) {
+    if (Array.isArray(tagData)) {
+      // 기존 형식 (배열)
+      if (tagData.includes(itemName)) {
+        return tagName;
+      }
+    } else if (tagData.items && tagData.items.includes(itemName)) {
+      // 새 형식 (객체)
       return tagName;
     }
   }
   return null;
+}
+
+// 아이템의 태그 색상 가져오기
+export function getItemTagColor(itemName, category, type, inventory) {
+  const tags = inventory.tags?.[type]?.[category];
+  if (!tags) return null;
+  
+  for (const [tagName, tagData] of Object.entries(tags)) {
+    if (Array.isArray(tagData)) {
+      // 기존 형식 (배열)
+      if (tagData.includes(itemName)) {
+        return 'default';
+      }
+    } else if (tagData.items && tagData.items.includes(itemName)) {
+      // 새 형식 (객체)
+      return tagData.color || 'default';
+    }
+  }
+  return null;
+}
+
+// 색상 적용 함수
+export function applyTagColor(text, color) {
+  if (!color || color === 'default') return text;
+  
+  const COLOR_OPTIONS = {
+    'red': '[2;31m',
+    'green': '[2;32m', 
+    'blue': '[2;34m',
+    'yellow': '[2;33m',
+    'purple': '[2;35m',
+    'cyan': '[2;36m',
+    'white': '[2;37m'
+  };
+  
+  const ansiCode = COLOR_OPTIONS[color];
+  if (!ansiCode) return text;
+  
+  return `\`\`\`ansi\n${ansiCode}${text}[0m\n\`\`\``;
 }
 
 // 태그에 속한 모든 아이템 가져오기

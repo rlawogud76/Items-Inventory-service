@@ -70,7 +70,8 @@ const tagSchema = new mongoose.Schema({
   type: { type: String, required: true, enum: ['inventory', 'crafting'], index: true },
   category: { type: String, required: true, index: true },
   tagName: { type: String, required: true, index: true },
-  items: [{ type: String }]
+  items: [{ type: String }],
+  color: { type: String, default: 'default' } // 색상 필드 추가
 }, {
   timestamps: true
 });
@@ -241,7 +242,11 @@ export async function loadInventory() {
     if (!inventory.tags[tag.type][tag.category]) {
       inventory.tags[tag.type][tag.category] = {};
     }
-    inventory.tags[tag.type][tag.category][tag.tagName] = tag.items;
+    // 새로운 형식으로 저장 (색상 포함)
+    inventory.tags[tag.type][tag.category][tag.tagName] = {
+      items: tag.items,
+      color: tag.color || 'default'
+    };
   });
   
   setCache('items', inventory);
@@ -331,12 +336,29 @@ export async function saveInventory(data, retryCount = 0) {
       const tags = [];
       for (const [type, categories] of Object.entries(data.tags || {})) {
         for (const [category, tagData] of Object.entries(categories)) {
-          for (const [tagName, items] of Object.entries(tagData)) {
-            tags.push({
-              type,
-              category,
-              tagName,
-              items
+          for (const [tagName, tagInfo] of Object.entries(tagData)) {
+            if (Array.isArray(tagInfo)) {
+              // 기존 형식 (배열)
+              tags.push({
+                type,
+                category,
+                tagName,
+                items: tagInfo,
+                color: 'default'
+              });
+            } else if (tagInfo.items) {
+              // 새 형식 (객체)
+              tags.push({
+                type,
+                category,
+                tagName,
+                items: tagInfo.items,
+                color: tagInfo.color || 'default'
+              });
+            }
+          }
+        }
+      }
             });
           }
         }

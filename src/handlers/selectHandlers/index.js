@@ -16,7 +16,8 @@ export { handleWorkItemSelect } from './workSelect.js';
 export { 
   handleTagItemsSelect, 
   handleConfirmTagRemoveSelect,
-  handleTagItemSelect
+  handleTagItemSelect,
+  handleTagColorSelect
 } from './tagSelect.js';
 
 // 레시피

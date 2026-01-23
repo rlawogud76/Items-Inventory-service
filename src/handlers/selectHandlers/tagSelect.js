@@ -34,8 +34,19 @@ export async function handleTagItemsSelect(interaction) {
     if (!inventory.tags[type][category]) inventory.tags[type][category] = {};
     
     // 선택된 항목들을 태그에 추가
+    const selectedColor = global.tempTagColors?.[`${type}_${category}_${tagName}`] || 'default';
+    
     if (!inventory.tags[type][category][tagName]) {
-      inventory.tags[type][category][tagName] = [];
+      inventory.tags[type][category][tagName] = {
+        items: [],
+        color: selectedColor
+      };
+    } else if (Array.isArray(inventory.tags[type][category][tagName])) {
+      // 기존 배열 형식을 객체 형식으로 변환
+      inventory.tags[type][category][tagName] = {
+        items: inventory.tags[type][category][tagName],
+        color: selectedColor
+      };
     }
     
     let addedCount = 0;
@@ -45,19 +56,31 @@ export async function handleTagItemsSelect(interaction) {
       // 기존 태그에서 제거
       const oldTag = getItemTag(itemName, category, type, inventory);
       if (oldTag && oldTag !== tagName && inventory.tags[type][category][oldTag]) {
-        inventory.tags[type][category][oldTag] = inventory.tags[type][category][oldTag].filter(item => item !== itemName);
-        // 빈 태그 삭제
-        if (inventory.tags[type][category][oldTag].length === 0) {
-          delete inventory.tags[type][category][oldTag];
+        const oldTagData = inventory.tags[type][category][oldTag];
+        if (Array.isArray(oldTagData)) {
+          inventory.tags[type][category][oldTag] = oldTagData.filter(item => item !== itemName);
+          if (inventory.tags[type][category][oldTag].length === 0) {
+            delete inventory.tags[type][category][oldTag];
+          }
+        } else if (oldTagData.items) {
+          oldTagData.items = oldTagData.items.filter(item => item !== itemName);
+          if (oldTagData.items.length === 0) {
+            delete inventory.tags[type][category][oldTag];
+          }
         }
         movedCount++;
       }
       
       // 새 태그에 추가 (중복 방지)
-      if (!inventory.tags[type][category][tagName].includes(itemName)) {
-        inventory.tags[type][category][tagName].push(itemName);
+      if (!inventory.tags[type][category][tagName].items.includes(itemName)) {
+        inventory.tags[type][category][tagName].items.push(itemName);
         addedCount++;
       }
+    }
+    
+    // 임시 색상 정보 삭제
+    if (global.tempTagColors) {
+      delete global.tempTagColors[`${type}_${category}_${tagName}`];
     }
     
     await saveInventory(inventory);
@@ -201,5 +224,56 @@ export async function handleTagItemSelect(interaction) {
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
       console.error('❌ 태그 아이템 선택 에러 응답 실패:', err);
     });
+  }
+}
+/**
+ * 태그 색상 선택 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleTagColorSelect(interaction) {
+  try {
+    await interaction.deferUpdate();
+    
+    const parts = interaction.customId.replace('select_tag_color_', '').split('_');
+    const tagName = parts[parts.length - 1];
+    const type = parts[0];
+    const category = parts.slice(1, -1).join('_');
+    
+    const selectedColor = interaction.values[0];
+    
+    // 색상 정보 저장 (임시로 interaction에 저장)
+    const colorInfo = {
+      type,
+      category, 
+      tagName,
+      color: selectedColor
+    };
+    
+    // 색상 선택 완료 메시지 업데이트
+    const COLOR_NAMES = {
+      'default': '기본',
+      'red': '빨강 🔴',
+      'green': '초록 🟢', 
+      'blue': '파랑 🔵',
+      'yellow': '노랑 🟡',
+      'purple': '보라 🟣',
+      'cyan': '청록 🔵',
+      'white': '흰색 ⚪'
+    };
+    
+    const colorName = COLOR_NAMES[selectedColor] || selectedColor;
+    
+    await interaction.editReply({
+      content: `🏷️ **태그: ${tagName}** (색상: ${colorName})\n\n✅ 색상이 선택되었습니다!\n이제 "${tagName}" 태그에 추가할 항목을 선택하세요.\n💡 여러 개를 한 번에 선택할 수 있습니다.`,
+      components: interaction.message.components.slice(1) // 색상 선택 메뉴 제거, 아이템 선택 메뉴만 유지
+    });
+    
+    // 선택된 색상을 전역 변수나 캐시에 임시 저장
+    global.tempTagColors = global.tempTagColors || {};
+    global.tempTagColors[`${type}_${category}_${tagName}`] = selectedColor;
+    
+  } catch (error) {
+    console.error('❌ 태그 색상 선택 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }

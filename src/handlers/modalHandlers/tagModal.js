@@ -1,7 +1,27 @@
 // 태그 modal 핸들러
-import { EmbedBuilder, ActionRowBuilder } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 import { loadInventory, saveInventory } from '../../database-old.js';
 import { getItemIcon, getItemTag } from '../../utils.js';
+
+// 색상 옵션 정의
+const COLOR_OPTIONS = {
+  'default': { name: '기본', ansi: '', description: '기본 색상' },
+  'red': { name: '빨강', ansi: '[2;31m', description: '빨간색 텍스트' },
+  'green': { name: '초록', ansi: '[2;32m', description: '초록색 텍스트' },
+  'blue': { name: '파랑', ansi: '[2;34m', description: '파란색 텍스트' },
+  'yellow': { name: '노랑', ansi: '[2;33m', description: '노란색 텍스트' },
+  'purple': { name: '보라', ansi: '[2;35m', description: '보라색 텍스트' },
+  'cyan': { name: '청록', ansi: '[2;36m', description: '청록색 텍스트' },
+  'white': { name: '흰색', ansi: '[2;37m', description: '흰색 텍스트' }
+};
+
+// 색상 적용 함수
+export function applyTagColor(text, color) {
+  if (!color || color === 'default') return text;
+  const colorInfo = COLOR_OPTIONS[color];
+  if (!colorInfo) return text;
+  return `\`\`\`ansi\n${colorInfo.ansi}${text}[0m\n\`\`\``;
+}
 
 /**
  * 태그 이름 입력 modal 핸들러 (태그 생성)
@@ -47,7 +67,6 @@ export async function handleTagNameInputModal(interaction) {
     // Discord 제한: 최대 25개 옵션
     const limitedOptions = itemOptions.slice(0, 25);
     
-    const { StringSelectMenuBuilder } = await import('discord.js');
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId(`select_tag_items_${type}_${category}_${tagName}`)
       .setPlaceholder(`"${tagName}" 태그에 추가할 항목을 선택하세요 (여러 개 가능)`)
@@ -55,13 +74,29 @@ export async function handleTagNameInputModal(interaction) {
       .setMaxValues(Math.min(limitedOptions.length, 25))
       .addOptions(limitedOptions);
     
-    const row = new ActionRowBuilder().addComponents(selectMenu);
+    // 색상 선택 메뉴 추가
+    const colorOptions = Object.entries(COLOR_OPTIONS).map(([key, value]) => ({
+      label: value.name,
+      value: key,
+      description: value.description,
+      emoji: key === 'red' ? '🔴' : key === 'green' ? '🟢' : key === 'blue' ? '🔵' : 
+             key === 'yellow' ? '🟡' : key === 'purple' ? '🟣' : key === 'cyan' ? '🔵' : 
+             key === 'white' ? '⚪' : '⚫'
+    }));
     
-    let contentMessage = `🏷️ **태그: ${tagName}**\n\n"${tagName}" 태그에 추가할 항목을 선택하세요.\n💡 여러 개를 한 번에 선택할 수 있습니다.`;
+    const colorSelectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`select_tag_color_${type}_${category}_${tagName}`)
+      .setPlaceholder('태그 색상을 선택하세요')
+      .addOptions(colorOptions);
+    
+    const row1 = new ActionRowBuilder().addComponents(selectMenu);
+    const row2 = new ActionRowBuilder().addComponents(colorSelectMenu);
+    
+    let contentMessage = `🏷️ **태그: ${tagName}**\n\n1️⃣ 태그 색상을 선택하세요\n2️⃣ "${tagName}" 태그에 추가할 항목을 선택하세요\n💡 여러 개를 한 번에 선택할 수 있습니다.`;
     
     await interaction.reply({
       content: contentMessage,
-      components: [row],
+      components: [row2, row1], // 색상 선택을 먼저
       ephemeral: true
     });
     

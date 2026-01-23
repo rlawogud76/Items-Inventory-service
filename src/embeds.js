@@ -3,6 +3,8 @@ import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'disc
 import { 
   formatQuantity, 
   getItemTag, 
+  getItemTagColor,
+  applyTagColor,
   getStatusEmoji, 
   getItemIcon, 
   createProgressBar 
@@ -52,7 +54,11 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       
       // 태그 확인
       const tag = getItemTag(itemName, categoryName, 'crafting', fullInventory);
+      const tagColor = getItemTagColor(itemName, categoryName, 'crafting', fullInventory);
       const tagText = tag ? ` [${tag}]` : '';
+      
+      // 아이템 이름에 색상 적용
+      const coloredItemName = tagColor ? applyTagColor(itemName, tagColor) : itemName;
       
       // 제작 중인 사람 확인
       const craftingInfo = crafting.crafting?.[categoryName]?.[itemName];
@@ -84,7 +90,7 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       }
 
       embed.addFields({
-        name: `${icon} ${itemName}${tagText}`,
+        name: `${icon} ${coloredItemName}${tagText}`,
         value: fieldValue,
         inline: false
       });
@@ -199,7 +205,11 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
       
       // 태그 확인
       const tag = getItemTag(itemName, categoryName, 'inventory', inventory);
+      const tagColor = getItemTagColor(itemName, categoryName, 'inventory', inventory);
       const tagText = tag ? ` [${tag}]` : '';
+      
+      // 아이템 이름에 색상 적용
+      const coloredItemName = tagColor ? applyTagColor(itemName, tagColor) : itemName;
       
       // 수집 중인 사람 확인
       const collectingInfo = inventory.collecting?.[categoryName]?.[itemName];
@@ -231,7 +241,7 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
       }
 
       embed.addFields({
-        name: `${icon} ${itemName}${tagText}`,
+        name: `${icon} ${coloredItemName}${tagText}`,
         value: fieldValue,
         inline: false
       });
