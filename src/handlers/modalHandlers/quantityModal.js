@@ -1,6 +1,6 @@
 // 수량 관리 modal 핸들러
 import { loadInventory, saveInventory } from '../../database-old.js';
-import { addHistory, sanitizeNumber } from '../../utils.js';
+import { addHistory, sanitizeNumber, syncLinkedItemQuantity, getLinkedStatusText } from '../../utils.js';
 import { consumeRecipeMaterials, returnRecipeMaterials, adjustRecipeMaterials } from '../../recipeService.js';
 
 /**
@@ -140,14 +140,18 @@ export async function handleQuantityModal(interaction) {
     itemData.quantity = newQuantity;
     itemData.required = newRequired;
     
+    // 연동된 아이템 자동 동기화
+    const syncSuccess = syncLinkedItemQuantity(type, category, itemName, newQuantity, inventory);
+    const syncText = syncSuccess ? '\n🔗 연동된 아이템도 자동 업데이트되었습니다!' : '';
+    
     // 히스토리 추가
-    addHistory(inventory, type, category, itemName, action, actionText, userName);
+    addHistory(inventory, type, category, itemName, action, actionText + (syncSuccess ? ' (연동 동기화)' : ''), userName);
     
     // 저장
     await saveInventory(inventory);
     
     await interaction.reply({ 
-      content: `✅ ${itemName}\n수량이 업데이트되었습니다!\n${actionText}`, 
+      content: `✅ ${itemName}\n수량이 업데이트되었습니다!\n${actionText}${syncText}`, 
       ephemeral: true 
     });
     

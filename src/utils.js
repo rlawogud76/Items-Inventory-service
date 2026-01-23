@@ -284,3 +284,100 @@ export async function sendTemporaryReply(interaction, content, deleteAfter = 150
   
   return reply;
 }
+
+// ==================== 아이템 연동 관련 ====================
+
+/**
+ * 연동된 아이템 정보 가져오기
+ * @param {string} linkedItemPath - 'type/category/name' 형식
+ * @param {object} inventory - 재고 데이터
+ * @returns {object|null} - 연동된 아이템 데이터
+ */
+export function getLinkedItem(linkedItemPath, inventory) {
+  if (!linkedItemPath) return null;
+  
+  const [type, category, name] = linkedItemPath.split('/');
+  
+  if (type === 'inventory') {
+    return inventory.categories?.[category]?.[name] || null;
+  } else if (type === 'crafting') {
+    return inventory.crafting?.categories?.[category]?.[name] || null;
+  }
+  
+  return null;
+}
+
+/**
+ * 연동된 아이템 수량 동기화
+ * @param {string} type - 'inventory' or 'crafting'
+ * @param {string} category - 카테고리명
+ * @param {string} itemName - 아이템명
+ * @param {number} newQuantity - 새로운 수량
+ * @param {object} inventory - 재고 데이터
+ * @returns {boolean} - 동기화 성공 여부
+ */
+export function syncLinkedItemQuantity(type, category, itemName, newQuantity, inventory) {
+  const sourceItem = type === 'inventory' 
+    ? inventory.categories?.[category]?.[itemName]
+    : inventory.crafting?.categories?.[category]?.[itemName];
+  
+  if (!sourceItem || !sourceItem.linkedItem) {
+    return false; // 연동 정보 없음
+  }
+  
+  const linkedItem = getLinkedItem(sourceItem.linkedItem, inventory);
+  if (!linkedItem) {
+    return false; // 연동된 아이템 없음
+  }
+  
+  // 수량 동기화
+  linkedItem.quantity = newQuantity;
+  
+  console.log(`🔄 연동 동기화: ${type}/${category}/${itemName} → ${sourceItem.linkedItem} (${newQuantity}개)`);
+  
+  return true;
+}
+
+/**
+ * 아이템이 중간 제작품인지 확인
+ * @param {string} type - 'inventory' or 'crafting'
+ * @param {string} category - 카테고리명
+ * @param {string} itemName - 아이템명
+ * @param {object} inventory - 재고 데이터
+ * @returns {boolean}
+ */
+export function isIntermediateItem(type, category, itemName, inventory) {
+  const item = type === 'inventory'
+    ? inventory.categories?.[category]?.[itemName]
+    : inventory.crafting?.categories?.[category]?.[itemName];
+  
+  return item?.itemType === 'intermediate' && !!item?.linkedItem;
+}
+
+/**
+ * 연동 상태 텍스트 생성
+ * @param {string} type - 'inventory' or 'crafting'
+ * @param {string} category - 카테고리명
+ * @param {string} itemName - 아이템명
+ * @param {object} inventory - 재고 데이터
+ * @returns {string}
+ */
+export function getLinkedStatusText(type, category, itemName, inventory) {
+  const item = type === 'inventory'
+    ? inventory.categories?.[category]?.[itemName]
+    : inventory.crafting?.categories?.[category]?.[itemName];
+  
+  if (!item || !item.linkedItem) {
+    return '';
+  }
+  
+  const linkedItem = getLinkedItem(item.linkedItem, inventory);
+  if (!linkedItem) {
+    return '\n⚠️ 연동 오류 (연동된 아이템을 찾을 수 없음)';
+  }
+  
+  const [linkedType] = item.linkedItem.split('/');
+  const linkedTypeName = linkedType === 'inventory' ? '재고' : '제작';
+  
+  return `\n🔗 ${linkedTypeName}와 연동됨 (자동 동기화)`;
+}

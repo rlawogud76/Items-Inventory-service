@@ -7,7 +7,8 @@ import {
   applyTagColor,
   getStatusEmoji, 
   getItemIcon, 
-  createProgressBar 
+  createProgressBar,
+  getLinkedStatusText
 } from './utils.js';
 
 // 제작 임베드 생성
@@ -66,6 +67,9 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
         ? `\n> 🔨 **제작중:** ${craftingInfo.userName}` 
         : '';
       
+      // 연동 상태 확인
+      const linkedStatus = getLinkedStatusText('crafting', categoryName, itemName, fullInventory);
+      
       let fieldValue;
       
       if (uiMode === 'detailed') {
@@ -74,13 +78,13 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
           `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 (${data.quantity}개)`,
           `**목표:** ${required.items}개/${required.sets}세트/${required.boxes}상자 (${data.required}개)`,
           `**진행률:** ${percentage}% ${status}`,
-          `${progressBar}${craftingText}`
+          `${progressBar}${craftingText}${linkedStatus}`
         ].join('\n');
       } else {
         // 일반 모드
         fieldValue = [
           `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 │ **목표:** ${required.items}개/${required.sets}세트/${required.boxes}상자`,
-          `${progressBar} ${percentage}% ${status}${craftingText}`
+          `${progressBar} ${percentage}% ${status}${craftingText}${linkedStatus}`
         ].join('\n');
       }
       
@@ -217,6 +221,9 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
         ? `\n> 👤 **수집중:** ${collectingInfo.userName}` 
         : '';
       
+      // 연동 상태 확인
+      const linkedStatus = getLinkedStatusText('inventory', categoryName, itemName, inventory);
+      
       let fieldValue;
       
       if (uiMode === 'detailed') {
@@ -225,13 +232,13 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
           `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 (${data.quantity}개)`,
           `**목표:** ${required.items}개/${required.sets}세트/${required.boxes}상자 (${data.required}개)`,
           `**진행률:** ${percentage}% ${status}`,
-          `${progressBar}${collectingText}`
+          `${progressBar}${collectingText}${linkedStatus}`
         ].join('\n');
       } else {
         // 일반 모드
         fieldValue = [
           `**현재:** ${current.items}개/${current.sets}세트/${current.boxes}상자 │ **목표:** ${required.items}개/${required.sets}세트/${required.boxes}상자`,
-          `${progressBar} ${percentage}% ${status}${collectingText}`
+          `${progressBar} ${percentage}% ${status}${collectingText}${linkedStatus}`
         ].join('\n');
       }
       
