@@ -155,6 +155,13 @@ export async function handleQuantityModal(interaction) {
       ephemeral: true 
     });
     
+    // 15초 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, 15000);
+    
     console.log('✅ 수량 업데이트 완료');
     
   } catch (error) {
