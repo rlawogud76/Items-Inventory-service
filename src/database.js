@@ -102,12 +102,12 @@ const settingsSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// 모델 생성
-export const InventoryItem = mongoose.model('InventoryItem', inventoryItemSchema);
-export const Recipe = mongoose.model('Recipe', recipeSchema);
-export const Tag = mongoose.model('Tag', tagSchema);
-export const History = mongoose.model('History', historySchema);
-export const Settings = mongoose.model('Settings', settingsSchema);
+// 모델 생성 (이미 존재하면 재사용)
+export const InventoryItem = mongoose.models.InventoryItem || mongoose.model('InventoryItem', inventoryItemSchema);
+export const Recipe = mongoose.models.Recipe || mongoose.model('Recipe', recipeSchema);
+export const Tag = mongoose.models.Tag || mongoose.model('Tag', tagSchema);
+export const History = mongoose.models.History || mongoose.model('History', historySchema);
+export const Settings = mongoose.models.Settings || mongoose.model('Settings', settingsSchema);
 
 // ==================== 캐시 설정 ====================
 const CACHE_TTL = 5000; // 5초
@@ -502,7 +502,7 @@ const oldInventorySchema = new mongoose.Schema({
   history: Array
 }, { timestamps: true, minimize: false });
 
-const OldInventory = mongoose.model('OldInventory', oldInventorySchema, 'inventories');
+const OldInventory = mongoose.models.OldInventory || mongoose.model('OldInventory', oldInventorySchema, 'inventories');
 
 // 마이그레이션 필요 여부 확인
 export async function needsMigration() {
