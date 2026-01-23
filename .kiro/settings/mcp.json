@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "discord-monitor": {
+      "command": "node",
+      "args": ["mcp-discord-monitor.js"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": [
+        "get_bot_status",
+        "get_recent_events"
+      ]
+    }
+  }
+}
