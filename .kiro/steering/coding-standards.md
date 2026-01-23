@@ -2,6 +2,18 @@
 
 ## 작업 이력
 
+### 2025-01-24: 레시피 핸들러 전체 Optional Chaining 적용 (완료)
+- **수정된 파일**: recipe.js, recipeSelect.js, recipeModal.js, pagination.js, index.js
+- **적용 내용**:
+  - 모든 `inventory.categories[category]` → `inventory.categories?.[category]` 검증 추가
+  - 모든 `inventory.crafting.recipes[category][itemName]` → optional chaining 적용
+  - 레시피 구조 초기화 시 `inventory.crafting` 존재 확인 추가
+  - `currentRecipe` 접근 시 기본값 `[]` 설정
+  - pagination.js 95번째 줄: `handleRecipeMaterialPageNavigation`에 카테고리 존재 확인 추가
+  - index.js: `select_recipe_edit_` 핸들러에 emoji validation 적용
+- **해결된 문제**: 레시피 관련 모든 기능에서 발생하던 undefined 에러 완전 제거
+- **커밋**: "Fix: pagination.js handleRecipeMaterialPageNavigation category existence check"
+
 ### 2025-01-24: 레시피 독립 추가 기능 구현
 - **새 기능**: 레시피 메뉴에서 직접 레시피 추가 가능 (품목 추가와 별도)
 - **수정된 파일**: recipe.js, recipeSelect.js, recipeModal.js, pagination.js, buttons.js, selects.js, modals.js, index.js (3개)
