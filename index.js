@@ -1,6 +1,6 @@
 ﻿import { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import dotenv from 'dotenv';
-import { connectDatabase, loadInventory, saveInventory, watchInventoryChanges, addChangeListener, needsMigration, autoMigrate } from './src/database-new.js';
+import { connectDatabase, loadInventory, saveInventory, watchInventoryChanges, addChangeListener, migrateFromDataFile } from './src/database-old.js';
 import { getItemIcon } from './src/utils.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from './src/embeds.js';
 import { handleButtonInteraction } from './src/handlers/buttons.js';
@@ -43,22 +43,12 @@ client.on('ready', async () => {
     process.exit(1);
   }
   
-  // 자동 마이그레이션 확인 및 실행
+  // data.js에서 마이그레이션 시도
   try {
-    const shouldMigrate = await needsMigration();
-    if (shouldMigrate) {
-      console.log('🔄 마이그레이션이 필요합니다. 자동 마이그레이션을 시작합니다...');
-      const migrated = await autoMigrate();
-      if (migrated) {
-        console.log('✅ 마이그레이션이 완료되었습니다!');
-      } else {
-        console.log('⚠️ 마이그레이션을 건너뛰었습니다.');
-      }
-    } else {
-      console.log('✅ 마이그레이션이 필요하지 않습니다.');
-    }
+    const { inventoryData } = await import('./data.js');
+    await migrateFromDataFile(inventoryData);
   } catch (error) {
-    console.error('❌ 마이그레이션 확인 중 에러:', error.message);
+    console.log('ℹ️ data.js 파일이 없습니다. (정상 - MongoDB만 사용)');
   }
   
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
