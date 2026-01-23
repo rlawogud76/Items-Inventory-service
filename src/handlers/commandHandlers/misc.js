@@ -1,182 +1,264 @@
-// 기타 명령어 핸들러
-import { EmbedBuilder } from 'discord.js';
+// 기타 커맨드 핸들러 (도움말, 통계, 이모지설정, 수정내역, 기여도초기화)
+
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, saveInventory } from '../../database-old.js';
-import { getStatus } from '../../statusLogger.js';
+import { getItemIcon, sendTemporaryReply } from '../../utils.js';
 
 /**
- * 도움말 명령어
+ * /도움말 커맨드 처리
  */
 export async function handleHelpCommand(interaction) {
-  const embed = new EmbedBuilder()
+  const helpEmbed = new EmbedBuilder()
+    .setTitle('📖 재고 관리 봇 사용법')
     .setColor(0x5865F2)
-    .setTitle('📚 재고 관리 봇 도움말')
-    .setDescription('마인크래프트 마을 재고를 관리하는 봇입니다.')
+    .setDescription('**MongoDB 기반 실시간 재고 관리 시스템**\n변경사항이 자동으로 감지되어 즉시 반영됩니다.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     .addFields(
-      { name: '📦 /재고', value: '재고 현황을 확인하고 관리합니다.', inline: false },
-      { name: '🔨 /제작', value: '제작 현황을 확인하고 관리합니다.', inline: false },
-      { name: '📊 /통계', value: '재고 및 제작 통계를 확인합니다.', inline: false },
-      { name: '📜 /수정내역', value: '최근 수정 내역을 확인합니다.', inline: false },
-      { name: '🎨 /이모지설정', value: '아이템 이모지를 설정합니다.', inline: false },
-      { name: '🔄 /기여도초기화', value: '기여도를 초기화합니다.', inline: false },
-      { name: '🤖 /봇상태', value: '봇의 현재 상태를 확인합니다.', inline: false }
-    )
-    .setFooter({ text: '버튼을 클릭하여 상세 기능을 사용하세요!' });
-
-  await interaction.reply({ embeds: [embed], ephemeral: true });
+      { 
+        name: '📦 재고 관리', 
+        value: [
+          '**`/재고 [카테고리]`**',
+          '재고 현황을 실시간으로 확인합니다.',
+          '> 예: `/재고 카테고리:해양`',
+          '> 💡 변경사항이 자동으로 업데이트됩니다!',
+          '',
+          '**버튼 기능:**',
+          '• 📦 수집하기: 작업자 등록 (다른 사람에게 표시)',
+          '• 📊 수량관리: 추가/수정/차감/목표 수정',
+          '• 📋 물품관리: 물품 추가/삭제/이름 수정',
+          '• 🏷️ 태그관리: 물품을 태그로 그룹화',
+          '• ♻️ 초기화: 개별 또는 일괄 초기화',
+          '• 📏 UI 모드: 일반/상세 모드 전환',
+          '• 📊 바 크기: 프로그레스 바 크기 조절'
+        ].join('\n'),
+        inline: false
+      },
+      { 
+        name: '\u200B', 
+        value: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        inline: false
+      },
+      { 
+        name: '🔨 제작 관리', 
+        value: [
+          '**`/제작 [카테고리]`**',
+          '제작 현황을 실시간으로 확인합니다.',
+          '> 예: `/제작 카테고리:해양`',
+          '> 💡 변경사항이 자동으로 업데이트됩니다!',
+          '',
+          '**버튼 기능:**',
+          '• 🔨 제작하기: 작업자 등록 (다른 사람에게 표시)',
+          '• 📊 수량관리: 추가/수정/차감/목표 수정',
+          '• 📦 품목관리: 품목 추가/삭제/이름 수정',
+          '• 🏷️ 태그관리: 품목을 태그로 그룹화',
+          '• 📋 레시피: 레시피 조회/추가/수정/삭제',
+          '• ♻️ 초기화: 개별 또는 일괄 초기화',
+          '• 📏 UI 모드: 일반/상세 모드 전환',
+          '• 📊 바 크기: 프로그레스 바 크기 조절'
+        ].join('\n'),
+        inline: false
+      },
+      { 
+        name: '\u200B', 
+        value: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        inline: false
+      },
+      { 
+        name: '📋 레시피 관리', 
+        value: [
+          '**제작 화면의 "📋 레시피" 버튼 사용:**',
+          '• 📖 조회: 레시피 확인 (재료 충분 여부 표시)',
+          '• ➕ 추가: 새 레시피 추가 (최대 5개 재료)',
+          '• ✏️ 수정: 기존 레시피 수정',
+          '• 🗑️ 삭제: 레시피 삭제',
+          '',
+          '> 💡 25개 초과 시 자동으로 페이지 버튼이 생성됩니다!'
+        ].join('\n'),
+        inline: false
+      },
+      { 
+        name: '\u200B', 
+        value: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        inline: false
+      },
+      { 
+        name: '🔧 기타 기능', 
+        value: [
+          '**`/통계`**',
+          '마을 전체 통계를 확인합니다.',
+          '> 전체 진행률, 카테고리별 현황, 활동 통계, 주의 필요 항목',
+          '',
+          '**`/이모지설정`**',
+          '아이템의 커스텀 이모지를 설정합니다.',
+          '> 예: `/이모지설정 타입:재고 카테고리:해양 아이템:나무 이모지:🪵`',
+          '',
+          '**`/수정내역 [개수]`**',
+          '최근 수정 내역을 확인합니다 (최대 25개).',
+          '> 예: `/수정내역 개수:20`'
+        ].join('\n'),
+        inline: false
+      },
+      { 
+        name: '\u200B', 
+        value: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        inline: false
+      },
+      { 
+        name: '💡 팁', 
+        value: [
+          '• **실시간 업데이트**: 누군가 수량을 변경하면 모든 화면이 자동으로 업데이트됩니다.',
+          '• **작업자 표시**: 수집하기/제작하기 버튼으로 작업자를 등록하면 다른 사람들이 볼 수 있습니다.',
+          '• **자동 삭제**: 선택 메뉴는 15초 후, 관리 메뉴는 30초 후 자동으로 사라집니다.',
+          '• **페이지네이션**: 아이템이 25개를 초과하면 자동으로 페이지 버튼이 생성됩니다.',
+          '• **세트 단위**: 수량은 낱개 + 세트(64개) + 상자(3456개) 순서로 표시됩니다.',
+          '• **진행률 표시**: 🔴(25%↓) 🟡(25-90%) 🟢(90%↑)',
+          '• **태그 기능**: 관련 물품들을 태그로 그룹화하여 한 번에 작업할 수 있습니다.'
+        ].join('\n'),
+        inline: false
+      }
+    );
+  await sendTemporaryReply(interaction, { embeds: [helpEmbed] }, 60000);
 }
 
 /**
- * 봇 상태 명령어
+ * /이모지설정 커맨드 처리
  */
-export async function handleBotStatusCommand(interaction) {
-  try {
-    const status = getStatus({ limit: 5 });
-    
-    const embed = new EmbedBuilder()
-      .setColor(status.botInfo?.status === 'online' ? 0x57F287 : 0xED4245)
-      .setTitle('🤖 봇 상태')
-      .setTimestamp();
-
-    if (status.botInfo) {
-      embed.addFields(
-        { name: '상태', value: status.botInfo.status === 'online' ? '🟢 온라인' : '🔴 오프라인', inline: true },
-        { name: '핑', value: `${status.botInfo.ping}ms`, inline: true },
-        { name: '가동 시간', value: `${Math.floor(status.botInfo.uptime / 60)}분`, inline: true },
-        { name: '서버 수', value: `${status.botInfo.guilds?.length || 0}개`, inline: true },
-        { name: '마지막 업데이트', value: new Date(status.lastUpdate).toLocaleString('ko-KR'), inline: false }
-      );
-
-      if (status.botInfo.guilds && status.botInfo.guilds.length > 0) {
-        const guildList = status.botInfo.guilds
-          .map(g => `• ${g.name} (${g.memberCount}명)`)
-          .join('\n');
-        embed.addFields({ name: '연결된 서버', value: guildList, inline: false });
-      }
-    } else {
-      embed.setDescription('봇 정보를 불러올 수 없습니다.');
-    }
-
-    // 최근 이벤트
-    if (status.events && status.events.length > 0) {
-      const eventList = status.events
-        .slice(0, 5)
-        .map(e => {
-          const time = new Date(e.timestamp).toLocaleTimeString('ko-KR');
-          const typeEmoji = {
-            'interaction': '🔘',
-            'bot_ready': '✅',
-            'error': '❌'
-          }[e.type] || '📝';
-          return `${typeEmoji} ${time} - ${e.type}`;
-        })
-        .join('\n');
-      embed.addFields({ name: '최근 이벤트', value: eventList, inline: false });
-    }
-
-    await interaction.reply({ embeds: [embed], ephemeral: true });
-  } catch (error) {
-    console.error('❌ 봇 상태 조회 에러:', error);
-    await interaction.reply({ 
-      content: '봇 상태를 조회하는 중 오류가 발생했습니다.', 
-      ephemeral: true 
-    });
+export async function handleEmojiCommand(interaction) {
+  const type = interaction.options.getString('타입');
+  const category = interaction.options.getString('카테고리');
+  const itemName = interaction.options.getString('아이템');
+  const emoji = interaction.options.getString('이모지');
+  
+  const inventory = await loadInventory();
+  
+  // 아이템 존재 확인
+  const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+  
+  if (!targetData?.[category]?.[itemName]) {
+    return await sendTemporaryReply(interaction, `❌ "${category}" 카테고리에 "${itemName}" 아이템이 존재하지 않습니다.`);
   }
+  
+  // 이모지 설정
+  targetData[category][itemName].emoji = emoji;
+  await saveInventory(inventory);
+  
+  const successEmbed = new EmbedBuilder()
+    .setColor(0x57F287)
+    .setTitle('✅ 이모지 설정 완료')
+    .setDescription([
+      `**타입:** ${type === 'inventory' ? '재고' : '제작'}`,
+      `**카테고리:** ${category}`,
+      `**아이템:** ${emoji} ${itemName}`,
+      '',
+      '이제 이 아이템은 설정한 이모지로 표시됩니다.'
+    ].join('\n'));
+  
+  await sendTemporaryReply(interaction, { embeds: [successEmbed] });
 }
 
 /**
- * 통계 명령어
- */
-export async function handleStatsCommand(interaction) {
-  try {
-    const inventory = await loadInventory();
-    
-    // 재고 통계
-    let totalItems = 0;
-    let totalCategories = 0;
-    let completedItems = 0;
-    
-    for (const [category, items] of Object.entries(inventory.categories || {})) {
-      totalCategories++;
-      for (const [itemName, itemData] of Object.entries(items)) {
-        totalItems++;
-        const percentage = (itemData.quantity / itemData.required) * 100;
-        if (percentage >= 100) completedItems++;
-      }
-    }
-    
-    // 제작 통계
-    let totalCraftingItems = 0;
-    let totalCraftingCategories = 0;
-    let completedCraftingItems = 0;
-    
-    for (const [category, items] of Object.entries(inventory.crafting?.categories || {})) {
-      totalCraftingCategories++;
-      for (const [itemName, itemData] of Object.entries(items)) {
-        totalCraftingItems++;
-        const percentage = (itemData.quantity / itemData.required) * 100;
-        if (percentage >= 100) completedCraftingItems++;
-      }
-    }
-    
-    const embed = new EmbedBuilder()
-      .setColor(0x5865F2)
-      .setTitle('📊 재고 및 제작 통계')
-      .addFields(
-        { name: '📦 재고', value: `카테고리: ${totalCategories}개\n아이템: ${totalItems}개\n완료: ${completedItems}개 (${totalItems > 0 ? Math.round(completedItems / totalItems * 100) : 0}%)`, inline: true },
-        { name: '🔨 제작', value: `카테고리: ${totalCraftingCategories}개\n아이템: ${totalCraftingItems}개\n완료: ${completedCraftingItems}개 (${totalCraftingItems > 0 ? Math.round(completedCraftingItems / totalCraftingItems * 100) : 0}%)`, inline: true }
-      )
-      .setTimestamp();
-    
-    await interaction.reply({ embeds: [embed], ephemeral: true });
-  } catch (error) {
-    console.error('❌ 통계 조회 에러:', error);
-    await interaction.reply({ 
-      content: '통계를 조회하는 중 오류가 발생했습니다.', 
-      ephemeral: true 
-    });
-  }
-}
-
-/**
- * 수정 내역 명령어
+ * /수정내역 커맨드 처리
  */
 export async function handleHistoryCommand(interaction) {
-  try {
-    const inventory = await loadInventory();
-    const history = inventory.history || [];
+  const count = interaction.options.getInteger('개수') || 10;
+  const inventory = await loadInventory();
+  
+  if (!inventory.history || inventory.history.length === 0) {
+    return sendTemporaryReply(interaction, '📋 수정 내역이 없습니다.');
+  }
+  
+  const embed = new EmbedBuilder()
+    .setTitle('📋 수정 내역')
+    .setColor(0x5865F2)
+    .setTimestamp();
+  
+  const histories = inventory.history.slice(0, Math.min(count, 25)); // 최대 25개
+  
+  for (const history of histories) {
+    const date = new Date(history.timestamp);
     
-    if (history.length === 0) {
-      return await interaction.reply({ 
-        content: '수정 내역이 없습니다.', 
-        ephemeral: true 
-      });
-    }
+    // 한국 시간대(UTC+9)로 변환
+    const kstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+    const month = String(kstDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(kstDate.getUTCDate()).padStart(2, '0');
+    const hour = String(kstDate.getUTCHours()).padStart(2, '0');
+    const minute = String(kstDate.getUTCMinutes()).padStart(2, '0');
+    const timeStr = `${month}/${day} ${hour}:${minute}`;
     
-    const recentHistory = history.slice(0, 10);
-    const historyText = recentHistory.map(h => {
-      const time = new Date(h.timestamp).toLocaleString('ko-KR');
-      const typeEmoji = {
-        'add': '➕',
-        'remove': '➖',
-        'update_quantity': '📝',
-        'update_required': '🎯'
-      }[h.action] || '📝';
-      return `${typeEmoji} ${time}\n**${h.itemName}** (${h.category})\n${h.details} - ${h.userName}`;
-    }).join('\n\n');
+    const typeEmoji = history.type === 'inventory' ? '📦' : '🔨';
+    const actionText = {
+      'add': '추가',
+      'remove': '제거',
+      'update_quantity': '현재 수량 변경',
+      'update_required': '목표 수량 변경',
+      'reset': '초기화'
+    }[history.action] || history.action;
     
-    const embed = new EmbedBuilder()
-      .setColor(0x5865F2)
-      .setTitle('📜 최근 수정 내역')
-      .setDescription(historyText)
-      .setFooter({ text: `총 ${history.length}개의 기록 중 최근 10개` })
-      .setTimestamp();
+    const icon = getItemIcon(history.itemName, inventory);
     
-    await interaction.reply({ embeds: [embed], ephemeral: true });
-  } catch (error) {
-    console.error('❌ 수정 내역 조회 에러:', error);
-    await interaction.reply({ 
-      content: '수정 내역을 조회하는 중 오류가 발생했습니다.', 
-      ephemeral: true 
+    embed.addFields({
+      name: `${typeEmoji} ${history.category} - ${icon} ${history.itemName}`,
+      value: `**${actionText}** by ${history.userName}\n${history.details}\n\`${timeStr}\``,
+      inline: false
     });
   }
+  
+  if (inventory.history.length > count) {
+    embed.setFooter({ text: `총 ${inventory.history.length}개 중 ${count}개 표시` });
+  }
+  
+  const reply = await interaction.reply({ embeds: [embed], ephemeral: true, fetchReply: true });
+  
+  // 30초 후 자동 삭제
+  setTimeout(async () => {
+    try {
+      await interaction.deleteReply();
+    } catch (error) {
+      // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+    }
+  }, 30000);
+}
+
+/**
+ * /기여도초기화 커맨드 처리
+ */
+export async function handleContributionResetCommand(interaction) {
+  const inventory = await loadInventory();
+  
+  // 기여도 데이터 확인
+  const historyCount = inventory.history?.length || 0;
+  
+  if (historyCount === 0) {
+    return await sendTemporaryReply(interaction, '❌ 초기화할 기여도 데이터가 없습니다.');
+  }
+  
+  // 확인 버튼 생성
+  const confirmRow = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('confirm_contribution_reset')
+        .setLabel('✅ 확인')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId('cancel_contribution_reset')
+        .setLabel('❌ 취소')
+        .setStyle(ButtonStyle.Secondary)
+    );
+  
+  const confirmEmbed = new EmbedBuilder()
+    .setColor(0xED4245)
+    .setTitle('⚠️ 기여도 초기화 확인')
+    .setDescription([
+      '**모든 수정 내역이 삭제됩니다!**',
+      '',
+      `현재 저장된 내역: **${historyCount}개**`,
+      '',
+      '이 작업은 되돌릴 수 없습니다.',
+      '정말로 초기화하시겠습니까?'
+    ].join('\n'));
+  
+  await interaction.reply({ 
+    embeds: [confirmEmbed], 
+    components: [confirmRow], 
+    ephemeral: true 
+  });
 }

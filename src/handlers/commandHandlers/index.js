@@ -9,12 +9,10 @@ export { handleCraftingCommand } from './crafting.js';
 // 기타
 export { 
   handleHelpCommand,
-  handleBotStatusCommand,
-  handleStatsCommand,
-  handleHistoryCommand,
   handleEmojiCommand,
+  handleHistoryCommand,
   handleContributionResetCommand
 } from './misc.js';
 
-// 통계 (deprecated - moved to misc.js)
-// export { handleStatsCommand } from './stats.js';
+// 통계
+export { handleStatsCommand } from './stats.js';

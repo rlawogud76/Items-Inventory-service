@@ -4,7 +4,6 @@ import {
   handleInventoryCommand,
   handleCraftingCommand,
   handleHelpCommand,
-  handleBotStatusCommand,
   handleEmojiCommand,
   handleHistoryCommand,
   handleContributionResetCommand,
@@ -35,9 +34,6 @@ export async function handleCommandInteraction(interaction, activeMessages) {
     // 기타
     else if (commandName === '도움말') {
       return await handleHelpCommand(interaction);
-    }
-    else if (commandName === '봇상태') {
-      return await handleBotStatusCommand(interaction);
     }
     else if (commandName === '통계') {
       return await handleStatsCommand(interaction);
