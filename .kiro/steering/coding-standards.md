@@ -2,6 +2,14 @@
 
 ## 작업 이력
 
+### 2025-01-24: 레시피 수정 라우팅 충돌 해결 (완료)
+- **문제**: `select_recipe_edit_` 핸들러가 `select_recipe_material_edit_`도 매칭하여 잘못된 카테고리 파싱
+- **원인**: `select_recipe_material_edit_해양_아이템_1`이 `select_recipe_edit_`로 시작하므로 index.js 핸들러가 먼저 매칭됨
+- **증상**: 레시피 수정 시 "material 카테고리를 찾을 수 없습니다" 에러 발생
+- **해결**: index.js 232번째 줄에 제외 조건 추가 (`!startsWith('select_recipe_material_edit_')`)
+- **수정된 파일**: index.js
+- **커밋**: "Fix: index.js select_recipe_edit_ handler routing conflict with select_recipe_material_edit_"
+
 ### 2025-01-24: 레시피 핸들러 전체 Optional Chaining 적용 (완료)
 - **수정된 파일**: recipe.js, recipeSelect.js, recipeModal.js, pagination.js, index.js
 - **적용 내용**:
@@ -70,6 +78,9 @@
 - **라우팅 순서 중요**: 더 구체적인 조건을 먼저 체크
   - 예: `add_more_recipe_standalone_`는 `add_more_recipe_`보다 먼저 체크
   - `startsWith('add_more_recipe_')`가 `startsWith('add_more_recipe_standalone_')`를 포함하므로 순서 주의
+- **중첩 패턴 충돌 주의**: 짧은 패턴이 긴 패턴을 포함하는 경우 제외 조건 필요
+  - 예: `select_recipe_edit_`는 `select_recipe_material_edit_`도 매칭
+  - 해결: `startsWith('select_recipe_edit_') && !startsWith('select_recipe_material_edit_')`
 
 ### CustomId 파싱 패턴
 - 카테고리명에 `_`가 포함될 수 있음 (예: `해양_심해`)

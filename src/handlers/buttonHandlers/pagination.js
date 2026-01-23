@@ -71,22 +71,22 @@ export async function handleRecipeMaterialPageNavigation(interaction) {
     // customId 형식: page_prev_recipe_material_해양_아이템명_2_0 또는 page_next_recipe_material_edit_해양_아이템명_2_0
     const parts = interaction.customId.split('_');
     const direction = parts[1]; // 'prev' or 'next'
-    const isEdit = parts[3] === 'edit';
+    const isEdit = parts[4] === 'edit'; // parts[4]가 'edit'인지 확인 (parts[3]은 항상 'material')
     
     let category, itemName, step, currentPage;
     
     if (isEdit) {
       // page_prev_recipe_material_edit_category_itemName_step_page
+      category = parts[5];
+      currentPage = parseInt(parts[parts.length - 1]);
+      step = parseInt(parts[parts.length - 2]);
+      itemName = parts.slice(6, -2).join('_');
+    } else {
+      // page_prev_recipe_material_category_itemName_step_page
       category = parts[4];
       currentPage = parseInt(parts[parts.length - 1]);
       step = parseInt(parts[parts.length - 2]);
       itemName = parts.slice(5, -2).join('_');
-    } else {
-      // page_prev_recipe_material_category_itemName_step_page
-      category = parts[3];
-      currentPage = parseInt(parts[parts.length - 1]);
-      step = parseInt(parts[parts.length - 2]);
-      itemName = parts.slice(4, -2).join('_');
     }
     
     const newPage = direction === 'prev' ? currentPage - 1 : currentPage + 1;
