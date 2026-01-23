@@ -65,12 +65,12 @@ export async function handleAddItemModalStep1(interaction) {
       });
     }
     
-    // Step 2로 넘어가는 버튼 표시
+    // Step 1.5로 넘어가는 버튼 표시 (물품 유형 선택)
     const initialFormatted = formatQuantity(initialTotal);
     
     const continueButton = new ButtonBuilder()
-      .setCustomId(`add_item_step2_btn_${type}_${category}_${itemName}_${initialTotal}`)
-      .setLabel('➡️ 다음: 목표 수량 입력')
+      .setCustomId(`add_item_type_btn_${type}_${category}_${itemName}_${initialTotal}`)
+      .setLabel('➡️ 다음: 물품 유형 선택')
       .setStyle(ButtonStyle.Primary);
     
     const row = new ActionRowBuilder().addComponents(continueButton);
@@ -78,7 +78,7 @@ export async function handleAddItemModalStep1(interaction) {
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
       .setTitle(`✅ Step 1 완료`)
-      .setDescription(`**아이템:** ${itemName}\n**초기 수량:** ${initialTotal}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n\n다음 버튼을 눌러 목표 수량을 입력하세요.`);
+      .setDescription(`**아이템:** ${itemName}\n**초기 수량:** ${initialTotal}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n\n다음 버튼을 눌러 물품 유형을 선택하세요.`);
     
     await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
     
@@ -103,12 +103,13 @@ export async function handleAddItemModalStep1(interaction) {
  */
 export async function handleAddItemModalStep2(interaction) {
   try {
-    // add_item_modal_step2_inventory_해양_산호_1234 형식 파싱
+    // add_item_modal_step2_inventory_해양_산호_1234_material 형식 파싱
     const parts = interaction.customId.split('_');
     const type = parts[4]; // 'inventory' or 'crafting'
-    const initialTotal = parseInt(parts[parts.length - 1]); // 마지막 부분이 초기 수량
-    const itemName = parts[parts.length - 2]; // 마지막에서 두번째가 아이템명
-    const category = parts.slice(5, -2).join('_'); // 중간 부분이 카테고리
+    const itemType = parts[parts.length - 1]; // 'material', 'intermediate', 'final'
+    const initialTotal = parseInt(parts[parts.length - 2]); // 마지막에서 두번째가 초기 수량
+    const itemName = parts[parts.length - 3]; // 마지막에서 세번째가 아이템명
+    const category = parts.slice(5, -3).join('_'); // 중간 부분이 카테고리
     
     // 목표 수량 파싱
     const requiredBoxesRaw = interaction.fields.getTextInputValue('required_boxes')?.trim() || '0';
@@ -135,7 +136,7 @@ export async function handleAddItemModalStep2(interaction) {
       });
     }
     
-    // DB에 저장
+    // DB에 저장 (물품 유형에 따른 처리)
     const inventory = await loadInventory();
     
     if (type === 'inventory') {
@@ -143,7 +144,7 @@ export async function handleAddItemModalStep2(interaction) {
         inventory.categories[category] = {};
       }
       
-      // 중복 체크 (Step 1과 Step 2 사이에 추가되었을 수 있음)
+      // 중복 체크
       if (inventory.categories[category][itemName]) {
         return await interaction.reply({ 
           content: `❌ "${itemName}" 아이템이 이미 존재합니다.`, 
@@ -153,16 +154,29 @@ export async function handleAddItemModalStep2(interaction) {
       
       inventory.categories[category][itemName] = {
         quantity: initialTotal,
-        required: requiredTotal
+        required: requiredTotal,
+        itemType: itemType || 'material'
       };
       
+      // 중간 제작품인 경우 제작 레시피도 준비
+      if (itemType === 'intermediate') {
+        if (!inventory.crafting) {
+          inventory.crafting = { categories: {}, recipes: {} };
+        }
+        if (!inventory.crafting.categories[category]) {
+          inventory.crafting.categories[category] = {};
+        }
+        // 연동 정보 저장
+        inventory.categories[category][itemName].linkedItem = `crafting/${category}/${itemName}`;
+      }
+      
       addHistory(inventory, 'inventory', category, itemName, 'add', 
-        `초기: ${initialTotal}개, 목표: ${requiredTotal}개`, 
+        `초기: ${initialTotal}개, 목표: ${requiredTotal}개, 유형: ${itemType}`, 
         interaction.user.displayName || interaction.user.username);
       
     } else {
       if (!inventory.crafting) {
-        inventory.crafting = { categories: {}, crafting: {}, recipes: {} };
+        inventory.crafting = { categories: {}, recipes: {} };
       }
       if (!inventory.crafting.categories[category]) {
         inventory.crafting.categories[category] = {};
@@ -177,11 +191,28 @@ export async function handleAddItemModalStep2(interaction) {
       
       inventory.crafting.categories[category][itemName] = {
         quantity: initialTotal,
-        required: requiredTotal
+        required: requiredTotal,
+        itemType: itemType || 'final'
       };
       
+      // 중간 제작품인 경우 재고와 연동
+      if (itemType === 'intermediate') {
+        if (!inventory.categories[category]) {
+          inventory.categories[category] = {};
+        }
+        if (!inventory.categories[category][itemName]) {
+          inventory.categories[category][itemName] = {
+            quantity: initialTotal,
+            required: requiredTotal,
+            itemType: 'intermediate',
+            linkedItem: `crafting/${category}/${itemName}`
+          };
+        }
+        inventory.crafting.categories[category][itemName].linkedItem = `inventory/${category}/${itemName}`;
+      }
+      
       addHistory(inventory, 'crafting', category, itemName, 'add', 
-        `초기: ${initialTotal}개, 목표: ${requiredTotal}개`, 
+        `초기: ${initialTotal}개, 목표: ${requiredTotal}개, 유형: ${itemType}`, 
         interaction.user.displayName || interaction.user.username);
     }
     
@@ -328,5 +359,66 @@ export async function handleEditNameModal(interaction) {
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
       console.error('❌ 이름 수정 모달 응답 실패:', err);
     });
+  }
+}
+/**
+ * Step 1.5: 물품 유형 선택 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleAddItemTypeButton(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[4]; // 'inventory' or 'crafting'
+    const initialTotal = parseInt(parts[parts.length - 1]); // 마지막 부분이 초기 수량
+    const itemName = parts[parts.length - 2]; // 마지막에서 두번째가 아이템명
+    const category = parts.slice(5, -2).join('_'); // 중간 부분이 카테고리
+    
+    // 물품 유형 선택 메뉴 생성
+    const { StringSelectMenuBuilder } = await import('discord.js');
+    const itemTypeSelect = new StringSelectMenuBuilder()
+      .setCustomId(`select_item_type_${type}_${category}_${itemName}_${initialTotal}`)
+      .setPlaceholder('물품 유형을 선택하세요')
+      .addOptions([
+        {
+          label: '📦 재료',
+          value: 'material',
+          description: '채굴/수집하는 기본 재료 (재고에만 등록)',
+          emoji: '📦'
+        },
+        {
+          label: '🔄 중간 제작품',
+          value: 'intermediate', 
+          description: '제작하며, 다른 제작의 재료로도 사용 (재고+제작 연동)',
+          emoji: '🔄'
+        },
+        {
+          label: '⭐ 최종 제작품',
+          value: 'final',
+          description: '최종 완성품, 재료로 사용 안함 (제작에만 등록)',
+          emoji: '⭐'
+        }
+      ]);
+    
+    const row = new ActionRowBuilder().addComponents(itemTypeSelect);
+    
+    const embed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setTitle(`🔄 Step 1.5: 물품 유형 선택`)
+      .setDescription([
+        `**아이템:** ${itemName}`,
+        `**카테고리:** ${category}`,
+        ``,
+        `물품의 용도에 따라 유형을 선택하세요:`,
+        ``,
+        `📦 **재료** - 기본 재료 (철광석, 나무 등)`,
+        `🔄 **중간 제작품** - 제작하면서 재료로도 사용 (철괴, 판자 등)`,
+        `⭐ **최종 제작품** - 완성품 (검, 갑옷, 음식 등)`
+      ].join('\n'));
+    
+    await interaction.update({ embeds: [embed], components: [row] });
+    
+  } catch (error) {
+    console.error('❌ 물품 유형 선택 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }

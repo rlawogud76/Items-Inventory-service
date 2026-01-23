@@ -40,7 +40,9 @@ const inventoryItemSchema = new mongoose.Schema({
   name: { type: String, required: true, index: true },
   quantity: { type: Number, required: true, default: 0 },
   required: { type: Number, required: true, default: 0 },
-  emoji: { type: String, default: null }
+  emoji: { type: String, default: null },
+  itemType: { type: String, enum: ['material', 'intermediate', 'final'], default: 'material' }, // 물품 유형
+  linkedItem: { type: String, default: null } // 연결된 아이템 (type/category/name 형식)
 }, {
   timestamps: true
 });

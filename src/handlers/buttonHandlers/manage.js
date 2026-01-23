@@ -559,3 +559,65 @@ export async function handleManageEditPageButton(interaction) {
     });
   }
 }
+/**
+ * 물품 유형 선택 버튼 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleAddItemTypeButton(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[4]; // 'inventory' or 'crafting'
+    const initialTotal = parseInt(parts[parts.length - 1]); // 마지막 부분이 초기 수량
+    const itemName = parts[parts.length - 2]; // 마지막에서 두번째가 아이템명
+    const category = parts.slice(5, -2).join('_'); // 중간 부분이 카테고리
+    
+    // 물품 유형 선택 메뉴 생성
+    const { StringSelectMenuBuilder } = await import('discord.js');
+    const itemTypeSelect = new StringSelectMenuBuilder()
+      .setCustomId(`select_item_type_${type}_${category}_${itemName}_${initialTotal}`)
+      .setPlaceholder('물품 유형을 선택하세요')
+      .addOptions([
+        {
+          label: '📦 재료',
+          value: 'material',
+          description: '채굴/수집하는 기본 재료 (재고에만 등록)',
+          emoji: '📦'
+        },
+        {
+          label: '🔄 중간 제작품',
+          value: 'intermediate', 
+          description: '제작하며, 다른 제작의 재료로도 사용 (재고+제작 연동)',
+          emoji: '🔄'
+        },
+        {
+          label: '⭐ 최종 제작품',
+          value: 'final',
+          description: '최종 완성품, 재료로 사용 안함 (제작에만 등록)',
+          emoji: '⭐'
+        }
+      ]);
+    
+    const row = new ActionRowBuilder().addComponents(itemTypeSelect);
+    
+    const { EmbedBuilder } = await import('discord.js');
+    const embed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setTitle(`🔄 Step 1.5: 물품 유형 선택`)
+      .setDescription([
+        `**아이템:** ${itemName}`,
+        `**카테고리:** ${category}`,
+        ``,
+        `물품의 용도에 따라 유형을 선택하세요:`,
+        ``,
+        `📦 **재료** - 기본 재료 (철광석, 나무 등)`,
+        `🔄 **중간 제작품** - 제작하면서 재료로도 사용 (철괴, 판자 등)`,
+        `⭐ **최종 제작품** - 완성품 (검, 갑옷, 음식 등)`
+      ].join('\n'));
+    
+    await interaction.update({ embeds: [embed], components: [row] });
+    
+  } catch (error) {
+    console.error('❌ 물품 유형 선택 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}

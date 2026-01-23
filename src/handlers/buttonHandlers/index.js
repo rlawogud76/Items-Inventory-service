@@ -21,6 +21,7 @@ export {
   handleManageButton, 
   handleManageAddButton,
   handleAddItemStep2Button,
+  handleAddItemTypeButton,
   handleManageRemoveButton, 
   handleManageEditButton,
   handleManageRemovePageButton,

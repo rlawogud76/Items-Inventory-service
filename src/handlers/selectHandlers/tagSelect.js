@@ -391,3 +391,75 @@ export async function handleChangeTagColor(interaction) {
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }
+/**
+ * 물품 유형 선택 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleItemTypeSelect(interaction) {
+  try {
+    await interaction.deferUpdate();
+    
+    const parts = interaction.customId.replace('select_item_type_', '').split('_');
+    const type = parts[0]; // 'inventory' or 'crafting'
+    const initialTotal = parseInt(parts[parts.length - 1]); // 마지막 부분이 초기 수량
+    const itemName = parts[parts.length - 2]; // 마지막에서 두번째가 아이템명
+    const category = parts.slice(1, -2).join('_'); // 중간 부분이 카테고리
+    
+    const selectedItemType = interaction.values[0]; // 'material', 'intermediate', 'final'
+    
+    // 물품 유형에 따른 처리 로직
+    let targetType = type; // 기본값
+    let showTargetModal = true;
+    
+    if (selectedItemType === 'material') {
+      // 재료 → 재고에만 등록
+      targetType = 'inventory';
+    } else if (selectedItemType === 'final') {
+      // 최종 제작품 → 제작에만 등록
+      targetType = 'crafting';
+    } else if (selectedItemType === 'intermediate') {
+      // 중간 제작품 → 원래 선택한 곳에 등록하고 연동 설정
+      targetType = type;
+    }
+    
+    // Step 2로 넘어가는 버튼 생성
+    const { ButtonBuilder, ButtonStyle, ActionRowBuilder, EmbedBuilder } = await import('discord.js');
+    const continueButton = new ButtonBuilder()
+      .setCustomId(`add_item_step2_btn_${targetType}_${category}_${itemName}_${initialTotal}_${selectedItemType}`)
+      .setLabel('➡️ 다음: 목표 수량 입력')
+      .setStyle(ButtonStyle.Primary);
+    
+    const row = new ActionRowBuilder().addComponents(continueButton);
+    
+    const typeNames = {
+      'material': '📦 재료',
+      'intermediate': '🔄 중간 제작품', 
+      'final': '⭐ 최종 제작품'
+    };
+    
+    const typeDescriptions = {
+      'material': '재고에만 등록됩니다',
+      'intermediate': type === 'inventory' ? '재고에 등록되며, 제작 레시피도 추가할 수 있습니다' : '제작에 등록되며, 재고와 연동됩니다',
+      'final': '제작에만 등록됩니다'
+    };
+    
+    const embed = new EmbedBuilder()
+      .setColor(0x57F287)
+      .setTitle(`✅ Step 1.5 완료`)
+      .setDescription([
+        `**아이템:** ${itemName}`,
+        `**카테고리:** ${category}`,
+        `**유형:** ${typeNames[selectedItemType]}`,
+        ``,
+        `📋 **처리 방식:** ${typeDescriptions[selectedItemType]}`,
+        ``,
+        `다음 버튼을 눌러 목표 수량을 입력하세요.`
+      ].join('\n'));
+    
+    await interaction.editReply({ embeds: [embed], components: [row] });
+    
+  } catch (error) {
+    console.error('❌ 물품 유형 선택 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}

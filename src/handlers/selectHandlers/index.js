@@ -19,7 +19,8 @@ export {
   handleTagItemSelect,
   handleTagColorSelect,
   handleTagForColorSelect,
-  handleChangeTagColor
+  handleChangeTagColor,
+  handleItemTypeSelect
 } from './tagSelect.js';
 
 // 레시피
