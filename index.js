@@ -1,19 +1,7 @@
-﻿import { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+﻿import { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import dotenv from 'dotenv';
-import { connectDatabase, loadInventory, saveInventory, migrateFromDataFile, watchInventoryChanges, addChangeListener, removeChangeListener } from './src/database.js';
-import { 
-  formatQuantity, 
-  formatQuantityString, 
-  getItemTag, 
-  getItemsByTag, 
-  getAllTags, 
-  getStatusEmoji, 
-  getItemIcon, 
-  createProgressBar,
-  addHistory,
-  sendTemporaryReply,
-  sanitizeNumber
-} from './src/utils.js';
+import { connectDatabase, loadInventory, saveInventory, migrateFromDataFile, watchInventoryChanges, addChangeListener } from './src/database.js';
+import { getItemIcon } from './src/utils.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from './src/embeds.js';
 import { handleButtonInteraction } from './src/handlers/buttons.js';
 import { handleSelectInteraction } from './src/handlers/selects.js';
@@ -73,7 +61,7 @@ client.on('ready', async () => {
   watchInventoryChanges();
   
   // 변경 감지 리스너 등록
-  addChangeListener(async (change) => {
+  addChangeListener(async () => {
     console.log('🔄 데이터 변경 감지 - 활성 메시지 업데이트 중...');
     
     // 모든 활성 메시지 업데이트

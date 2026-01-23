@@ -1,6 +1,7 @@
 // 수량 관리 modal 핸들러
 import { loadInventory, saveInventory } from '../../database.js';
 import { addHistory, sanitizeNumber } from '../../utils.js';
+import { consumeRecipeMaterials, returnRecipeMaterials, adjustRecipeMaterials } from '../../recipeService.js';
 
 /**
  * 수량 추가/수정/차감/목표수정 modal 핸들러
@@ -77,6 +78,7 @@ export async function handleQuantityModal(interaction) {
     const itemData = targetData.categories[category][itemName];
     const oldQuantity = itemData.quantity;
     const oldRequired = itemData.required;
+    const userName = interaction.user.displayName || interaction.user.username;
     
     console.log('  - 변경량:', changeAmount);
     console.log('  - 기존 수량:', oldQuantity);
@@ -86,18 +88,48 @@ export async function handleQuantityModal(interaction) {
     let newRequired = oldRequired;
     let actionText = '';
     
-    if (action === 'add') {
-      newQuantity = oldQuantity + changeAmount;
-      actionText = `추가: +${changeAmount}개 (${oldQuantity} → ${newQuantity})`;
-    } else if (action === 'subtract') {
-      newQuantity = Math.max(0, oldQuantity - changeAmount);
-      actionText = `차감: -${changeAmount}개 (${oldQuantity} → ${newQuantity})`;
-    } else if (action === 'edit') {
-      newQuantity = changeAmount;
-      actionText = `수정: ${oldQuantity}개 → ${newQuantity}개`;
-    } else if (action === 'edit_required') {
-      newRequired = changeAmount;
-      actionText = `목표 수정: ${oldRequired}개 → ${newRequired}개`;
+    // 제작품인 경우 레시피 처리
+    if (type === 'crafting') {
+      if (action === 'add') {
+        // 재료 차감
+        const result = consumeRecipeMaterials(inventory, category, itemName, changeAmount, userName);
+        if (!result.success) {
+          return await interaction.reply({ content: result.message, ephemeral: true });
+        }
+        newQuantity = oldQuantity + changeAmount;
+        actionText = `추가: +${changeAmount}개 (${oldQuantity} → ${newQuantity})`;
+      } else if (action === 'subtract') {
+        // 재료 반환
+        returnRecipeMaterials(inventory, category, itemName, changeAmount, userName);
+        newQuantity = Math.max(0, oldQuantity - changeAmount);
+        actionText = `차감: -${changeAmount}개 (${oldQuantity} → ${newQuantity})`;
+      } else if (action === 'edit') {
+        // 재료 조정
+        const result = adjustRecipeMaterials(inventory, category, itemName, oldQuantity, changeAmount, userName);
+        if (!result.success) {
+          return await interaction.reply({ content: result.message, ephemeral: true });
+        }
+        newQuantity = changeAmount;
+        actionText = `수정: ${oldQuantity}개 → ${newQuantity}개`;
+      } else if (action === 'edit_required') {
+        newRequired = changeAmount;
+        actionText = `목표 수정: ${oldRequired}개 → ${newRequired}개`;
+      }
+    } else {
+      // 재고 아이템 (레시피 처리 없음)
+      if (action === 'add') {
+        newQuantity = oldQuantity + changeAmount;
+        actionText = `추가: +${changeAmount}개 (${oldQuantity} → ${newQuantity})`;
+      } else if (action === 'subtract') {
+        newQuantity = Math.max(0, oldQuantity - changeAmount);
+        actionText = `차감: -${changeAmount}개 (${oldQuantity} → ${newQuantity})`;
+      } else if (action === 'edit') {
+        newQuantity = changeAmount;
+        actionText = `수정: ${oldQuantity}개 → ${newQuantity}개`;
+      } else if (action === 'edit_required') {
+        newRequired = changeAmount;
+        actionText = `목표 수정: ${oldRequired}개 → ${newRequired}개`;
+      }
     }
     
     console.log('  - 새 수량:', newQuantity);
@@ -109,7 +141,7 @@ export async function handleQuantityModal(interaction) {
     itemData.required = newRequired;
     
     // 히스토리 추가
-    addHistory(inventory, type, category, itemName, action, actionText, interaction.user.displayName || interaction.user.username);
+    addHistory(inventory, type, category, itemName, action, actionText, userName);
     
     // 저장
     await saveInventory(inventory);
