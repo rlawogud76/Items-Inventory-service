@@ -86,6 +86,11 @@ export async function handleButtonInteraction(interaction) {
     // ============================================
     // 3. 수량관리 핸들러 (분리됨)
     // ============================================
+    else if (interaction.customId.startsWith('page_quantity_')) {
+      // 수량관리 페이지네이션
+      return await handleQuantityPageButton(interaction);
+    }
+    
     else if (interaction.customId.startsWith('quantity') && 
              !interaction.customId.startsWith('quantity_add_') && 
              !interaction.customId.startsWith('quantity_edit_') && 
