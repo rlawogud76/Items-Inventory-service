@@ -147,7 +147,7 @@ export async function handleQuantityModal(interaction) {
     await saveInventory(inventory);
     
     await interaction.reply({ 
-      content: `✅\n# ${itemName}\n수량이 업데이트되었습니다!\n${actionText}`, 
+      content: `✅ ${itemName}\n수량이 업데이트되었습니다!\n${actionText}`, 
       ephemeral: true 
     });
     

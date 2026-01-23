@@ -375,7 +375,7 @@ export async function handleStopWorkButton(interaction) {
         await saveInventory(inventory);
         
         await interaction.update({
-          content: `✅\n# ${itemName}\n제작을 중단했습니다.`,
+          content: `✅ ${itemName}\n제작을 중단했습니다.`,
           components: []
         });
         console.log(`✅ ${itemName} 제작 중단 완료`);
@@ -390,7 +390,7 @@ export async function handleStopWorkButton(interaction) {
         }, 15000);
       } else {
         await interaction.update({
-          content: `⚠️\n# ${itemName}\n제작 정보를 찾을 수 없습니다.`,
+          content: `⚠️ ${itemName}\n제작 정보를 찾을 수 없습니다.`,
           components: []
         });
         console.log(`⚠️ ${itemName} 제작 정보 없음`);
@@ -408,7 +408,7 @@ export async function handleStopWorkButton(interaction) {
         await saveInventory(inventory);
         
         await interaction.update({
-          content: `✅\n# ${itemName}\n수집을 중단했습니다.`,
+          content: `✅ ${itemName}\n수집을 중단했습니다.`,
           components: []
         });
         console.log(`✅ ${itemName} 수집 중단 완료`);
@@ -423,7 +423,7 @@ export async function handleStopWorkButton(interaction) {
         }, 15000);
       } else {
         await interaction.update({
-          content: `⚠️\n# ${itemName}\n수집 정보를 찾을 수 없습니다.`,
+          content: `⚠️ ${itemName}\n수집 정보를 찾을 수 없습니다.`,
           components: []
         });
         console.log(`⚠️ ${itemName} 수집 정보 없음`);
