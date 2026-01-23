@@ -83,10 +83,10 @@ export async function handleRecipeViewButton(interaction) {
         
         const statusIcon = hasEnough ? '✅' : '❌';
         const qtyDisplay = hasEnough 
-          ? `**${m.quantity}개**` 
-          : `**${m.quantity}개** (보유: ${currentQty}개)`;
+          ? `${m.quantity}개` 
+          : `${m.quantity}개 (보유: ${currentQty}개)`;
         
-        return `${statusIcon} ${matIcon} ${m.name} × ${qtyDisplay}`;
+        return `${statusIcon} ${matIcon} **${m.name}** × ${qtyDisplay}`;
       });
       
       const statusEmoji = canCraft ? '✅' : '⚠️';

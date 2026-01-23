@@ -43,7 +43,7 @@ export async function handleRecipeEditQuantityModal(interaction) {
     const icon = getItemIcon(materialName, inventory);
     
     // 다음 재료 추가 또는 완료
-    if (step < 3) {
+    if (step < 7) {
       const addMoreButton = new ButtonBuilder()
         .setCustomId(`add_more_recipe_edit_${category}_${itemName}_${step + 1}`)
         .setLabel(`➕ 재료 ${step + 1} 추가`)
@@ -61,7 +61,7 @@ export async function handleRecipeEditQuantityModal(interaction) {
         .join('\n');
       
       await interaction.reply({
-        content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${currentRecipe}\n\n더 추가하시겠습니까?`,
+        content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${currentRecipe}\n\n더 추가하시겠습니까? (최대 7개)`,
         components: [row],
         ephemeral: true
       });
@@ -134,7 +134,7 @@ export async function handleRecipeQuantityModal(interaction) {
     const icon = getItemIcon(materialName, inventory);
     
     // 다음 재료 추가 또는 완료
-    if (step < 3) {
+    if (step < 7) {
       const addMoreButton = new ButtonBuilder()
         .setCustomId(`add_more_recipe_${category}_${itemName}_${step + 1}`)
         .setLabel(`➕ 재료 ${step + 1} 추가`)
@@ -152,7 +152,7 @@ export async function handleRecipeQuantityModal(interaction) {
         .join('\n');
       
       await interaction.reply({
-        content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${currentRecipe}\n\n더 추가하시겠습니까?`,
+        content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${currentRecipe}\n\n더 추가하시겠습니까? (최대 7개)`,
         components: [row],
         ephemeral: true
       });

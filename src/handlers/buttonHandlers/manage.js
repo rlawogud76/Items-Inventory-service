@@ -106,7 +106,6 @@ export async function handleManageAddButton(interaction) {
       .setLabel('초기 수량 - 상자 (1상자 = 54세트 = 3456개)')
       .setStyle(TextInputStyle.Short)
       .setPlaceholder('예: 0')
-      .setValue('0')
       .setRequired(false);
     
     const initialSetsInput = new TextInputBuilder()
@@ -114,7 +113,6 @@ export async function handleManageAddButton(interaction) {
       .setLabel('초기 수량 - 세트 (1세트 = 64개)')
       .setStyle(TextInputStyle.Short)
       .setPlaceholder('예: 0')
-      .setValue('0')
       .setRequired(false);
     
     const initialItemsInput = new TextInputBuilder()
@@ -122,7 +120,6 @@ export async function handleManageAddButton(interaction) {
       .setLabel('초기 수량 - 낱개')
       .setStyle(TextInputStyle.Short)
       .setPlaceholder('예: 0')
-      .setValue('0')
       .setRequired(false);
     
     modal.addComponents(
@@ -451,7 +448,6 @@ export async function handleAddItemStep2Button(interaction) {
       .setLabel('목표 수량 - 상자 (1상자 = 54세트 = 3456개)')
       .setStyle(TextInputStyle.Short)
       .setPlaceholder('예: 0')
-      .setValue('0')
       .setRequired(false);
     
     const requiredSetsInput = new TextInputBuilder()
@@ -459,7 +455,6 @@ export async function handleAddItemStep2Button(interaction) {
       .setLabel('목표 수량 - 세트 (1세트 = 64개)')
       .setStyle(TextInputStyle.Short)
       .setPlaceholder('예: 0')
-      .setValue('0')
       .setRequired(false);
     
     const requiredItemsInput = new TextInputBuilder()
@@ -467,7 +462,6 @@ export async function handleAddItemStep2Button(interaction) {
       .setLabel('목표 수량 - 낱개')
       .setStyle(TextInputStyle.Short)
       .setPlaceholder('예: 0')
-      .setValue('0')
       .setRequired(false);
     
     modal.addComponents(

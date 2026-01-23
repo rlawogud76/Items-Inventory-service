@@ -82,6 +82,13 @@ export async function handleAddItemModalStep1(interaction) {
     
     await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
     
+    // 30초 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, 30000);
+    
   } catch (error) {
     console.error('❌ Step 1 모달 제출 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
