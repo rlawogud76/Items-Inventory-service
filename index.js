@@ -8,6 +8,8 @@ import { handleSelectInteraction } from './src/handlers/selects.js';
 import { handleModalInteraction } from './src/handlers/modals.js';
 import { handleCommandInteraction } from './src/handlers/commands.js';
 import { handleQuantityModal } from './src/handlers/modalHandlers/quantityModal.js';
+import apiServer from './api-server.js';
+import { updateBotInfo, addEvent } from './src/statusLogger.js';
 
 // .env 파일 로드
 dotenv.config();
@@ -35,6 +37,15 @@ process.on('SIGTERM', () => {
 
 client.on('ready', async () => {
   console.log(`✅ ${client.user.tag} 봇이 준비되었습니다!`);
+  
+  // 봇 상태 로깅 시작
+  updateBotInfo(client);
+  addEvent('bot_ready', { username: client.user.tag, id: client.user.id });
+  
+  // 5분마다 봇 상태 업데이트
+  setInterval(() => {
+    updateBotInfo(client);
+  }, 5 * 60 * 1000);
   
   // MongoDB 연결
   const connected = await connectDatabase();
@@ -194,6 +205,14 @@ client.on('ready', async () => {
 // 슬래시 커맨드 처리
 client.on('interactionCreate', async (interaction) => {
   console.log('인터랙션 수신:', interaction.type, '/ customId:', interaction.customId || 'N/A');
+  
+  // 이벤트 로깅
+  addEvent('interaction', {
+    type: interaction.type,
+    customId: interaction.customId || 'N/A',
+    user: interaction.user.tag,
+    channelId: interaction.channelId
+  });
   
   if (interaction.isCommand()) {
     return await handleCommandInteraction(interaction, activeMessages);
