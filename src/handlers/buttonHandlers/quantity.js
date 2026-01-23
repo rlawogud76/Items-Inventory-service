@@ -5,6 +5,20 @@ import { formatQuantity, getItemIcon } from '../../utils.js';
 import { paginateItems, createPaginationButtons, getPaginationInfo } from '../../paginationUtils.js';
 
 /**
+ * 이모지 검증 (유효한 유니코드 이모지만 허용)
+ * @param {string} emoji - 검증할 이모지
+ * @returns {string} - 유효한 이모지 또는 기본 이모지
+ */
+function validateEmoji(emoji) {
+  if (!emoji) return '📦';
+  // 커스텀 Discord 이모지 형식(<:name:id> 또는 <a:name:id>)이거나 잘못된 형식이면 기본 이모지 사용
+  if (emoji.startsWith('<') || emoji.length > 10) {
+    return '📦';
+  }
+  return emoji;
+}
+
+/**
  * 수량 관리 버튼 핸들러
  * @param {Interaction} interaction - Discord 인터랙션
  */
@@ -54,10 +68,13 @@ export async function handleQuantityButton(interaction) {
       if (description.length > 100) {
         description = description.substring(0, 97) + '...';
       }
+      
+      const emoji = validateEmoji(customEmoji || getItemIcon(item, inventory));
+      
       return {
         label: item,
         value: item,
-        emoji: customEmoji || getItemIcon(item, inventory),
+        emoji: emoji,
         description: description
       };
     });
@@ -133,10 +150,13 @@ export async function handleQuantityPageButton(interaction) {
       if (description.length > 100) {
         description = description.substring(0, 97) + '...';
       }
+      
+      const emoji = validateEmoji(customEmoji || getItemIcon(item, inventory));
+      
       return {
         label: item,
         value: item,
-        emoji: customEmoji || getItemIcon(item, inventory),
+        emoji: emoji,
         description: description
       };
     });
