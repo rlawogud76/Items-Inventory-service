@@ -49,12 +49,16 @@ export async function handleQuantityButton(interaction) {
     const itemOptions = items.map(item => {
       const itemData = targetData.categories[category][item];
       const customEmoji = itemData?.emoji;
-      const { boxes, sets, items: remainder } = formatQuantity(itemData.quantity);
+      // Discord 제한: description은 최대 100자
+      let description = `현재: ${itemData.quantity}개 / 목표: ${itemData.required}개`;
+      if (description.length > 100) {
+        description = description.substring(0, 97) + '...';
+      }
       return {
         label: item,
         value: item,
         emoji: customEmoji || getItemIcon(item, inventory),
-        description: `현재: ${remainder}개/${sets}세트/${boxes}상자 (${itemData.quantity}개) / 목표: ${itemData.required}개`
+        description: description
       };
     });
     
@@ -124,12 +128,16 @@ export async function handleQuantityPageButton(interaction) {
     const itemOptions = items.map(item => {
       const itemData = targetData.categories[category][item];
       const customEmoji = itemData?.emoji;
-      const { boxes, sets, items: remainder } = formatQuantity(itemData.quantity);
+      // Discord 제한: description은 최대 100자
+      let description = `현재: ${itemData.quantity}개 / 목표: ${itemData.required}개`;
+      if (description.length > 100) {
+        description = description.substring(0, 97) + '...';
+      }
       return {
         label: item,
         value: item,
         emoji: customEmoji || getItemIcon(item, inventory),
-        description: `현재: ${remainder}개/${sets}세트/${boxes}상자 (${itemData.quantity}개) / 목표: ${itemData.required}개`
+        description: description
       };
     });
     
