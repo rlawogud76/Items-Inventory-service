@@ -1,6 +1,6 @@
 ﻿import { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import dotenv from 'dotenv';
-import { connectDatabase, loadInventory, saveInventory, watchInventoryChanges, addChangeListener } from './src/database.js';
+import { connectDatabase, loadInventory, saveInventory, watchInventoryChanges, addChangeListener, migrateFromDataFile } from './src/database-old.js';
 import { getItemIcon } from './src/utils.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from './src/embeds.js';
 import { handleButtonInteraction } from './src/handlers/buttons.js';
@@ -41,6 +41,14 @@ client.on('ready', async () => {
   if (!connected) {
     console.error('❌ MongoDB 연결 실패로 봇을 종료합니다.');
     process.exit(1);
+  }
+  
+  // data.js에서 마이그레이션 시도
+  try {
+    const { inventoryData } = await import('./data.js');
+    await migrateFromDataFile(inventoryData);
+  } catch (error) {
+    console.log('ℹ️ data.js 파일이 없습니다. (정상 - MongoDB만 사용)');
   }
   
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
