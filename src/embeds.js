@@ -84,7 +84,7 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       }
 
       embed.addFields({
-        name: `${icon} **${itemName}**${tagText}`,
+        name: `${icon} ### ${itemName}${tagText}`,
         value: fieldValue,
         inline: false
       });
@@ -231,7 +231,7 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
       }
 
       embed.addFields({
-        name: `${icon} **${itemName}**${tagText}`,
+        name: `${icon} ### ${itemName}${tagText}`,
         value: fieldValue,
         inline: false
       });
