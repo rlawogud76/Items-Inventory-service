@@ -257,10 +257,19 @@ client.on('interactionCreate', async (interaction) => {
         const endIndex = Math.min(startIndex + itemsPerPage, materials.length);
         const pageMaterials = materials.slice(startIndex, endIndex);
         
+        // 이모지 검증 함수
+        function validateEmoji(emoji) {
+          if (!emoji) return '📦';
+          if (emoji.startsWith('<') || emoji.length > 10) {
+            return '📦';
+          }
+          return emoji;
+        }
+        
         const materialOptions = pageMaterials.map(mat => ({
           label: mat,
           value: mat,
-          emoji: getItemIcon(mat, inventory)
+          emoji: validateEmoji(getItemIcon(mat, inventory))
         }));
         
         const { StringSelectMenuBuilder } = await import('discord.js');
