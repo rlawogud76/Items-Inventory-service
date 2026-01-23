@@ -129,18 +129,30 @@ export async function handleQuantityButton(interaction) {
  */
 export async function handleQuantityPageButton(interaction) {
   try {
-    const isNext = interaction.customId.startsWith('page_next_');
-    const prefix = isNext ? 'page_next_quantity_' : 'page_prev_quantity_';
-    const parts = interaction.customId.replace(prefix, '').split('_');
-    const type = parts[0]; // 'inventory' or 'crafting'
+    // page_quantity_inventory_해양_next_0 형식 파싱
+    const parts = interaction.customId.split('_');
+    
+    // 마지막이 페이지 번호, 마지막-1이 prev/next
     const currentPage = parseInt(parts[parts.length - 1]);
-    const category = parts.slice(1, -1).join('_');
+    const direction = parts[parts.length - 2]; // 'prev' or 'next'
+    const isNext = direction === 'next';
+    
+    // page_quantity 제거하고 type과 category 추출
+    // parts: ['page', 'quantity', 'inventory', '해양', 'next', '0']
+    const type = parts[2]; // 'inventory' or 'crafting'
+    const category = parts.slice(3, -2).join('_'); // 마지막 2개(direction, page) 제외
     
     const newPage = isNext ? currentPage + 1 : currentPage - 1;
     
+    console.log('📄 수량관리 페이지 이동');
+    console.log('  - type:', type);
+    console.log('  - category:', category);
+    console.log('  - currentPage:', currentPage);
+    console.log('  - newPage:', newPage);
+    
     const inventory = await loadInventory();
     const targetData = type === 'inventory' ? inventory : inventory.crafting;
-    const items = Object.keys(targetData.categories[category]);
+    const items = Object.keys(targetData?.categories?.[category] || {});
     
     const itemOptions = items.map(item => {
       const itemData = targetData.categories[category][item];
