@@ -35,12 +35,12 @@ export async function handleQuantityModal(interaction) {
     console.log('  - category:', category);
     console.log('  - itemName:', itemName);
     
-    const boxesInput = interaction.fields.getTextInputValue('boxes_change')?.trim() || '';
-    const setsInput = interaction.fields.getTextInputValue('sets_change').trim();
-    const itemsInput = interaction.fields.getTextInputValue('items_change').trim();
+    const boxesInput = interaction.fields.getTextInputValue('boxes_change')?.trim() || '0';
+    const setsInput = interaction.fields.getTextInputValue('sets_change')?.trim() || '0';
+    const itemsInput = interaction.fields.getTextInputValue('items_change')?.trim() || '0';
     
     // 숫자 검증 및 sanitization
-    const boxes = boxesInput ? sanitizeNumber(boxesInput, { min: 0, max: 10000 }) : 0;
+    const boxes = sanitizeNumber(boxesInput, { min: 0, max: 10000 });
     const sets = sanitizeNumber(setsInput, { min: 0, max: 100000 });
     const items = sanitizeNumber(itemsInput, { min: 0, max: 63 });
     
