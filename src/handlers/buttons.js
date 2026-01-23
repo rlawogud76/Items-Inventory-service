@@ -36,6 +36,7 @@ import {
   handleTagSetButton,
   handleTagRemoveButton,
   handleTagColorButton,
+  handleTagViewButton,
   handleRecipeButton,
   handleRecipeViewButton,
   handleRecipeEditButton,

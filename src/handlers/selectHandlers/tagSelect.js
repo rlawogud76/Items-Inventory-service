@@ -1,5 +1,5 @@
 // 태그 select 핸들러
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder } from 'discord.js';
 import { loadInventory, saveInventory } from '../../database-old.js';
 import { getItemIcon, getItemTag } from '../../utils.js';
 

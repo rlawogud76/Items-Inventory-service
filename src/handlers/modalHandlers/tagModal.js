@@ -15,14 +15,6 @@ const COLOR_OPTIONS = {
   'white': { name: '흰색', ansi: '[2;37m', description: '흰색 텍스트' }
 };
 
-// 색상 적용 함수
-export function applyTagColor(text, color) {
-  if (!color || color === 'default') return text;
-  const colorInfo = COLOR_OPTIONS[color];
-  if (!colorInfo) return text;
-  return `\`\`\`ansi\n${colorInfo.ansi}${text}[0m\n\`\`\``;
-}
-
 /**
  * 태그 이름 입력 modal 핸들러 (태그 생성)
  * @param {Interaction} interaction - Discord 인터랙션

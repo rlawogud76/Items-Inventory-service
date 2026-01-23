@@ -131,12 +131,15 @@ export async function handleTagRemoveButton(interaction) {
     }
     
     // 태그 선택 메뉴 생성
-    const tagOptions = Object.entries(tags).map(([tagName, items]) => ({
-      label: tagName,
-      value: tagName,
-      description: `${items.length}개 항목`,
-      emoji: '🏷️'
-    }));
+    const tagOptions = Object.entries(tags).map(([tagName, tagData]) => {
+      const items = Array.isArray(tagData) ? tagData : tagData.items || [];
+      return {
+        label: tagName,
+        value: tagName,
+        description: `${items.length}개 항목`,
+        emoji: '🏷️'
+      };
+    });
     
     const { StringSelectMenuBuilder } = await import('discord.js');
     const selectMenu = new StringSelectMenuBuilder()
