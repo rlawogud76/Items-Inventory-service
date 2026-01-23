@@ -1,0 +1,63 @@
+# 코딩 표준
+
+## JavaScript 규칙
+
+### 안전한 객체 접근
+- **항상 optional chaining (`?.`)을 사용하여 중첩된 객체 속성에 안전하게 접근**
+- 예: `inventory.categories?.[category]?.[itemName]`
+- 데이터베이스에서 가져온 데이터는 항상 undefined일 수 있다고 가정
+
+### 에러 처리
+- 모든 async 함수는 try-catch로 감싸기
+- 데이터베이스 접근, Discord API 호출 등은 필수
+- 에러 발생 시 사용자에게 친절한 한국어 메시지 제공
+- 콘솔 로그에 이모지 사용: ✅ (성공), ❌ (에러), 🔄 (진행중), ⚠️ (경고)
+
+### 코드 스타일
+- 한국어 주석과 로그 메시지 사용
+- 변수명은 영어로, 설명은 한국어로
+- async/await 선호 (Promise.then 대신)
+
+## Discord Bot 규칙
+
+### Interaction 처리
+- 모든 interaction 응답은 에러 처리 포함
+- `interaction.reply()`, `interaction.update()` 등은 `.catch()` 추가
+- ephemeral 메시지는 15초 후 자동 삭제
+- 3초 이상 걸리는 작업은 `deferReply()` 먼저 호출
+
+### 데이터 검증
+- 사용자 입력은 항상 sanitize (utils.js의 sanitizeInput 사용)
+- 숫자 입력은 sanitizeNumber로 검증
+- 카테고리/아이템 이름은 isValidName으로 검증
+
+## 데이터베이스 규칙
+
+### MongoDB 접근
+- `loadInventory()`로 데이터 로드
+- 수정 후 반드시 `saveInventory()` 호출
+- 중첩 객체 수정 시 `markModified()` 사용 (Mixed 타입)
+
+### 데이터 구조 보장
+- 객체 접근 전 존재 여부 확인
+- 배열 접근 전 `Array.isArray()` 체크
+- 기본값 설정: `inventory.categories = inventory.categories || {}`
+
+## 작업 흐름
+
+1. 데이터 로드 → 검증 → 처리 → 저장 → 응답
+2. 에러 발생 시 롤백 불필요 (MongoDB가 처리)
+3. 동시성 충돌은 optimistic locking으로 자동 재시도
+
+## Git 작업 규칙
+
+### 커밋 전략
+- **모든 작업 중간중간에 의미있는 단위로 커밋**
+- 파일 수정 완료 시마다 커밋 (예: 버그 수정, 기능 추가, 리팩토링)
+- 커밋 메시지는 한국어로 명확하게 작성
+- 예: "Fix: workSelect.js optional chaining 적용", "Add: 태그 색상 기능 추가"
+
+### 최종 작업 완료
+- **모든 작업이 완료되면 항상 git push 실행**
+- push 전에 현재 브랜치 확인
+- push 실패 시 pull 후 재시도

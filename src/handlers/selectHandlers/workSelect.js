@@ -46,7 +46,7 @@ export async function handleWorkItemSelect(interaction) {
     
     // 각 아이템 처리
     for (const selectedItem of itemsToProcess) {
-      const itemData = targetData.categories[category][selectedItem];
+      const itemData = targetData.categories?.[category]?.[selectedItem];
       if (!itemData) continue;
       
       const percentage = (itemData.quantity / itemData.required) * 100;
