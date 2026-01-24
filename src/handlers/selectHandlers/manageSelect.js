@@ -1,6 +1,6 @@
 // 관리(삭제/수정/순서변경) select 핸들러
 import { EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { loadInventory, removeItem, saveInventory } from '../../database.js';
+import { loadInventory, removeItem, updateItemsOrder } from '../../database.js';
 import { formatQuantity, getTimeoutSettings, addHistory } from '../../utils.js';
 
 /**
@@ -498,25 +498,13 @@ export async function handleSortOptionSelect(interaction) {
       });
     }
     
-    // 데이터베이스 업데이트
-    const newCategoryData = {};
+    // 데이터베이스 업데이트 - 새로운 순서로 모든 아이템 업데이트
+    const itemsToUpdate = sortedItems.map((itemName, index) => ({
+      name: itemName,
+      order: index
+    }));
     
-    sortedItems.forEach((itemName, newIndex) => {
-      const itemData = targetData[category][itemName];
-      itemData.order = newIndex;
-      newCategoryData[itemName] = itemData;
-    });
-    
-    // 카테고리 데이터 교체
-    if (type === 'inventory') {
-      inventory.categories[category] = newCategoryData;
-      inventory.markModified?.('categories');
-    } else {
-      inventory.crafting.categories[category] = newCategoryData;
-      inventory.markModified?.('crafting.categories');
-    }
-    
-    await saveInventory(inventory);
+    await updateItemsOrder(type, category, itemsToUpdate);
     
     // 히스토리 기록
     const sortNames = {

@@ -837,3 +837,27 @@ export async function migrateFromDataFile(inventoryData) {
     return false;
   }
 }
+
+/**
+ * 아이템 순서 일괄 업데이트
+ * @param {string} type - 'inventory' or 'crafting'
+ * @param {string} category - 카테고리명
+ * @param {Array} items - { name, order } 배열
+ */
+export async function updateItemsOrder(type, category, items) {
+  try {
+    const bulkOps = items.map(item => ({
+      updateOne: {
+        filter: { type, category, name: item.name },
+        update: { $set: { order: item.order } }
+      }
+    }));
+    
+    const result = await Item.bulkWrite(bulkOps);
+    console.log(`✅ 순서 업데이트 완료: ${type}/${category} - ${items.length}개 항목`);
+    return result;
+  } catch (error) {
+    console.error('❌ 순서 업데이트 에러:', error);
+    throw error;
+  }
+}

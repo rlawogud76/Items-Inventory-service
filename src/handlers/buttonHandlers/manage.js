@@ -1,6 +1,6 @@
 // 물품/품목 관리 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, updateItemsOrder } from '../../database.js';
 import { formatQuantity, getItemIcon, getTimeoutSettings, addHistory } from '../../utils.js';
 
 /**
@@ -1376,25 +1376,13 @@ export async function handleMoveItemButton(interaction) {
     items.splice(currentIndex, 1);
     items.splice(newIndex, 0, selectedItem);
     
-    // 데이터베이스 업데이트
-    const newCategoryData = {};
+    // 데이터베이스 업데이트 - 새로운 순서로 모든 아이템 업데이트
+    const itemsToUpdate = items.map((itemName, index) => ({
+      name: itemName,
+      order: index
+    }));
     
-    items.forEach((itemName, index) => {
-      const itemData = targetData[category][itemName];
-      itemData.order = index;
-      newCategoryData[itemName] = itemData;
-    });
-    
-    // 카테고리 데이터 교체
-    if (type === 'inventory') {
-      inventory.categories[category] = newCategoryData;
-      inventory.markModified?.('categories');
-    } else {
-      inventory.crafting.categories[category] = newCategoryData;
-      inventory.markModified?.('crafting.categories');
-    }
-    
-    await saveInventory(inventory);
+    await updateItemsOrder(type, category, itemsToUpdate);
     
     // 히스토리 기록
     const directionNames = {
