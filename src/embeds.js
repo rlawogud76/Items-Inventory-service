@@ -344,13 +344,16 @@ export function createButtons(categoryName = null, autoRefresh = false, type = '
     if (workingData?.[categoryName]) {
       // 이 카테고리에서 작업 중인 항목이 있는지 확인
       for (const [itemName, worker] of Object.entries(workingData[categoryName])) {
+        console.log(`    🔍 작업 확인: ${itemName} - worker.userId: ${worker.userId}, 현재 userId: ${userId}`);
         if (worker.userId === userId) {
           isWorking = true;
+          console.log(`    ✅ 작업 중 확인: ${userId}가 ${itemName} 작업 중`);
           break;
         }
       }
     }
   }
+  console.log(`  🎯 버튼 생성: userId=${userId}, isWorking=${isWorking}`);
   
   // UI 모드 버튼 라벨
   let uiModeLabel = '📏 일반';

@@ -88,6 +88,10 @@ client.on('ready', async () => {
         }
         
         const { interaction, category, type } = data;
+        const userId = interaction.user.id;
+        const userName = interaction.user.username;
+        console.log(`  📝 업데이트 중: ${messageId} (사용자: ${userName}, ID: ${userId})`);
+        
         const inventory = await loadInventory();
         const uiMode = inventory.settings?.uiMode || 'normal';
         const barLength = inventory.settings?.barLength || 15;
@@ -104,7 +108,7 @@ client.on('ready', async () => {
           embed = createInventoryEmbed(inventory, category, uiMode, barLength, 0);
         }
         
-        const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
+        const buttons = createButtons(category, true, type, uiMode, barLength, inventory, userId, 0, totalPages);
         await interaction.editReply({ embeds: [embed], components: buttons });
         
         console.log(`✅ 메시지 업데이트 완료: ${messageId}`);
