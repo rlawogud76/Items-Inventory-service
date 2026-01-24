@@ -51,6 +51,15 @@ export async function handleRecipeButton(interaction) {
       ephemeral: true
     });
     
+    // 30초 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {
+        // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+      }
+    }, 30000);
+    
   } catch (error) {
     console.error('❌ 레시피 버튼 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
@@ -536,14 +545,24 @@ export async function handleRecipeMoreFinishButton(interaction) {
       rows.push(new ActionRowBuilder().addComponents(pageButtons));
     }
     
-    const currentRecipe = inventory.crafting.recipes[category][itemName]
-      .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
-      .join('\n');
+    const currentRecipe = inventory.crafting?.recipes?.[category]?.[itemName] || [];
+    const recipeText = currentRecipe.length > 0
+      ? currentRecipe.map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`).join('\n')
+      : '없음';
     
     await interaction.update({
-      content: `${isEdit ? '✏️' : '📝'} ${itemName}\n레시피 ${isEdit ? '수정' : '추가'}\n\n**현재 레시피:**\n${currentRecipe}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
+      content: `${isEdit ? '✏️' : '📝'} ${itemName}\n레시피 ${isEdit ? '수정' : '추가'}\n\n**현재 레시피:**\n${recipeText}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
       components: rows
     });
+    
+    // 30초 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {
+        // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+      }
+    }, 30000);
     
   } catch (error) {
     console.error('❌ 레시피 버튼 에러:', error);
@@ -649,14 +668,23 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
     }
     
     const currentRecipe = inventory.crafting?.recipes?.[category]?.[itemName] || [];
-    const recipeText = currentRecipe
-      .map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`)
-      .join('\n');
+    const recipeText = currentRecipe.length > 0
+      ? currentRecipe.map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`).join('\n')
+      : '없음';
     
     await interaction.update({
-      content: `📝 ${itemName}\n레시피 추가\n\n**현재 레시피:**\n${recipeText || '없음'}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
+      content: `📝 ${itemName}\n레시피 추가\n\n**현재 레시피:**\n${recipeText}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
       components: rows
     });
+    
+    // 30초 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {
+        // 이미 삭제되었거나 삭제할 수 없는 경우 무시
+      }
+    }, 30000);
     
   } catch (error) {
     console.error('❌ 레시피 추가 버튼 에러:', error);
