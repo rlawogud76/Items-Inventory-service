@@ -16,7 +16,7 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
   const embed = new EmbedBuilder()
     .setColor(0xFFA500)
     .setTimestamp()
-    .setFooter({ text: '마지막 업데이트' });
+    .setFooter({ text: '자동 새로고침: 10분간 유지됩니다' });
 
   // 특정 카테고리만 표시
   if (categoryName) {
@@ -178,7 +178,7 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
   const embed = new EmbedBuilder()
     .setColor(0x5865F2)
     .setTimestamp()
-    .setFooter({ text: '마지막 업데이트' });
+    .setFooter({ text: '자동 새로고침: 10분간 유지됩니다' });
 
   // 특정 카테고리만 표시
   if (categoryName) {
