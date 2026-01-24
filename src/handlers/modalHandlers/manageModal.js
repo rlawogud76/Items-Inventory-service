@@ -79,7 +79,7 @@ export async function handleAddItemModalStep1(interaction) {
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
       .setTitle(`✅ Step 1 완료`)
-      .setDescription(`**아이템:** ${itemName}\n**초기 수량:** ${initialTotal}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n\n다음 버튼을 눌러 물품 유형을 선택하세요.`);
+      .setDescription(`**아이템:** ${itemName}\n**초기 수량:** ${initialTotal}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n\n다음 버튼을 눌러 물품 유형을 선택하세요.\n\n_이 메시지는 30초 후 자동 삭제됩니다_`);
     
     await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
     
@@ -252,7 +252,7 @@ export async function handleAddItemModalStep2(interaction) {
       const successEmbed = new EmbedBuilder()
         .setColor(0x57F287)
         .setTitle('✅ 추가 완료')
-        .setDescription(`**카테고리:** ${category}\n${icon} ${itemName}\n이(가) 추가되었습니다!\n\n**초기 수량:** ${initialTotal}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n**목표 수량:** ${requiredTotal}개 (${requiredFormatted.items}개/${requiredFormatted.sets}세트/${requiredFormatted.boxes}상자)`);
+        .setDescription(`**카테고리:** ${category}\n${icon} ${itemName}\n이(가) 추가되었습니다!\n\n**초기 수량:** ${initialTotal}개 (${initialFormatted.items}개/${initialFormatted.sets}세트/${initialFormatted.boxes}상자)\n**목표 수량:** ${requiredTotal}개 (${requiredFormatted.items}개/${requiredFormatted.sets}세트/${requiredFormatted.boxes}상자)\n\n_이 메시지는 15초 후 자동 삭제됩니다_`);
       
       await interaction.reply({ embeds: [successEmbed], ephemeral: true, fetchReply: true });
       
@@ -332,7 +332,7 @@ export async function handleEditNameModal(interaction) {
     const successEmbed = new EmbedBuilder()
       .setColor(0x57F287)
       .setTitle('✅ 이름 수정 완료')
-      .setDescription(`**카테고리:** ${category}\n${oldName} → ${newName}\n${recipeUpdated ? '🔄 레시피도 함께 변경되었습니다.' : ''}`);
+      .setDescription(`**카테고리:** ${category}\n${oldName} → ${newName}\n${recipeUpdated ? '🔄 레시피도 함께 변경되었습니다.' : ''}\n\n_이 메시지는 15초 후 자동 삭제됩니다_`);
     
     await interaction.reply({ embeds: [successEmbed], ephemeral: true });
     

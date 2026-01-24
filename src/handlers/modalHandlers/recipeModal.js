@@ -84,7 +84,7 @@ export async function handleRecipeEditQuantityModal(interaction) {
         .join('\n');
       
       await interaction.reply({
-        content: `✅ ${itemName}\n레시피 수정 완료!\n\n**새 레시피:**\n${recipeText}`,
+        content: `✅ ${itemName}\n레시피 수정 완료!\n\n**새 레시피:**\n${recipeText}\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
         ephemeral: true
       });
       
@@ -273,7 +273,7 @@ export async function handleRecipeStandaloneQuantityModal(interaction) {
         .join('\n');
       
       await interaction.reply({
-        content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${recipeText}\n\n더 추가하시겠습니까? (최대 7개)`,
+        content: `✅ 재료 ${step} 추가 완료: ${icon} ${materialName} x${quantity}\n\n**현재 레시피:**\n${recipeText}\n\n더 추가하시겠습니까? (최대 7개)\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
         components: [row],
         ephemeral: true
       });
@@ -284,7 +284,7 @@ export async function handleRecipeStandaloneQuantityModal(interaction) {
         .join('\n');
       
       await interaction.reply({
-        content: `✅ ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${recipeText}`,
+        content: `✅ ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${recipeText}\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
         ephemeral: true
       });
       

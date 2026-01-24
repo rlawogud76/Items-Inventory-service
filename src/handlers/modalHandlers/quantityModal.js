@@ -199,7 +199,7 @@ export async function handleQuantityModal(interaction) {
     const syncText = (itemData.linkedItem && action !== 'edit_required') ? '\n🔗 연동된 아이템도 자동 업데이트되었습니다!' : '';
     
     await interaction.reply({ 
-      content: `✅ ${itemName}\n수량이 업데이트되었습니다!\n${actionText}${syncText}`, 
+      content: `✅ ${itemName}\n수량이 업데이트되었습니다!\n${actionText}${syncText}\n\n_이 메시지는 15초 후 자동 삭제됩니다_`, 
       ephemeral: true 
     });
     

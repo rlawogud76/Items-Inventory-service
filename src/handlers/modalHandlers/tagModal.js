@@ -84,7 +84,7 @@ export async function handleTagNameInputModal(interaction) {
     const row1 = new ActionRowBuilder().addComponents(selectMenu);
     const row2 = new ActionRowBuilder().addComponents(colorSelectMenu);
     
-    let contentMessage = `🏷️ **태그: ${tagName}**\n\n1️⃣ 태그 색상을 선택하세요\n2️⃣ "${tagName}" 태그에 추가할 항목을 선택하세요\n💡 여러 개를 한 번에 선택할 수 있습니다.`;
+    let contentMessage = `🏷️ **태그: ${tagName}**\n\n1️⃣ 태그 색상을 선택하세요\n2️⃣ "${tagName}" 태그에 추가할 항목을 선택하세요\n💡 여러 개를 한 번에 선택할 수 있습니다.\n\n_이 메시지는 30초 후 자동 삭제됩니다_`;
     
     await interaction.reply({
       content: contentMessage,
@@ -180,7 +180,9 @@ export async function handleTagNameModal(interaction) {
         `**카테고리:** ${category}`,
         `${icon} **${itemName}**`,
         `🏷️ **태그:** ${tagName}`,
-        oldTag ? `\n🔄 기존 태그 "${oldTag}"에서 이동됨` : ''
+        oldTag ? `\n🔄 기존 태그 "${oldTag}"에서 이동됨` : '',
+        ``,
+        `_이 메시지는 15초 후 자동 삭제됩니다_`
       ].filter(Boolean).join('\n'));
     
     await interaction.reply({ embeds: [successEmbed], ephemeral: true });

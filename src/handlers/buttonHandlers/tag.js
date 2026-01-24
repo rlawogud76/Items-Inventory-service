@@ -43,7 +43,7 @@ export async function handleManageTagButton(interaction) {
     const row2 = new ActionRowBuilder().addComponents(colorTagButton, viewTagsButton);
     
     await interaction.update({
-      content: `🏷️ **${category}** 카테고리 태그 관리\n\n태그를 사용하면 관련 물품들을 그룹으로 묶을 수 있습니다.\n예: "산호 블럭", "뇌 산호 블럭" → "산호" 태그\n\n원하는 작업을 선택하세요:`,
+      content: `🏷️ **${category}** 카테고리 태그 관리\n\n태그를 사용하면 관련 물품들을 그룹으로 묶을 수 있습니다.\n예: "산호 블럭", "뇌 산호 블럭" → "산호" 태그\n\n원하는 작업을 선택하세요:\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
       components: [row1, row2]
     });
     
@@ -152,7 +152,7 @@ export async function handleTagRemoveButton(interaction) {
     const row = new ActionRowBuilder().addComponents(selectMenu);
     
     await interaction.update({
-      content: `🗑️ **태그 제거**\n\n제거할 태그를 선택하세요.\n⚠️ 태그만 제거되며, 항목은 유지됩니다.`,
+      content: `🗑️ **태그 제거**\n\n제거할 태그를 선택하세요.\n⚠️ 태그만 제거되며, 항목은 유지됩니다.\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
       components: [row]
     });
     
@@ -283,7 +283,7 @@ export async function handleTagColorButton(interaction) {
     const row = new ActionRowBuilder().addComponents(selectMenu);
     
     await interaction.update({
-      content: `🎨 **태그 색상 변경**\n\n색상을 변경할 태그를 선택하세요.`,
+      content: `🎨 **태그 색상 변경**\n\n색상을 변경할 태그를 선택하세요.\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
       components: [row]
     });
     

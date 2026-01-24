@@ -102,7 +102,7 @@ export async function handleQuantityButton(interaction) {
     const paginationInfo = getPaginationInfo(page, totalPages, itemOptions.length, startIndex, endIndex);
     
     await interaction.reply({
-      content: `📊 **${category}** 카테고리 수량 관리\n${paginationInfo}\n\n수량을 관리할 아이템을 선택하세요:`,
+      content: `📊 **${category}** 카테고리 수량 관리\n${paginationInfo}\n\n수량을 관리할 아이템을 선택하세요:\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
       components: rows,
       ephemeral: true
     });
@@ -208,7 +208,7 @@ export async function handleQuantityPageButton(interaction) {
     const paginationInfo = getPaginationInfo(newPage, totalPages, itemOptions.length, startIndex, endIndex);
     
     await interaction.update({
-      content: `📊 **${category}** 카테고리 수량 관리\n${paginationInfo}\n\n수량을 관리할 아이템을 선택하세요:`,
+      content: `📊 **${category}** 카테고리 수량 관리\n${paginationInfo}\n\n수량을 관리할 아이템을 선택하세요:\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
       components: rows
     });
     

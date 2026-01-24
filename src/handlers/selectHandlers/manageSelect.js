@@ -44,7 +44,7 @@ export async function handleRemoveSelect(interaction) {
     const successEmbed = new EmbedBuilder()
       .setColor(0xED4245)
       .setTitle('✅ 삭제 완료')
-      .setDescription(`**카테고리:** ${category}\n**${selectedItem}**이(가) 삭제되었습니다.${recipeDeleted ? '\n🗑️ 연결된 레시피도 함께 삭제되었습니다.' : ''}`);
+      .setDescription(`**카테고리:** ${category}\n**${selectedItem}**이(가) 삭제되었습니다.${recipeDeleted ? '\n🗑️ 연결된 레시피도 함께 삭제되었습니다.' : ''}\n\n_이 메시지는 15초 후 자동 삭제됩니다_`);
     
     await interaction.update({
       embeds: [successEmbed],

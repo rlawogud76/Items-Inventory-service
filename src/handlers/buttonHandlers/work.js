@@ -401,7 +401,7 @@ export async function handleStopWorkButton(interaction) {
         await updateItemWorker('crafting', category, itemName, null);
         
         await interaction.update({
-          content: `✅ ${itemName}\n제작을 중단했습니다.`,
+          content: `✅ ${itemName}\n제작을 중단했습니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
           components: []
         });
         console.log(`✅ ${itemName} 제작 중단 완료`);
@@ -413,7 +413,7 @@ export async function handleStopWorkButton(interaction) {
         }, 15000);
       } else {
         await interaction.update({
-          content: `⚠️ ${itemName}\n제작 정보를 찾을 수 없습니다.`,
+          content: `⚠️ ${itemName}\n제작 정보를 찾을 수 없습니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
           components: []
         });
         console.log(`⚠️ ${itemName} 제작 정보 없음`);
@@ -429,7 +429,7 @@ export async function handleStopWorkButton(interaction) {
         await updateItemWorker('inventory', category, itemName, null);
         
         await interaction.update({
-          content: `✅ ${itemName}\n수집을 중단했습니다.`,
+          content: `✅ ${itemName}\n수집을 중단했습니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
           components: []
         });
         console.log(`✅ ${itemName} 수집 중단 완료`);
@@ -441,7 +441,7 @@ export async function handleStopWorkButton(interaction) {
         }, 15000);
       } else {
         await interaction.update({
-          content: `⚠️ ${itemName}\n수집 정보를 찾을 수 없습니다.`,
+          content: `⚠️ ${itemName}\n수집 정보를 찾을 수 없습니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
           components: []
         });
         console.log(`⚠️ ${itemName} 수집 정보 없음`);

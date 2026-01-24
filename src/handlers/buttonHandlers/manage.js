@@ -56,7 +56,7 @@ export async function handleManageButton(interaction) {
     const row2 = new ActionRowBuilder().addComponents(typeButton, tagButton);
     
     await interaction.reply({
-      content: `📝 **${category}** 카테고리 ${type === 'inventory' ? '물품' : '품목'} 관리\n\n원하는 작업을 선택하세요:`,
+      content: `📝 **${category}** 카테고리 ${type === 'inventory' ? '물품' : '품목'} 관리\n\n원하는 작업을 선택하세요:\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
       components: [row1, row2],
       ephemeral: true
     });
@@ -225,6 +225,7 @@ export async function handleManageRemoveButton(interaction) {
     if (totalPages > 1) {
       contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
     }
+    contentMessage += `\n\n_이 메시지는 30초 후 자동 삭제됩니다_`;
     
     await interaction.update({
       content: contentMessage,
@@ -327,6 +328,7 @@ export async function handleManageEditButton(interaction) {
     if (totalPages > 1) {
       contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
     }
+    contentMessage += `\n\n_이 메시지는 30초 후 자동 삭제됩니다_`;
     
     await interaction.update({
       content: contentMessage,
@@ -720,6 +722,7 @@ export async function handleManageTypeButton(interaction) {
     if (totalPages > 1) {
       contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
     }
+    contentMessage += `\n\n_이 메시지는 30초 후 자동 삭제됩니다_`;
     
     await interaction.update({
       content: contentMessage,

@@ -101,7 +101,7 @@ export async function handleTagItemsSelect(interaction) {
       ].filter(Boolean).join('\n'));
     
     await interaction.editReply({ 
-      content: '✅ 태그 설정이 완료되었습니다!',
+      content: '✅ 태그 설정이 완료되었습니다!\n\n_이 메시지는 15초 후 자동 삭제됩니다_',
       embeds: [successEmbed], 
       components: [] 
     });
@@ -165,7 +165,7 @@ export async function handleConfirmTagRemoveSelect(interaction) {
       ].join('\n'));
     
     await interaction.editReply({ 
-      content: '✅ 태그가 제거되었습니다!',
+      content: '✅ 태그가 제거되었습니다!\n\n_이 메시지는 15초 후 자동 삭제됩니다_',
       embeds: [successEmbed], 
       components: [] 
     });
@@ -376,7 +376,7 @@ export async function handleChangeTagColor(interaction) {
     const colorName = colorNames[newColor] || newColor;
     
     await interaction.editReply({
-      content: `✅ **"${tagName}" 태그 색상 변경 완료!**\n\n새로운 색상: ${colorName}\n\n이제 해당 태그의 모든 아이템이 새로운 색상으로 표시됩니다.`,
+      content: `✅ **"${tagName}" 태그 색상 변경 완료!**\n\n새로운 색상: ${colorName}\n\n이제 해당 태그의 모든 아이템이 새로운 색상으로 표시됩니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
       components: []
     });
     
@@ -644,7 +644,9 @@ export async function handleConfirmTypeChange(interaction) {
         ``,
         `${typeNames[oldType]} → ${typeNames[newType]}`,
         ``,
-        newType === 'intermediate' ? '🔗 자동 연동이 설정되었습니다!' : oldType === 'intermediate' ? '🔓 연동이 해제되었습니다.' : ''
+        newType === 'intermediate' ? '🔗 자동 연동이 설정되었습니다!' : oldType === 'intermediate' ? '🔓 연동이 해제되었습니다.' : '',
+        ``,
+        `_이 메시지는 15초 후 자동 삭제됩니다_`
       ].filter(Boolean).join('\n'));
     
     await interaction.editReply({ embeds: [successEmbed], components: [] });

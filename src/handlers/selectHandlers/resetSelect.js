@@ -44,7 +44,7 @@ export async function handleResetSelect(interaction) {
     const successEmbed = new EmbedBuilder()
       .setColor(0xFFA500)
       .setTitle('🔄 개별 초기화 완료')
-      .setDescription(`**카테고리:** ${category}\n${icon} **${selectedItem}**\n${oldQuantity}개 → 0개`);
+      .setDescription(`**카테고리:** ${category}\n${icon} **${selectedItem}**\n${oldQuantity}개 → 0개\n\n_이 메시지는 15초 후 자동 삭제됩니다_`);
     
     await interaction.update({
       embeds: [successEmbed],

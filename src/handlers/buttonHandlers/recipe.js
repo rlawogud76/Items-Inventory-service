@@ -46,7 +46,7 @@ export async function handleRecipeButton(interaction) {
     const row = new ActionRowBuilder().addComponents(viewButton, addButton, editButton);
     
     await interaction.reply({
-      content: `📋 **${category}** 카테고리 레시피 관리\n\n원하는 작업을 선택하세요:`,
+      content: `📋 **${category}** 카테고리 레시피 관리\n\n원하는 작업을 선택하세요:\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
       components: [row],
       ephemeral: true
     });
@@ -268,7 +268,7 @@ export async function handleRecipeEditButton(interaction) {
     }
     
     await interaction.update({
-      content: `✏️ **${category}** 카테고리에서 레시피를 수정할 제작품을 선택하세요${totalPages > 1 ? ` (${items.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}:`,
+      content: `✏️ **${category}** 카테고리에서 레시피를 수정할 제작품을 선택하세요${totalPages > 1 ? ` (${items.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}:\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
       components: rows
     });
     
@@ -357,7 +357,7 @@ export async function handleRecipeAddButton(interaction) {
     }
     
     await interaction.update({
-      content: `➕ **${category}** 카테고리에서 레시피를 추가할 제작품을 선택하세요${totalPages > 1 ? ` (${items.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}:`,
+      content: `➕ **${category}** 카테고리에서 레시피를 추가할 제작품을 선택하세요${totalPages > 1 ? ` (${items.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}:\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
       components: rows
     });
     
@@ -390,7 +390,7 @@ export async function handleRecipeAddSkipButton(interaction) {
     
     if (isSkip) {
       await interaction.update({
-        content: `✅ ${itemName}\n제작품이 추가되었습니다. 나중에 \`/레시피수정\` 명령어로 레시피를 추가할 수 있습니다.`,
+        content: `✅ ${itemName}\n제작품이 추가되었습니다. 나중에 \`/레시피수정\` 명령어로 레시피를 추가할 수 있습니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
         embeds: [],
         components: []
       });
@@ -516,7 +516,7 @@ export async function handleRecipeMoreFinishButton(interaction) {
         .join('\n');
       
       await interaction.update({
-        content: `✅ ${itemName}\n레시피 ${isEdit ? '수정' : '추가'} 완료!\n\n**${isEdit ? '새 ' : ''}레시피:**\n${recipeText}`,
+        content: `✅ ${itemName}\n레시피 ${isEdit ? '수정' : '추가'} 완료!\n\n**${isEdit ? '새 ' : ''}레시피:**\n${recipeText}\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
         components: []
       });
       
@@ -595,7 +595,7 @@ export async function handleRecipeMoreFinishButton(interaction) {
       : '없음';
     
     await interaction.update({
-      content: `${isEdit ? '✏️' : '📝'} ${itemName}\n레시피 ${isEdit ? '수정' : '추가'}\n\n**현재 레시피:**\n${recipeText}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
+      content: `${isEdit ? '✏️' : '📝'} ${itemName}\n레시피 ${isEdit ? '수정' : '추가'}\n\n**현재 레시피:**\n${recipeText}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
       components: rows
     });
     
@@ -638,7 +638,7 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
         .join('\n');
       
       await interaction.update({
-        content: `✅ ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${recipeText}`,
+        content: `✅ ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${recipeText}\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
         components: []
       });
       
@@ -717,7 +717,7 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
       : '없음';
     
     await interaction.update({
-      content: `📝 ${itemName}\n레시피 추가\n\n**현재 레시피:**\n${recipeText}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
+      content: `📝 ${itemName}\n레시피 추가\n\n**현재 레시피:**\n${recipeText}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
       components: rows
     });
     

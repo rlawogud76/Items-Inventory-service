@@ -260,10 +260,22 @@ export async function addHistory(type, category, itemName, action, details, user
 
 // ephemeral 메시지 자동 삭제
 export async function sendTemporaryReply(interaction, content, deleteAfter = 15000) {
+  const seconds = Math.floor(deleteAfter / 1000);
+  const deleteNotice = `\n\n_이 메시지는 ${seconds}초 후 자동 삭제됩니다_`;
+  
   // content가 문자열이면 { content: ... }, 객체면 그대로 사용
-  const replyOptions = typeof content === 'string' 
-    ? { content: content, ephemeral: true, fetchReply: true }
-    : { ...content, ephemeral: true, fetchReply: true };
+  let replyOptions;
+  if (typeof content === 'string') {
+    replyOptions = { content: content + deleteNotice, ephemeral: true, fetchReply: true };
+  } else {
+    // 객체인 경우 content 필드에 추가
+    replyOptions = { 
+      ...content, 
+      content: (content.content || '') + deleteNotice,
+      ephemeral: true, 
+      fetchReply: true 
+    };
+  }
   
   const reply = await interaction.reply(replyOptions);
   
