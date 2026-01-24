@@ -37,8 +37,9 @@ export {
   handleManageReorderButton,
   handleManageReorderPageButton,
   handleManageReorderSecondPageButton,
-  handleReorderQuickButton,
-  handleReorderManualButton
+  handleReorderMoveButton,
+  handleReorderSortButton,
+  handleMoveItemButton
 } from './manage.js';
 
 // 태그 관리

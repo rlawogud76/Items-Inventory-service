@@ -868,7 +868,7 @@ export async function handleManageReorderButton(interaction) {
     const type = parts[2]; // 'inventory' or 'crafting'
     const category = parts.slice(3).join('_');
     
-    console.log(`🔀 순서 변경 시작: ${type}/${category}`);
+    console.log(`🔀 순서 관리 시작: ${type}/${category}`);
     
     const inventory = await loadInventory();
     const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
@@ -903,27 +903,30 @@ export async function handleManageReorderButton(interaction) {
     }
     
     // 방법 선택 버튼
-    const quickButton = new ButtonBuilder()
-      .setCustomId(`reorder_quick_${type}_${category}`)
-      .setLabel('⚡ 빠른 순서 변경')
-      .setStyle(ButtonStyle.Success);
-    
-    const manualButton = new ButtonBuilder()
-      .setCustomId(`reorder_manual_${type}_${category}`)
-      .setLabel('✏️ 수동 순서 변경')
+    const moveButton = new ButtonBuilder()
+      .setCustomId(`reorder_move_${type}_${category}`)
+      .setLabel('↕️ 위/아래 이동')
       .setStyle(ButtonStyle.Primary);
     
-    const row = new ActionRowBuilder().addComponents(quickButton, manualButton);
+    const sortButton = new ButtonBuilder()
+      .setCustomId(`reorder_sort_${type}_${category}`)
+      .setLabel('🔤 자동 정렬')
+      .setStyle(ButtonStyle.Success);
+    
+    const row = new ActionRowBuilder().addComponents(moveButton, sortButton);
     
     // 현재 순서 표시
-    let contentMessage = `🔀 **${category}** 카테고리 순서 변경\n\n`;
+    let contentMessage = `🔀 **${category}** 카테고리 순서 관리\n\n`;
     contentMessage += `**현재 순서:**\n`;
-    items.forEach((item, idx) => {
+    items.slice(0, 15).forEach((item, idx) => {
       contentMessage += `${idx + 1}. ${item}\n`;
     });
+    if (items.length > 15) {
+      contentMessage += `... 외 ${items.length - 15}개\n`;
+    }
     contentMessage += `\n**방법을 선택하세요:**\n`;
-    contentMessage += `⚡ **빠른 순서 변경** - 한 항목을 선택해서 원하는 위치로 이동\n`;
-    contentMessage += `✏️ **수동 순서 변경** - 모달에서 전체 순서를 한번에 입력 (빠름!)`;
+    contentMessage += `↕️ **위/아래 이동** - 항목을 선택해서 위/아래로 이동\n`;
+    contentMessage += `🔤 **자동 정렬** - 이름순, 수량순, 목표순 등으로 자동 정렬`;
     contentMessage += `\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
     
     await interaction.reply({
@@ -940,7 +943,7 @@ export async function handleManageReorderButton(interaction) {
     }, selectTimeout);
     
   } catch (error) {
-    console.error('❌ 순서 변경 버튼 에러:', error);
+    console.error('❌ 순서 관리 버튼 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
     }
@@ -948,10 +951,10 @@ export async function handleManageReorderButton(interaction) {
 }
 
 /**
- * 빠른 순서 변경 버튼 핸들러 (기존 방식)
+ * 위/아래 이동 버튼 핸들러
  * @param {Interaction} interaction - Discord 인터랙션
  */
-export async function handleReorderQuickButton(interaction) {
+export async function handleReorderMoveButton(interaction) {
   try {
     const parts = interaction.customId.split('_');
     const type = parts[2]; // 'inventory' or 'crafting'
@@ -981,8 +984,8 @@ export async function handleReorderQuickButton(interaction) {
     
     const { StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`select_reorder_first_${type}_${category}`)
-      .setPlaceholder('이동할 항목을 선택하세요 (1단계)')
+      .setCustomId(`select_reorder_move_${type}_${category}`)
+      .setPlaceholder('이동할 항목을 선택하세요')
       .addOptions(limitedOptions);
     
     const rows = [new ActionRowBuilder().addComponents(selectMenu)];
@@ -990,13 +993,13 @@ export async function handleReorderQuickButton(interaction) {
     // 페이지네이션 버튼 (2페이지 이상일 때)
     if (totalPages > 1) {
       const prevButton = new ButtonBuilder()
-        .setCustomId(`page_prev_reorder_${type}_${category}_${page}`)
+        .setCustomId(`page_prev_reorder_move_${type}_${category}_${page}`)
         .setLabel('◀ 이전')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(page === 0);
       
       const nextButton = new ButtonBuilder()
-        .setCustomId(`page_next_reorder_${type}_${category}_${page}`)
+        .setCustomId(`page_next_reorder_move_${type}_${category}_${page}`)
         .setLabel('다음 ▶')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(page === totalPages - 1);
@@ -1010,7 +1013,7 @@ export async function handleReorderQuickButton(interaction) {
       rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
     }
     
-    let contentMessage = `🔀 **${category}** 카테고리 순서 변경 (빠른 방식)\n\n`;
+    let contentMessage = `↕️ **${category}** 카테고리 위/아래 이동\n\n`;
     contentMessage += `**현재 순서:**\n`;
     items.slice(0, 10).forEach((item, idx) => {
       contentMessage += `${idx + 1}. ${item}\n`;
@@ -1018,7 +1021,7 @@ export async function handleReorderQuickButton(interaction) {
     if (items.length > 10) {
       contentMessage += `... 외 ${items.length - 10}개\n`;
     }
-    contentMessage += `\n이동할 항목을 선택하세요 (1/2 단계)`;
+    contentMessage += `\n이동할 항목을 선택하세요`;
     
     if (totalPages > 1) {
       contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
@@ -1040,47 +1043,92 @@ export async function handleReorderQuickButton(interaction) {
     }, selectTimeout);
     
   } catch (error) {
-    console.error('❌ 빠른 순서 변경 에러:', error);
+    console.error('❌ 위/아래 이동 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
   }
 }
 
 /**
- * 수동 순서 변경 버튼 핸들러 (모달 방식)
+ * 자동 정렬 버튼 핸들러
  * @param {Interaction} interaction - Discord 인터랙션
  */
-export async function handleReorderManualButton(interaction) {
+export async function handleReorderSortButton(interaction) {
   try {
     const parts = interaction.customId.split('_');
     const type = parts[2]; // 'inventory' or 'crafting'
     const category = parts.slice(3).join('_');
     
     const inventory = await loadInventory();
-    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
-    const items = Object.keys(targetData[category]);
+    const { selectTimeout } = getTimeoutSettings(inventory);
     
-    // 현재 순서를 번호로 표시
-    const currentOrder = items.map((item, idx) => `${idx + 1}. ${item}`).join('\n');
+    // 정렬 옵션 선택 메뉴
+    const { StringSelectMenuBuilder } = await import('discord.js');
+    const sortMenu = new StringSelectMenuBuilder()
+      .setCustomId(`select_sort_option_${type}_${category}`)
+      .setPlaceholder('정렬 방식을 선택하세요')
+      .addOptions([
+        {
+          label: '🔤 이름순 (가나다)',
+          value: 'name_asc',
+          description: '이름을 가나다순으로 정렬',
+          emoji: '🔤'
+        },
+        {
+          label: '🔡 이름순 (역순)',
+          value: 'name_desc',
+          description: '이름을 역순으로 정렬',
+          emoji: '🔡'
+        },
+        {
+          label: '📊 현재 수량순 (많은순)',
+          value: 'quantity_desc',
+          description: '현재 수량이 많은 순서대로',
+          emoji: '📊'
+        },
+        {
+          label: '📉 현재 수량순 (적은순)',
+          value: 'quantity_asc',
+          description: '현재 수량이 적은 순서대로',
+          emoji: '📉'
+        },
+        {
+          label: '🎯 목표 수량순 (많은순)',
+          value: 'required_desc',
+          description: '목표 수량이 많은 순서대로',
+          emoji: '🎯'
+        },
+        {
+          label: '🎲 목표 수량순 (적은순)',
+          value: 'required_asc',
+          description: '목표 수량이 적은 순서대로',
+          emoji: '🎲'
+        }
+      ]);
     
-    // 모달 생성
-    const modal = new ModalBuilder()
-      .setCustomId(`reorder_modal_${type}_${category}`)
-      .setTitle(`순서 변경 - ${category}`);
+    const row = new ActionRowBuilder().addComponents(sortMenu);
     
-    const orderInput = new TextInputBuilder()
-      .setCustomId('new_order')
-      .setLabel('새로운 순서 (번호를 쉼표로 구분)')
-      .setStyle(TextInputStyle.Paragraph)
-      .setPlaceholder(`예: 3,1,2,4,5 (3번을 1번으로, 1번을 2번으로...)`)
-      .setValue(items.map((_, idx) => idx + 1).join(','))
-      .setRequired(true);
+    let contentMessage = `🔤 **${category}** 카테고리 자동 정렬\n\n`;
+    contentMessage += `정렬 방식을 선택하면 자동으로 순서가 변경됩니다.\n`;
+    contentMessage += `\n**정렬 옵션:**\n`;
+    contentMessage += `• 이름순 (가나다/역순)\n`;
+    contentMessage += `• 현재 수량순 (많은순/적은순)\n`;
+    contentMessage += `• 목표 수량순 (많은순/적은순)`;
+    contentMessage += `\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
     
-    modal.addComponents(new ActionRowBuilder().addComponents(orderInput));
+    await interaction.update({
+      content: contentMessage,
+      components: [row]
+    });
     
-    await interaction.showModal(modal);
+    // 설정된 시간 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, selectTimeout);
     
   } catch (error) {
-    console.error('❌ 수동 순서 변경 에러:', error);
+    console.error('❌ 자동 정렬 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
   }
 }
@@ -1267,5 +1315,115 @@ export async function handleManageReorderSecondPageButton(interaction) {
   } catch (error) {
     console.error('❌ 순서 변경 두 번째 단계 페이지 이동 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 항목 이동 실행 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleMoveItemButton(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const direction = parts[2]; // 'top', 'up5', 'up1', 'down1', 'down5', 'bottom'
+    const type = parts[3]; // 'inventory' or 'crafting'
+    const category = parts.slice(4, -1).join('_');
+    const currentIndex = parseInt(parts[parts.length - 1]);
+    
+    const inventory = await loadInventory();
+    const { infoTimeout } = getTimeoutSettings(inventory);
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    const items = Object.keys(targetData[category]);
+    const selectedItem = items[currentIndex];
+    
+    // 새로운 인덱스 계산
+    let newIndex = currentIndex;
+    switch (direction) {
+      case 'top':
+        newIndex = 0;
+        break;
+      case 'up5':
+        newIndex = Math.max(0, currentIndex - 5);
+        break;
+      case 'up1':
+        newIndex = Math.max(0, currentIndex - 1);
+        break;
+      case 'down1':
+        newIndex = Math.min(items.length - 1, currentIndex + 1);
+        break;
+      case 'down5':
+        newIndex = Math.min(items.length - 1, currentIndex + 5);
+        break;
+      case 'bottom':
+        newIndex = items.length - 1;
+        break;
+    }
+    
+    // 순서 변경
+    items.splice(currentIndex, 1);
+    items.splice(newIndex, 0, selectedItem);
+    
+    // 데이터베이스 업데이트
+    const { saveInventory } = await import('../../database.js');
+    const newCategoryData = {};
+    
+    items.forEach((itemName, index) => {
+      const itemData = targetData[category][itemName];
+      itemData.order = index;
+      newCategoryData[itemName] = itemData;
+    });
+    
+    // 카테고리 데이터 교체
+    if (type === 'inventory') {
+      inventory.categories[category] = newCategoryData;
+    } else {
+      inventory.crafting.categories[category] = newCategoryData;
+    }
+    
+    inventory.markModified('categories');
+    inventory.markModified('crafting');
+    await saveInventory(inventory);
+    
+    // 히스토리 기록
+    const { addHistory } = await import('../../database.js');
+    const directionNames = {
+      'top': '맨 위로',
+      'up5': '위로 5칸',
+      'up1': '위로 1칸',
+      'down1': '아래로 1칸',
+      'down5': '아래로 5칸',
+      'bottom': '맨 아래로'
+    };
+    await addHistory(interaction.user.id, 'reorder', type, category, selectedItem, `${directionNames[direction]} (${currentIndex + 1} → ${newIndex + 1})`);
+    
+    // 성공 메시지
+    let successMessage = `✅ **${selectedItem}**을(를) **${directionNames[direction]}** 이동했습니다!\n`;
+    successMessage += `(${currentIndex + 1}번 → ${newIndex + 1}번)\n\n`;
+    successMessage += `**새로운 순서:**\n`;
+    items.slice(0, 15).forEach((item, idx) => {
+      const marker = idx === newIndex ? ' ← 이동됨' : '';
+      successMessage += `${idx + 1}. ${item}${marker}\n`;
+    });
+    if (items.length > 15) {
+      successMessage += `... 외 ${items.length - 15}개\n`;
+    }
+    successMessage += `\n_이 메시지는 ${infoTimeout/1000}초 후 자동 삭제됩니다_`;
+    
+    await interaction.update({
+      content: successMessage,
+      components: []
+    });
+    
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, infoTimeout);
+    
+    console.log(`✅ 항목 이동 완료: ${type}/${category}/${selectedItem} - ${directionNames[direction]} (${currentIndex + 1} → ${newIndex + 1})`);
+    
+  } catch (error) {
+    console.error('❌ 항목 이동 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }

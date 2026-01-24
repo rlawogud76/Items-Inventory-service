@@ -324,3 +324,223 @@ export async function handleReorderSecondSelect(interaction) {
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }
+
+/**
+ * 위/아래 이동 항목 선택 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleReorderMoveSelect(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[3]; // 'inventory' or 'crafting'
+    const category = parts.slice(4).join('_');
+    const selectedIndex = parseInt(interaction.values[0]);
+    
+    const inventory = await loadInventory();
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    const items = Object.keys(targetData[category]);
+    const selectedItem = items[selectedIndex];
+    
+    // 이동 방향 버튼 생성
+    const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = await import('discord.js');
+    
+    const buttons = [];
+    
+    // 맨 위로
+    if (selectedIndex > 0) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`move_item_top_${type}_${category}_${selectedIndex}`)
+          .setLabel('⬆️⬆️ 맨 위로')
+          .setStyle(ButtonStyle.Primary)
+      );
+    }
+    
+    // 위로 5칸
+    if (selectedIndex >= 5) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`move_item_up5_${type}_${category}_${selectedIndex}`)
+          .setLabel('⬆️ 위로 5칸')
+          .setStyle(ButtonStyle.Secondary)
+      );
+    }
+    
+    // 위로 1칸
+    if (selectedIndex > 0) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`move_item_up1_${type}_${category}_${selectedIndex}`)
+          .setLabel('⬆️ 위로 1칸')
+          .setStyle(ButtonStyle.Secondary)
+      );
+    }
+    
+    // 아래로 1칸
+    if (selectedIndex < items.length - 1) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`move_item_down1_${type}_${category}_${selectedIndex}`)
+          .setLabel('⬇️ 아래로 1칸')
+          .setStyle(ButtonStyle.Secondary)
+      );
+    }
+    
+    // 아래로 5칸
+    if (selectedIndex <= items.length - 6) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`move_item_down5_${type}_${category}_${selectedIndex}`)
+          .setLabel('⬇️ 아래로 5칸')
+          .setStyle(ButtonStyle.Secondary)
+      );
+    }
+    
+    // 맨 아래로
+    if (selectedIndex < items.length - 1) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`move_item_bottom_${type}_${category}_${selectedIndex}`)
+          .setLabel('⬇️⬇️ 맨 아래로')
+          .setStyle(ButtonStyle.Primary)
+      );
+    }
+    
+    // 버튼을 5개씩 나눠서 행 생성
+    const rows = [];
+    for (let i = 0; i < buttons.length; i += 5) {
+      rows.push(new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)));
+    }
+    
+    let contentMessage = `↕️ **${category}** 카테고리 위/아래 이동\n\n`;
+    contentMessage += `**선택한 항목:** ${selectedIndex + 1}. ${selectedItem}\n\n`;
+    contentMessage += `**현재 순서:**\n`;
+    items.slice(0, 10).forEach((item, idx) => {
+      const marker = idx === selectedIndex ? ' ← 선택됨' : '';
+      contentMessage += `${idx + 1}. ${item}${marker}\n`;
+    });
+    if (items.length > 10) {
+      contentMessage += `... 외 ${items.length - 10}개\n`;
+    }
+    contentMessage += `\n이동 방향을 선택하세요:`;
+    
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    contentMessage += `\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
+    
+    await interaction.update({
+      content: contentMessage,
+      components: rows
+    });
+    
+    // 설정된 시간 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, selectTimeout);
+    
+  } catch (error) {
+    console.error('❌ 위/아래 이동 선택 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 자동 정렬 옵션 선택 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleSortOptionSelect(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[4]; // 'inventory' or 'crafting'
+    const category = parts.slice(5).join('_');
+    const sortOption = interaction.values[0]; // 'name_asc', 'quantity_desc', etc.
+    
+    const inventory = await loadInventory();
+    const { infoTimeout } = getTimeoutSettings(inventory);
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    const items = Object.keys(targetData[category]);
+    
+    // 정렬 실행
+    const [sortBy, sortOrder] = sortOption.split('_');
+    
+    let sortedItems;
+    if (sortBy === 'name') {
+      sortedItems = items.sort((a, b) => {
+        return sortOrder === 'asc' ? a.localeCompare(b, 'ko') : b.localeCompare(a, 'ko');
+      });
+    } else if (sortBy === 'quantity') {
+      sortedItems = items.sort((a, b) => {
+        const qtyA = targetData[category][a].quantity || 0;
+        const qtyB = targetData[category][b].quantity || 0;
+        return sortOrder === 'desc' ? qtyB - qtyA : qtyA - qtyB;
+      });
+    } else if (sortBy === 'required') {
+      sortedItems = items.sort((a, b) => {
+        const reqA = targetData[category][a].required || 0;
+        const reqB = targetData[category][b].required || 0;
+        return sortOrder === 'desc' ? reqB - reqA : reqA - reqB;
+      });
+    }
+    
+    // 데이터베이스 업데이트
+    const { saveInventory } = await import('../../database.js');
+    const newCategoryData = {};
+    
+    sortedItems.forEach((itemName, newIndex) => {
+      const itemData = targetData[category][itemName];
+      itemData.order = newIndex;
+      newCategoryData[itemName] = itemData;
+    });
+    
+    // 카테고리 데이터 교체
+    if (type === 'inventory') {
+      inventory.categories[category] = newCategoryData;
+    } else {
+      inventory.crafting.categories[category] = newCategoryData;
+    }
+    
+    inventory.markModified('categories');
+    inventory.markModified('crafting');
+    await saveInventory(inventory);
+    
+    // 히스토리 기록
+    const { addHistory } = await import('../../database.js');
+    const sortNames = {
+      'name_asc': '이름순 (가나다)',
+      'name_desc': '이름순 (역순)',
+      'quantity_desc': '현재 수량순 (많은순)',
+      'quantity_asc': '현재 수량순 (적은순)',
+      'required_desc': '목표 수량순 (많은순)',
+      'required_asc': '목표 수량순 (적은순)'
+    };
+    await addHistory(interaction.user.id, 'reorder', type, category, null, `자동 정렬: ${sortNames[sortOption]}`);
+    
+    // 성공 메시지
+    let successMessage = `✅ **${category}** 카테고리가 **${sortNames[sortOption]}**으로 정렬되었습니다!\n\n**새로운 순서:**\n`;
+    sortedItems.slice(0, 15).forEach((item, idx) => {
+      successMessage += `${idx + 1}. ${item}\n`;
+    });
+    if (sortedItems.length > 15) {
+      successMessage += `... 외 ${sortedItems.length - 15}개\n`;
+    }
+    successMessage += `\n_이 메시지는 ${infoTimeout/1000}초 후 자동 삭제됩니다_`;
+    
+    await interaction.update({
+      content: successMessage,
+      components: []
+    });
+    
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, infoTimeout);
+    
+    console.log(`✅ 자동 정렬 완료: ${type}/${category} - ${sortNames[sortOption]}`);
+    
+  } catch (error) {
+    console.error('❌ 자동 정렬 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}
