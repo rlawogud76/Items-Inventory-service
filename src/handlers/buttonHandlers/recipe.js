@@ -29,7 +29,7 @@ export async function handleRecipeButton(interaction) {
     
     // 레시피 관리 버튼 생성
     const viewButton = new ButtonBuilder()
-      .setCustomId(`recipe_view_${category}`)
+      .setCustomId(`recipe_view_${category}_0`)
       .setLabel('📖 조회')
       .setStyle(ButtonStyle.Primary);
     
@@ -76,7 +76,10 @@ export async function handleRecipeButton(interaction) {
  */
 export async function handleRecipeViewButton(interaction) {
   try {
-    const category = interaction.customId.replace('recipe_view_', '');
+    const parts = interaction.customId.split('_');
+    const category = parts.slice(2, -1).join('_');
+    const page = parseInt(parts[parts.length - 1]) || 0;
+    
     const inventory = await loadInventory();
     
     if (!inventory.crafting?.recipes?.[category] || Object.keys(inventory.crafting.recipes[category]).length === 0) {
@@ -87,16 +90,24 @@ export async function handleRecipeViewButton(interaction) {
     }
     
     const recipes = inventory.crafting.recipes[category];
-    const recipeCount = Object.keys(recipes).length;
+    const recipeEntries = Object.entries(recipes);
+    const recipeCount = recipeEntries.length;
+    
+    // 페이지네이션 설정 (Discord embed는 최대 25개 필드)
+    const recipesPerPage = 10; // 여유있게 10개씩
+    const totalPages = Math.ceil(recipeCount / recipesPerPage);
+    const startIndex = page * recipesPerPage;
+    const endIndex = Math.min(startIndex + recipesPerPage, recipeCount);
+    const pageRecipes = recipeEntries.slice(startIndex, endIndex);
     
     const embed = new EmbedBuilder()
       .setTitle(`📋 ${category} 레시피북`)
-      .setDescription(`총 **${recipeCount}개**의 레시피가 등록되어 있습니다.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+      .setDescription(`총 **${recipeCount}개**의 레시피가 등록되어 있습니다.${totalPages > 1 ? ` (${page + 1}/${totalPages} 페이지)` : ''}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
       .setColor(0xFFA500)
       .setTimestamp()
       .setFooter({ text: '✅ 제작 가능 | ⚠️ 재료 부족' });
     
-    for (const [itemName, materials] of Object.entries(recipes)) {
+    for (const [itemName, materials] of pageRecipes) {
       const icon = getItemIcon(itemName, inventory);
       
       // 제작 가능 여부 확인
@@ -135,16 +146,49 @@ export async function handleRecipeViewButton(interaction) {
       });
     }
     
+    const components = [];
+    
+    // 페이지네이션 버튼 추가 (2페이지 이상일 때)
+    if (totalPages > 1) {
+      const pageButtons = [];
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`recipe_view_${category}_${page - 1}`)
+          .setLabel('◀ 이전')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page === 0)
+      );
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`recipe_view_info_${category}_${page}`)
+          .setLabel(`페이지 ${page + 1}/${totalPages}`)
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
+      );
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`recipe_view_${category}_${page + 1}`)
+          .setLabel('다음 ▶')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page >= totalPages - 1)
+      );
+      
+      components.push(new ActionRowBuilder().addComponents(pageButtons));
+    }
+    
     await interaction.update({
       embeds: [embed],
-      components: []
+      components
     });
     
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 20000);
+    }, 30000);
     
   } catch (error) {
     console.error('❌ 레시피 조회 에러:', error);
