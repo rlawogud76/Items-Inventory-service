@@ -27,12 +27,13 @@ export async function handleInventoryCommand(interaction, activeMessages) {
     const buttons = createButtons(category, true, 'inventory', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
     const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
     
-    // 활성 메시지로 등록 (변경 감지용)
+    // 활성 메시지로 등록 (변경 감지용) - 10분 후 자동 만료
     const messageId = reply.id;
     activeMessages.set(messageId, {
       interaction,
       category,
-      type: 'inventory'
+      type: 'inventory',
+      timestamp: Date.now()
     });
     
     console.log(`📌 활성 메시지 등록: ${messageId} (재고 - ${category})`);

@@ -75,9 +75,19 @@ client.on('ready', async () => {
   addChangeListener(async () => {
     console.log('🔄 데이터 변경 감지 - 활성 메시지 업데이트 중...');
     
+    const now = Date.now();
+    const TEN_MINUTES = 10 * 60 * 1000; // 10분
+    
     // 모든 활성 메시지 업데이트
     for (const [messageId, data] of activeMessages.entries()) {
       try {
+        // 10분 이상 지난 메시지는 제거
+        if (now - data.timestamp > TEN_MINUTES) {
+          console.log(`⏰ 활성 메시지 만료: ${messageId} (10분 경과)`);
+          activeMessages.delete(messageId);
+          continue;
+        }
+        
         const { interaction, category, type } = data;
         const inventory = await loadInventory();
         const uiMode = inventory.settings?.uiMode || 'normal';
