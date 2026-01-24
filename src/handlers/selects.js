@@ -9,6 +9,7 @@ import {
   handleTagItemsSelect,
   handleConfirmTagRemoveSelect,
   handleTagItemSelect,
+  handleRecipeEditStartSelect,
   handleRecipeMaterialEditSelect,
   handleRecipeMaterialSelect,
   handleRecipeAddSelect,
@@ -86,6 +87,11 @@ export async function handleSelectInteraction(interaction) {
   // 태그 항목 선택 (개별)
   else if (interaction.customId.startsWith('select_tag_item_')) {
     return await handleTagItemSelect(interaction);
+  }
+  
+  // 레시피 수정 시작 (제작품 선택 후 1단계 재료 선택)
+  else if (interaction.customId.startsWith('select_recipe_edit_') && !interaction.customId.startsWith('select_recipe_material_edit_') && !interaction.customId.startsWith('select_recipe_add_')) {
+    return await handleRecipeEditStartSelect(interaction);
   }
   
   // 레시피 재료 선택 (독립 실행)

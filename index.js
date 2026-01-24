@@ -1,7 +1,6 @@
-﻿import { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { Client, GatewayIntentBits } from 'discord.js';
 import dotenv from 'dotenv';
-import { connectDatabase, loadInventory, saveInventory, watchInventoryChanges, addChangeListener, migrateFromDataFile } from './src/database-old.js';
-import { getItemIcon } from './src/utils.js';
+import { connectDatabase, loadInventory, saveInventory, watchInventoryChanges, addChangeListener, migrateFromDataFile } from './src/database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from './src/embeds.js';
 import { handleButtonInteraction } from './src/handlers/buttons.js';
 import { handleSelectInteraction } from './src/handlers/selects.js';
@@ -238,115 +237,7 @@ client.on('interactionCreate', async (interaction) => {
   
   // 선택 메뉴 인터랙션 처리
   if (interaction.isStringSelectMenu()) {
-    // select_recipe_edit는 여기서 처리 (레시피 수정 시작)
-    // 주의: select_recipe_material_edit_와 구분하기 위해 정확한 패턴 매칭 필요
-    if (interaction.customId.startsWith('select_recipe_edit_') && !interaction.customId.startsWith('select_recipe_material_edit_') && !interaction.customId.startsWith('select_recipe_add_')) {
-      try {
-        const category = interaction.customId.replace('select_recipe_edit_', '');
-        const selectedItem = interaction.values[0];
-        const inventory = await loadInventory();
-        
-        // 현재 레시피 표시
-        const currentRecipe = inventory.crafting.recipes?.[category]?.[selectedItem] || [];
-        const recipeText = currentRecipe.length > 0
-          ? currentRecipe.map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`).join('\n')
-          : '레시피 없음';
-        
-        // 재료 선택 메뉴 생성
-        const materials = Object.keys(inventory.categories[category] || {});
-        if (materials.length === 0) {
-          return await interaction.update({
-            content: `❌ "${category}" 카테고리에 재료가 없습니다.`,
-            components: []
-          });
-        }
-        
-        const page = 0; // 첫 페이지
-        const itemsPerPage = 25;
-        const totalPages = Math.ceil(materials.length / itemsPerPage);
-        const startIndex = page * itemsPerPage;
-        const endIndex = Math.min(startIndex + itemsPerPage, materials.length);
-        const pageMaterials = materials.slice(startIndex, endIndex);
-        
-        // 이모지 검증 함수
-        function validateEmoji(emoji) {
-          if (!emoji) return '📦';
-          if (emoji.startsWith('<') || emoji.length > 10) {
-            return '📦';
-          }
-          return emoji;
-        }
-        
-        const materialOptions = pageMaterials.map(mat => ({
-          label: mat,
-          value: mat,
-          emoji: validateEmoji(getItemIcon(mat, inventory))
-        }));
-        
-        const { StringSelectMenuBuilder } = await import('discord.js');
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(`select_recipe_material_edit_${category}_${selectedItem}_1`)
-          .setPlaceholder('재료 1을 선택하세요')
-          .addOptions(materialOptions);
-        
-        const rows = [new ActionRowBuilder().addComponents(selectMenu)];
-        
-        // 페이지네이션 버튼 추가 (25개 초과 시)
-        if (totalPages > 1) {
-          const pageButtons = [];
-          
-          pageButtons.push(
-            new ButtonBuilder()
-              .setCustomId(`page_prev_recipe_material_edit_${category}_${selectedItem}_1_${page}`)
-              .setLabel('◀ 이전')
-              .setStyle(ButtonStyle.Secondary)
-              .setDisabled(page === 0)
-          );
-          
-          pageButtons.push(
-            new ButtonBuilder()
-              .setCustomId(`page_info_recipe_material_edit_${category}_${selectedItem}_1_${page}`)
-              .setLabel(`페이지 ${page + 1}/${totalPages}`)
-              .setStyle(ButtonStyle.Secondary)
-              .setDisabled(true)
-          );
-          
-          pageButtons.push(
-            new ButtonBuilder()
-              .setCustomId(`page_next_recipe_material_edit_${category}_${selectedItem}_1_${page}`)
-              .setLabel('다음 ▶')
-              .setStyle(ButtonStyle.Secondary)
-              .setDisabled(page >= totalPages - 1)
-          );
-          
-          rows.push(new ActionRowBuilder().addComponents(pageButtons));
-        }
-        
-        await interaction.update({
-          content: `✏️ **${selectedItem}** 레시피 수정\n\n**현재 레시피:**\n${recipeText}\n\n**새 레시피 입력 - 1단계:** 첫 번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
-          components: rows
-        });
-        
-        // 30초 후 자동 삭제
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {
-            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
-          }
-        }, 30000);
-        
-      } catch (error) {
-        console.error('❌ 레시피 수정 선택 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
-          console.error('❌ 레시피 수정 선택 응답 실패:', err);
-        });
-      }
-    }
-    // 나머지 모든 select 핸들러는 분리된 핸들러로 처리
-    else {
-      return await handleSelectInteraction(interaction);
-    }
+    return await handleSelectInteraction(interaction);
   }
   
   // 모달 제출 처리
@@ -354,68 +245,15 @@ client.on('interactionCreate', async (interaction) => {
     // 분리된 modal 핸들러로 처리 시도
     const handled = await handleModalInteraction(interaction);
     
-    // 처리되지 않은 경우 (수량 관리, 바 크기 설정 등)
+    // 처리되지 않은 경우 (수량 관리 등)
     if (!handled) {
-      if (interaction.customId.startsWith('bar_size_modal_')) {
-        try {
-        const parts = interaction.customId.split('_');
-        const type = parts[3]; // 'inventory' or 'crafting'
-        const category = parts[4] === 'all' ? null : parts.slice(4).join('_');
-        
-        const barSizeValue = interaction.fields.getTextInputValue('bar_size_value').trim();
-        const percentage = parseInt(barSizeValue);
-        
-        if (isNaN(percentage) || percentage < 25 || percentage > 200) {
-          return await interaction.reply({ 
-            content: `❌ 25% ~ 200% 사이의 숫자를 입력해주세요. (입력값: ${barSizeValue})`, 
-            ephemeral: true 
-          });
-        }
-        
-        const newLength = Math.round(percentage / 10);
-        
-        const inventory = await loadInventory();
-        if (!inventory.settings) inventory.settings = {};
-        inventory.settings.barLength = newLength;
-        await saveInventory(inventory);
-        
-        const uiMode = inventory.settings?.uiMode || 'normal';
-        let embed, items, totalPages;
-        if (type === 'crafting') {
-          const crafting = inventory.crafting || { categories: {}, crafting: {} };
-          items = Object.entries(crafting.categories[category] || {});
-          totalPages = Math.ceil(items.length / 25);
-          embed = createCraftingEmbed(crafting, category, uiMode, newLength, 0, inventory);
-        } else {
-          items = Object.entries(inventory.categories[category] || {});
-          totalPages = Math.ceil(items.length / 25);
-          embed = createInventoryEmbed(inventory, category, uiMode, newLength, 0);
-        }
-        
-        const messageId = interaction.message.id;
-        const autoRefreshTimers = new Map(); // 임시 - settings.js에서 관리
-        const isAutoRefreshing = autoRefreshTimers.has(messageId);
-        const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', uiMode, newLength, inventory, interaction.user.id, 0, totalPages);
-        
-        await interaction.update({ embeds: [embed], components: buttons });
-        console.log(`📊 바 크기 변경: ${percentage}% (길이: ${newLength})`);
-      } catch (error) {
-        console.error('❌ 바 크기 모달 제출 에러:', error);
-        await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
-          console.error('❌ 바 크기 모달 응답 실패:', err);
-        });
+      if (interaction.customId.startsWith('modal_add_') ||
+          interaction.customId.startsWith('modal_edit_') ||
+          interaction.customId.startsWith('modal_subtract_') ||
+          interaction.customId.startsWith('modal_edit_required_')) {
+        return await handleQuantityModal(interaction);
       }
     }
-
-    
-    else if (interaction.customId.startsWith('modal_add_') || 
-             interaction.customId.startsWith('modal_edit_') || 
-             interaction.customId.startsWith('modal_subtract_') ||
-             interaction.customId.startsWith('modal_edit_required_')) {
-      // 수량 관리 modal - 분리된 핸들러로 처리
-      return await handleQuantityModal(interaction);
-    }
-    } // if (!handled) 닫기
   } // isModalSubmit() 닫기
 });
 

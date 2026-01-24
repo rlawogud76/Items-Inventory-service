@@ -1,7 +1,7 @@
 // 중간 제작품 연동 복구 스크립트
 // 재고에만 있고 제작에 없는 중간 제작품을 제작 섹션에도 생성
 
-import { connectDatabase, loadInventory, saveInventory } from './src/database-old.js';
+import { connectDatabase, loadInventory, addItem } from './src/database.js';
 
 async function repairIntermediateItems() {
   console.log('🔄 중간 제작품 연동 복구 시작...\n');
@@ -108,12 +108,11 @@ async function repairIntermediateItems() {
     }
     
     if (repairedCount > 0) {
-      await saveInventory(inventory);
       console.log(`\n✅ 복구 완료! ${repairedCount}개의 중간 제작품 연동이 복구되었습니다.\n`);
       
       console.log('📋 복구된 아이템 목록:');
       for (const item of repairedItems) {
-        console.log(`  - ${item.category}/${item.itemName} (${item.quantity}/${item.required}개)`);
+        console.log(`  - [${item.type}] ${item.category}/${item.itemName} (${item.quantity}/${item.required}개)`);
       }
     } else {
       console.log('✅ 복구가 필요한 아이템이 없습니다. 모든 중간 제작품이 정상적으로 연동되어 있습니다.');

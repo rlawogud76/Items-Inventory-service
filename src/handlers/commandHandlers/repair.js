@@ -1,6 +1,6 @@
 // 중간 제작품 연동 복구 커맨드
 import { EmbedBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database-old.js';
+import { loadInventory, addItem } from '../../database.js';
 import { sendTemporaryReply } from '../../utils.js';
 
 /**
@@ -25,26 +25,18 @@ export async function handleRepairCommand(interaction) {
           
           // 제작 섹션에 연동된 아이템이 없는 경우
           if (linkedType === 'crafting') {
-            if (!inventory.crafting) {
-              inventory.crafting = { categories: {}, recipes: {} };
-            }
-            if (!inventory.crafting.categories[linkedCategory]) {
-              inventory.crafting.categories[linkedCategory] = {};
-            }
-            
-            if (!inventory.crafting.categories[linkedCategory][linkedName]) {
-              // 제작 섹션에 아이템 생성
-              inventory.crafting.categories[linkedCategory][linkedName] = {
+            if (!inventory.crafting?.categories?.[linkedCategory]?.[linkedName]) {
+              // 제작 섹션에 아이템 생성 (DB 반영)
+              await addItem({
+                name: linkedName,
+                category: linkedCategory,
+                type: 'crafting',
+                itemType: 'intermediate',
                 quantity: itemData.quantity,
                 required: itemData.required,
-                itemType: 'intermediate',
-                linkedItem: `inventory/${category}/${itemName}`
-              };
-              
-              // 이모지가 있으면 복사
-              if (itemData.emoji) {
-                inventory.crafting.categories[linkedCategory][linkedName].emoji = itemData.emoji;
-              }
+                linkedItem: `inventory/${category}/${itemName}`,
+                emoji: itemData.emoji
+              });
               
               repairedCount++;
               repairedItems.push({
@@ -71,23 +63,18 @@ export async function handleRepairCommand(interaction) {
           
           // 재고 섹션에 연동된 아이템이 없는 경우
           if (linkedType === 'inventory') {
-            if (!inventory.categories[linkedCategory]) {
-              inventory.categories[linkedCategory] = {};
-            }
-            
-            if (!inventory.categories[linkedCategory][linkedName]) {
-              // 재고 섹션에 아이템 생성
-              inventory.categories[linkedCategory][linkedName] = {
+            if (!inventory.categories?.[linkedCategory]?.[linkedName]) {
+              // 재고 섹션에 아이템 생성 (DB 반영)
+              await addItem({
+                name: linkedName,
+                category: linkedCategory,
+                type: 'inventory',
+                itemType: 'intermediate',
                 quantity: itemData.quantity,
                 required: itemData.required,
-                itemType: 'intermediate',
-                linkedItem: `crafting/${category}/${itemName}`
-              };
-              
-              // 이모지가 있으면 복사
-              if (itemData.emoji) {
-                inventory.categories[linkedCategory][linkedName].emoji = itemData.emoji;
-              }
+                linkedItem: `crafting/${category}/${itemName}`,
+                emoji: itemData.emoji
+              });
               
               repairedCount++;
               repairedItems.push({
@@ -105,8 +92,6 @@ export async function handleRepairCommand(interaction) {
     }
     
     if (repairedCount > 0) {
-      await saveInventory(inventory);
-      
       const itemList = repairedItems
         .map(item => `• ${item.category}/${item.itemName} (${item.quantity}/${item.required}개)`)
         .join('\n');

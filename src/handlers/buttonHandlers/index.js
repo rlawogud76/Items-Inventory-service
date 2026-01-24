@@ -59,8 +59,7 @@ export {
 export { 
   handleBarSizeButton, 
   handleUiModeButton, 
-  handleAutoRefreshButton,
-  setAutoRefreshTimers
+  handleAutoRefreshButton
 } from './settings.js';
 
 // 작업 (수집/제작)

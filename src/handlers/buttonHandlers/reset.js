@@ -1,6 +1,6 @@
 // 초기화 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database-old.js';
+import { loadInventory, saveInventory } from '../../database.js';
 import { getItemIcon, addHistory, sendTemporaryReply } from '../../utils.js';
 
 /**
@@ -83,16 +83,34 @@ export async function handleResetTypeButton(interaction) {
       let resetCount = 0;
       let resetItems = [];
       
+      const updates = [];
+      const historyEntries = [];
+      
       for (const [itemName, data] of Object.entries(targetData.categories[category])) {
         if (data.quantity > 0) {
           const oldQuantity = data.quantity;
-          data.quantity = 0;
+          
+          updates.push({
+            type: type, // 'inventory' or 'crafting'
+            category: category,
+            itemName: itemName,
+            value: 0,
+            operation: 'set',
+            field: 'quantity'
+          });
+          
+          historyEntries.push({
+            timestamp: new Date().toISOString(),
+            type: type,
+            category: category,
+            itemName: itemName,
+            action: 'reset',
+            details: `${oldQuantity}개 → 0개`,
+            userName: interaction.user.displayName || interaction.user.username
+          });
+          
           resetCount++;
           resetItems.push(`${getItemIcon(itemName, inventory)} ${itemName} (${oldQuantity}개)`);
-          
-          addHistory(inventory, type, category, itemName, 'reset', 
-            `${oldQuantity}개 → 0개`, 
-            interaction.user.displayName || interaction.user.username);
         }
       }
       
@@ -103,7 +121,7 @@ export async function handleResetTypeButton(interaction) {
         });
       }
       
-      await saveInventory(inventory);
+      await updateMultipleItems(updates, historyEntries);
       
       const itemList = resetItems.slice(0, 10).join('\n');
       const moreText = resetItems.length > 10 ? `\n... 외 ${resetItems.length - 10}개` : '';

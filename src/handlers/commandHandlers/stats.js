@@ -1,7 +1,7 @@
 // 통계 커맨드 핸들러
 
 import { EmbedBuilder } from 'discord.js';
-import { loadInventory } from '../../database-old.js';
+import { loadInventory, getHistory } from '../../database.js';
 import { getItemIcon, sendTemporaryReply } from '../../utils.js';
 
 /**
@@ -79,13 +79,11 @@ export async function handleStatsCommand(interaction) {
   const inventoryPercentage = inventoryRequired > 0 ? Math.round((inventoryQuantity / inventoryRequired) * 100) : 0;
   const craftingPercentage = craftingRequired > 0 ? Math.round((craftingQuantity / craftingRequired) * 100) : 0;
   
-  // 최근 7일 활동 통계
+  // 최근 7일 활동 통계 (History 컬렉션에서 조회)
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  
-  const recentHistory = (inventory.history || []).filter(h => 
-    new Date(h.timestamp) >= sevenDaysAgo
-  );
+  const histories = await getHistory(1000);
+  const recentHistory = histories.filter(h => new Date(h.timestamp) >= sevenDaysAgo);
   
   // 사용자별 활동
   const userActivity = {};

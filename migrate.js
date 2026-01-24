@@ -274,10 +274,8 @@ async function migrate() {
       console.log('✅ 백업 완료 (컬렉션: inventories_backup)');
       
       console.log('\n⚠️ 마이그레이션이 성공적으로 완료되었습니다.');
-      console.log('⚠️ database.js를 database-new.js로 교체하려면:');
-      console.log('   1. src/database.js 백업');
-      console.log('   2. src/database-new.js를 src/database.js로 이름 변경');
-      console.log('   3. 봇 재시작');
+      console.log('💡 이 스크립트는 정규화 스키마(InventoryItem, Recipe 등)로 이동할 때 사용합니다.');
+      console.log('   현재 봇은 src/database.js (단일 Inventory 스키마)를 사용합니다.');
       
     } catch (error) {
       await session.abortTransaction();

@@ -1,4 +1,4 @@
-﻿// 버튼 인터랙션 핸들러 - 메인 라우터
+// 버튼 인터랙션 핸들러 - 메인 라우터
 // 
 // 📋 목차:
 // ├─ 1. 페이지네이션 (page_prev_embed_, page_next_embed_) → pagination.js
@@ -53,7 +53,6 @@ import {
   handleBarSizeButton,
   handleUiModeButton,
   handleAutoRefreshButton,
-  setAutoRefreshTimers,
   handleWorkButton,
   handleWorkPageButton,
   handleStopWorkButton,
@@ -63,12 +62,6 @@ import {
   handleRecipeMaterialPagination,
   handleRecipeEditPagination
 } from './buttonHandlers/index.js';
-
-// 자동 새로고침 타이머 저장소
-const autoRefreshTimers = new Map();
-
-// settings.js에 타이머 맵 전달
-setAutoRefreshTimers(autoRefreshTimers);
 
 // 버튼 인터랙션 처리 함수
 export async function handleButtonInteraction(interaction) {

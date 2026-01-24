@@ -1,8 +1,9 @@
 // 기타 커맨드 핸들러 (도움말, 통계, 이모지설정, 수정내역, 기여도초기화)
 
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database-old.js';
+import { loadInventory, updateItemDetails, getHistory, getHistoryCount } from '../../database.js';
 import { getItemIcon, sendTemporaryReply } from '../../utils.js';
+import { STACK, EMOJIS, UI } from '../../constants.js';
 
 /**
  * /도움말 커맨드 처리
@@ -14,7 +15,7 @@ export async function handleHelpCommand(interaction) {
     .setDescription('**MongoDB 기반 실시간 재고 관리 시스템**\n변경사항이 자동으로 감지되어 즉시 반영됩니다.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     .addFields(
       { 
-        name: '📦 재고 관리', 
+        name: `${EMOJIS.BOX} 재고 관리`, 
         value: [
           '**`/재고 [카테고리]`**',
           '재고 현황을 실시간으로 확인합니다.',
@@ -22,7 +23,7 @@ export async function handleHelpCommand(interaction) {
           '> 💡 변경사항이 자동으로 업데이트됩니다!',
           '',
           '**버튼 기능:**',
-          '• 📦 수집하기: 작업자 등록 (다른 사람에게 표시)',
+          `• ${EMOJIS.BOX} 수집하기: 작업자 등록 (다른 사람에게 표시)`,
           '• 📊 수량관리: 추가/수정/차감/목표 수정',
           '• 📋 물품관리: 물품 추가/삭제/이름 수정',
           '• 🏷️ 태그관리: 물품을 태그로 그룹화',
@@ -109,8 +110,8 @@ export async function handleHelpCommand(interaction) {
           '• **작업자 표시**: 수집하기/제작하기 버튼으로 작업자를 등록하면 다른 사람들이 볼 수 있습니다.',
           '• **자동 삭제**: 선택 메뉴는 15초 후, 관리 메뉴는 30초 후 자동으로 사라집니다.',
           '• **페이지네이션**: 아이템이 25개를 초과하면 자동으로 페이지 버튼이 생성됩니다.',
-          '• **세트 단위**: 수량은 낱개 + 세트(64개) + 상자(3456개) 순서로 표시됩니다.',
-          '• **진행률 표시**: 🔴(25%↓) 🟡(25-90%) 🟢(90%↑)',
+          `• **세트 단위**: 수량은 낱개 + 세트(${STACK.ITEMS_PER_SET}개) + 상자(${STACK.ITEMS_PER_BOX}개) 순서로 표시됩니다.`,
+          `• **진행률 표시**: ${EMOJIS.COLORS.RED}(25%↓) ${EMOJIS.COLORS.YELLOW}(25-90%) ${EMOJIS.COLORS.GREEN}(90%↑)`,
           '• **태그 기능**: 관련 물품들을 태그로 그룹화하여 한 번에 작업할 수 있습니다.'
         ].join('\n'),
         inline: false
@@ -137,9 +138,8 @@ export async function handleEmojiCommand(interaction) {
     return await sendTemporaryReply(interaction, `❌ "${category}" 카테고리에 "${itemName}" 아이템이 존재하지 않습니다.`);
   }
   
-  // 이모지 설정
-  targetData[category][itemName].emoji = emoji;
-  await saveInventory(inventory);
+  // 이모지 설정 (DB 반영)
+  await updateItemDetails(type, category, itemName, { emoji: emoji });
   
   const successEmbed = new EmbedBuilder()
     .setColor(0x57F287)
@@ -160,19 +160,19 @@ export async function handleEmojiCommand(interaction) {
  */
 export async function handleHistoryCommand(interaction) {
   const count = interaction.options.getInteger('개수') || 10;
-  const inventory = await loadInventory();
-  
-  if (!inventory.history || inventory.history.length === 0) {
+  const limit = Math.min(count, 25);
+  const histories = await getHistory(limit);
+
+  if (histories.length === 0) {
     return sendTemporaryReply(interaction, '📋 수정 내역이 없습니다.');
   }
-  
+
+  const inventory = await loadInventory();
   const embed = new EmbedBuilder()
     .setTitle('📋 수정 내역')
     .setColor(0x5865F2)
     .setTimestamp();
-  
-  const histories = inventory.history.slice(0, Math.min(count, 25)); // 최대 25개
-  
+
   for (const history of histories) {
     const date = new Date(history.timestamp);
     
@@ -190,7 +190,8 @@ export async function handleHistoryCommand(interaction) {
       'remove': '제거',
       'update_quantity': '현재 수량 변경',
       'update_required': '목표 수량 변경',
-      'reset': '초기화'
+      'reset': '초기화',
+      'rename': '이름 수정'
     }[history.action] || history.action;
     
     const icon = getItemIcon(history.itemName, inventory);
@@ -202,8 +203,9 @@ export async function handleHistoryCommand(interaction) {
     });
   }
   
-  if (inventory.history.length > count) {
-    embed.setFooter({ text: `총 ${inventory.history.length}개 중 ${count}개 표시` });
+  const total = await getHistoryCount();
+  if (total > limit) {
+    embed.setFooter({ text: `총 ${total}개 중 ${limit}개 표시` });
   }
   
   const reply = await interaction.reply({ embeds: [embed], ephemeral: true, fetchReply: true });
@@ -222,11 +224,8 @@ export async function handleHistoryCommand(interaction) {
  * /기여도초기화 커맨드 처리
  */
 export async function handleContributionResetCommand(interaction) {
-  const inventory = await loadInventory();
-  
-  // 기여도 데이터 확인
-  const historyCount = inventory.history?.length || 0;
-  
+  const historyCount = await getHistoryCount();
+
   if (historyCount === 0) {
     return await sendTemporaryReply(interaction, '❌ 초기화할 기여도 데이터가 없습니다.');
   }

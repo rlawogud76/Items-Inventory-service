@@ -8,7 +8,8 @@ import {
   handleAddItemModalStep2,
   handleEditNameModal,
   handleTagNameInputModal,
-  handleTagNameModal
+  handleTagNameModal,
+  handleBarSizeModal
 } from './modalHandlers/index.js';
 
 /**
@@ -67,6 +68,12 @@ export async function handleModalInteraction(interaction) {
     return true;
   }
   
-  // 나머지는 index.js에서 처리 (수량, 설정 등)
+  // 바 크기 설정
+  else if (interaction.customId.startsWith('bar_size_modal_')) {
+    await handleBarSizeModal(interaction);
+    return true;
+  }
+  
+  // 나머지는 index.js에서 처리 (수량 등)
   return false;
 }

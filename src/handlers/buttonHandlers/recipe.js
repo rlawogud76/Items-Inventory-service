@@ -1,6 +1,6 @@
 // 레시피 관리 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
-import { loadInventory } from '../../database-old.js';
+import { loadInventory } from '../../database.js';
 import { getItemIcon } from '../../utils.js';
 
 /**

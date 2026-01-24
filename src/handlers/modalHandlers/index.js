@@ -20,5 +20,7 @@ export {
   handleTagNameModal 
 } from './tagModal.js';
 
-// 수량 - index.js에서 직접 처리 (너무 복잡함)
-// 설정 - index.js에서 직접 처리
+// 설정 (바 크기 등)
+export { handleBarSizeModal } from './settingsModal.js';
+
+// 수량 - quantityModal.js / index.js에서 처리

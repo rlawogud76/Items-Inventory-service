@@ -1,17 +1,17 @@
 // 설정 핸들러 (UI 모드, 바 크기)
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database-old.js';
+import { loadInventory, saveInventory } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 
-// autoRefreshTimers는 buttons.js에서 import 필요
-let autoRefreshTimers;
+// 자동 새로고침 타이머 저장소 (messageId -> setInterval). settings.js에서 단일 관리.
+const autoRefreshTimers = new Map();
 
 /**
- * autoRefreshTimers 설정 (buttons.js에서 호출)
- * @param {Map} timers - 타이머 맵
+ * autoRefreshTimers 조회 (modal 등 다른 핸들러에서 사용)
+ * @returns {Map}
  */
-export function setAutoRefreshTimers(timers) {
-  autoRefreshTimers = timers;
+export function getAutoRefreshTimers() {
+  return autoRefreshTimers;
 }
 
 /**
@@ -101,7 +101,7 @@ export async function handleUiModeButton(interaction) {
     console.log('📏 Embed 생성 완료, totalPages:', totalPages);
     
     const messageId = interaction.message.id;
-    const isAutoRefreshing = autoRefreshTimers?.has(messageId) || false;
+    const isAutoRefreshing = autoRefreshTimers.has(messageId);
     const buttons = createButtons(category, isAutoRefreshing, type || 'inventory', newMode, barLength, inventory, interaction.user.id, 0, totalPages);
     
     console.log('📏 Buttons 생성 완료, rows:', buttons?.length);
@@ -181,11 +181,6 @@ export async function handleAutoRefreshButton(interaction) {
     const type = parts[2]; // 'inventory' or 'crafting'
     const category = parts.length > 3 ? parts.slice(3).join('_') : null;
     const messageId = interaction.message.id;
-    
-    if (!autoRefreshTimers) {
-      console.error('❌ autoRefreshTimers가 설정되지 않았습니다');
-      return await interaction.reply({ content: '오류가 발생했습니다.', flags: 64 });
-    }
     
     // 자동 새로고침 토글
     if (autoRefreshTimers.has(messageId)) {

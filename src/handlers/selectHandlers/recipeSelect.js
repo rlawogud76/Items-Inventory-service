@@ -1,5 +1,93 @@
 // 레시피 select 핸들러
-import { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, StringSelectMenuBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { loadInventory } from '../../database.js';
+import { getItemIcon } from '../../utils.js';
+
+/**
+ * 레시피 수정 시작 - 제작품 선택 후 1단계(첫 재료 선택) 핸들러
+ * select_recipe_edit_${category} (select_recipe_material_edit_, select_recipe_add_ 제외)
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleRecipeEditStartSelect(interaction) {
+  try {
+    const category = interaction.customId.replace('select_recipe_edit_', '');
+    const selectedItem = interaction.values[0];
+    const inventory = await loadInventory();
+
+    const currentRecipe = inventory.crafting?.recipes?.[category]?.[selectedItem] || [];
+    const recipeText = currentRecipe.length > 0
+      ? currentRecipe.map(m => `${getItemIcon(m.name, inventory)} ${m.name} x${m.quantity}`).join('\n')
+      : '레시피 없음';
+
+    const materials = Object.keys(inventory.categories[category] || {});
+    if (materials.length === 0) {
+      return await interaction.update({
+        content: `❌ "${category}" 카테고리에 재료가 없습니다.`,
+        components: []
+      });
+    }
+
+    const page = 0;
+    const itemsPerPage = 25;
+    const totalPages = Math.ceil(materials.length / itemsPerPage);
+    const startIndex = page * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, materials.length);
+    const pageMaterials = materials.slice(startIndex, endIndex);
+
+    function validateEmoji(emoji) {
+      if (!emoji) return '📦';
+      if (emoji.startsWith('<') || emoji.length > 10) return '📦';
+      return emoji;
+    }
+
+    const materialOptions = pageMaterials.map(mat => ({
+      label: mat,
+      value: mat,
+      emoji: validateEmoji(getItemIcon(mat, inventory))
+    }));
+
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`select_recipe_material_edit_${category}_${selectedItem}_1`)
+      .setPlaceholder('재료 1을 선택하세요')
+      .addOptions(materialOptions);
+
+    const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+
+    if (totalPages > 1) {
+      rows.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`page_prev_recipe_material_edit_${category}_${selectedItem}_1_${page}`)
+          .setLabel('◀ 이전')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page === 0),
+        new ButtonBuilder()
+          .setCustomId(`page_info_recipe_material_edit_${category}_${selectedItem}_1_${page}`)
+          .setLabel(`페이지 ${page + 1}/${totalPages}`)
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true),
+        new ButtonBuilder()
+          .setCustomId(`page_next_recipe_material_edit_${category}_${selectedItem}_1_${page}`)
+          .setLabel('다음 ▶')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page >= totalPages - 1)
+      ));
+    }
+
+    await interaction.update({
+      content: `✏️ **${selectedItem}** 레시피 수정\n\n**현재 레시피:**\n${recipeText}\n\n**새 레시피 입력 - 1단계:** 첫 번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}`,
+      components: rows
+    });
+
+    setTimeout(async () => {
+      try { await interaction.deleteReply(); } catch (_) {}
+    }, 30000);
+  } catch (error) {
+    console.error('❌ 레시피 수정 선택 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 레시피 수정 선택 응답 실패:', err);
+    });
+  }
+}
 
 /**
  * 레시피 재료 선택 핸들러 (수정)
@@ -102,7 +190,7 @@ export async function handleRecipeAddSelect(interaction) {
     const selectedItem = interaction.values[0];
     
     // 재료 선택 메뉴로 이동
-    const { loadInventory } = await import('../../database-old.js');
+    const { loadInventory } = await import('../../database.js');
     const { getItemIcon } = await import('../../utils.js');
     const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = await import('discord.js');
     

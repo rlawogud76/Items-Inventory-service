@@ -1,5 +1,9 @@
 # MongoDB 데이터 구조 마이그레이션 가이드
 
+> **현재 상태 (2025)**  
+> 봇은 **단일 `src/database.js`**만 사용합니다. (기존 `database-old` 스타일의 단일 Inventory 스키마)
+> `database-new.js`와 이전 `database.js`(정규화 스키마)는 제거되었습니다.
+
 ## 개요
 
 기존의 단일 document 구조에서 정규화된 컬렉션 구조로 마이그레이션합니다.

@@ -1,5 +1,5 @@
 // 작업(수집/제작) select 핸들러
-import { loadInventory, saveInventory } from '../../database-old.js';
+import { loadInventory, saveInventory } from '../../database.js';
 import { getItemIcon, getItemsByTag } from '../../utils.js';
 
 /**

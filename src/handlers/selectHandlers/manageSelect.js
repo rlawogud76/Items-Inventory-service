@@ -1,6 +1,6 @@
 // 관리(삭제/수정) select 핸들러
 import { EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database-old.js';
+import { loadInventory, removeItem } from '../../database.js';
 import { addHistory } from '../../utils.js';
 
 /**
@@ -25,27 +25,22 @@ export async function handleRemoveSelect(interaction) {
     }
     
     const itemData = targetData[category][selectedItem];
-    delete targetData[category][selectedItem];
     
-    // 제작품 삭제 시 레시피도 함께 삭제
-    let recipeDeleted = false;
-    if (type === 'crafting' && inventory.crafting?.recipes?.[category]?.[selectedItem]) {
-      delete inventory.crafting.recipes[category][selectedItem];
-      recipeDeleted = true;
-    }
+    // 제작품인지 확인 (레시피 삭제 여부 메시지용)
+    const recipeDeleted = type === 'crafting' && inventory.crafting?.recipes?.[category]?.[selectedItem];
     
-    addHistory(
-      inventory, 
-      type, 
-      category, 
-      selectedItem, 
-      'remove', 
-      `수량: ${itemData.quantity}/${itemData.required}${recipeDeleted ? ' (레시피 포함)' : ''}`, 
+    // 아이템 삭제 (DB 반영)
+    await removeItem(type, category, selectedItem);
+    
+    await addHistory(
+      type,
+      category,
+      selectedItem,
+      'remove',
+      `수량: ${itemData.quantity}/${itemData.required}${recipeDeleted ? ' (레시피 포함)' : ''}`,
       interaction.user.displayName || interaction.user.username
     );
-    
-    await saveInventory(inventory);
-    
+
     const successEmbed = new EmbedBuilder()
       .setColor(0xED4245)
       .setTitle('✅ 삭제 완료')

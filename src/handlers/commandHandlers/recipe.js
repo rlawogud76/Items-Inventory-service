@@ -1,7 +1,7 @@
 // 레시피 관련 커맨드 핸들러
 
 import { EmbedBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database-old.js';
+import { loadInventory, saveRecipe, removeRecipe } from '../../database.js';
 import { getItemIcon, sendTemporaryReply } from '../../utils.js';
 
 /**
@@ -104,16 +104,8 @@ export async function handleRecipeEditCommand(interaction) {
     materials.push({ name: material3, quantity: material3Qty, category: category });
   }
 
-  // 레시피 저장
-  if (!inventory.crafting.recipes) {
-    inventory.crafting.recipes = {};
-  }
-  if (!inventory.crafting.recipes[category]) {
-    inventory.crafting.recipes[category] = {};
-  }
-
-  inventory.crafting.recipes[category][craftItem] = materials;
-  await saveInventory(inventory);
+  // 레시피 저장 (DB 반영)
+  await saveRecipe(craftItem, category, materials);
 
   // 레시피 표시
   const recipeText = materials.map(m => {
@@ -143,8 +135,8 @@ export async function handleRecipeDeleteCommand(interaction) {
     return sendTemporaryReply(interaction, `❌ "${craftItem}"의 레시피가 등록되지 않았습니다.`);
   }
 
-  delete inventory.crafting.recipes[category][craftItem];
-  await saveInventory(inventory);
+  // 레시피 삭제 (DB 반영)
+  await removeRecipe(craftItem, category);
 
   const icon = getItemIcon(craftItem, inventory);
   const successEmbed = new EmbedBuilder()

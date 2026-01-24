@@ -1,6 +1,6 @@
 // 기여도 초기화 핸들러
 import { EmbedBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database-old.js';
+import { clearHistory, getHistoryCount } from '../../database.js';
 
 /**
  * 기여도 초기화 확인 버튼 핸들러
@@ -8,12 +8,8 @@ import { loadInventory, saveInventory } from '../../database-old.js';
  */
 export async function handleConfirmContributionReset(interaction) {
   try {
-    const inventory = await loadInventory();
-    const historyCount = inventory.history?.length || 0;
-    
-    // 히스토리 초기화
-    inventory.history = [];
-    await saveInventory(inventory);
+    const historyCount = await getHistoryCount();
+    await clearHistory();
     
     const successEmbed = new EmbedBuilder()
       .setColor(0x57F287)

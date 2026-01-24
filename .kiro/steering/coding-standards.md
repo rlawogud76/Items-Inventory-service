@@ -2,6 +2,14 @@
 
 ## 작업 이력
 
+### 2025-01-24: 레시피 재료 페이지네이션 파싱 버그 수정 (완료)
+- **문제**: `page_next_recipe_material_edit_해양_물결 수호의 핵_1_0` 파싱 시 category가 'material'로 잘못 파싱됨
+- **원인**: pagination.js에서 `parts[3] === 'edit'` 체크가 잘못됨 (parts[3]은 'material', parts[4]가 'edit')
+- **증상**: 레시피 수정 시 재료 페이지네이션 클릭하면 "material 카테고리를 찾을 수 없습니다" 에러
+- **해결**: `parts[4] === 'edit'` 체크로 수정, 인덱스도 +1 조정 (category = parts[5], itemName = parts.slice(6, -2))
+- **수정된 파일**: pagination.js
+- **커밋**: "Fix: pagination.js recipe material edit parsing - check parts[4] instead of parts[3] for edit flag"
+
 ### 2025-01-24: 레시피 수정 라우팅 충돌 해결 (완료)
 - **문제**: `select_recipe_edit_` 핸들러가 `select_recipe_material_edit_`도 매칭하여 잘못된 카테고리 파싱
 - **원인**: `select_recipe_material_edit_해양_아이템_1`이 `select_recipe_edit_`로 시작하므로 index.js 핸들러가 먼저 매칭됨

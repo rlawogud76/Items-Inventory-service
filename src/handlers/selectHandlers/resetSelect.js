@@ -1,6 +1,6 @@
 // 초기화 select 핸들러
 import { EmbedBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database-old.js';
+import { loadInventory, saveInventory } from '../../database.js';
 import { getItemIcon, addHistory } from '../../utils.js';
 
 /**
@@ -35,8 +35,8 @@ export async function handleResetSelect(interaction) {
     
     targetData.categories[category][selectedItem].quantity = 0;
     
-    addHistory(inventory, type, category, selectedItem, 'reset', 
-      `${oldQuantity}개 → 0개`, 
+    await addHistory(type, category, selectedItem, 'reset',
+      `${oldQuantity}개 → 0개`,
       interaction.user.displayName || interaction.user.username);
     
     await saveInventory(inventory);

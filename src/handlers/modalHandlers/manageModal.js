@@ -1,7 +1,8 @@
 // 관리(추가/수정) modal 핸들러
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database-old.js';
+import { loadInventory, addItem, updateItemDetails } from '../../database.js';
 import { formatQuantity, getItemIcon, addHistory, sanitizeInput, sanitizeNumber, isValidName } from '../../utils.js';
+import { STACK, LIMITS } from '../../constants.js';
 
 /**
  * Step 1: 물품/품목 추가 modal 핸들러 (이름 + 초기 수량)
@@ -15,12 +16,12 @@ export async function handleAddItemModalStep1(interaction) {
     
     // 입력값 sanitization
     const itemNameRaw = interaction.fields.getTextInputValue('item_name').trim();
-    const itemName = sanitizeInput(itemNameRaw, { maxLength: 50 });
+    const itemName = sanitizeInput(itemNameRaw, { maxLength: LIMITS.NAME_MAX_LENGTH });
     
     // 이름 검증
     if (!isValidName(itemName)) {
       return await interaction.reply({ 
-        content: '❌ 아이템 이름이 유효하지 않습니다. (한글, 영문, 숫자, 공백, -, _, ()만 사용 가능, 최대 50자)', 
+        content: `❌ 아이템 이름이 유효하지 않습니다. (한글, 영문, 숫자, 공백, -, _, ()만 사용 가능, 최대 ${LIMITS.NAME_MAX_LENGTH}자)`, 
         ephemeral: true 
       });
     }
@@ -30,18 +31,18 @@ export async function handleAddItemModalStep1(interaction) {
     const initialSetsRaw = interaction.fields.getTextInputValue('initial_sets')?.trim() || '0';
     const initialItemsRaw = interaction.fields.getTextInputValue('initial_items')?.trim() || '0';
     
-    const initialBoxes = sanitizeNumber(initialBoxesRaw, { min: 0, max: 10000 });
-    const initialSets = sanitizeNumber(initialSetsRaw, { min: 0, max: 100000 });
-    const initialItems = sanitizeNumber(initialItemsRaw, { min: 0, max: 63 });
+    const initialBoxes = sanitizeNumber(initialBoxesRaw, { min: 0, max: LIMITS.MAX_BOXES });
+    const initialSets = sanitizeNumber(initialSetsRaw, { min: 0, max: LIMITS.MAX_SETS });
+    const initialItems = sanitizeNumber(initialItemsRaw, { min: 0, max: LIMITS.MAX_ITEMS });
     
     if (initialBoxes === null || initialSets === null || initialItems === null) {
       return await interaction.reply({ 
-        content: '❌ 수량을 올바르게 입력해주세요. (상자: 0-10000, 세트: 0-100000, 개: 0-63)', 
+        content: `❌ 수량을 올바르게 입력해주세요. (상자: 0-${LIMITS.MAX_BOXES}, 세트: 0-${LIMITS.MAX_SETS}, 개: 0-${LIMITS.MAX_ITEMS})`, 
         ephemeral: true 
       });
     }
     
-    const initialTotal = Math.round(initialBoxes * 3456) + Math.round(initialSets * 64) + Math.round(initialItems);
+    const initialTotal = Math.round(initialBoxes * STACK.ITEMS_PER_BOX) + Math.round(initialSets * STACK.ITEMS_PER_SET) + Math.round(initialItems);
     
     // 아이템 중복 확인
     const inventory = await loadInventory();
@@ -116,18 +117,18 @@ export async function handleAddItemModalStep2(interaction) {
     const requiredSetsRaw = interaction.fields.getTextInputValue('required_sets')?.trim() || '0';
     const requiredItemsRaw = interaction.fields.getTextInputValue('required_items')?.trim() || '0';
     
-    const requiredBoxes = sanitizeNumber(requiredBoxesRaw, { min: 0, max: 10000 });
-    const requiredSets = sanitizeNumber(requiredSetsRaw, { min: 0, max: 100000 });
-    const requiredItems = sanitizeNumber(requiredItemsRaw, { min: 0, max: 63 });
+    const requiredBoxes = sanitizeNumber(requiredBoxesRaw, { min: 0, max: LIMITS.MAX_BOXES });
+    const requiredSets = sanitizeNumber(requiredSetsRaw, { min: 0, max: LIMITS.MAX_SETS });
+    const requiredItems = sanitizeNumber(requiredItemsRaw, { min: 0, max: LIMITS.MAX_ITEMS });
     
     if (requiredBoxes === null || requiredSets === null || requiredItems === null) {
       return await interaction.reply({ 
-        content: '❌ 수량을 올바르게 입력해주세요. (상자: 0-10000, 세트: 0-100000, 개: 0-63)', 
+        content: `❌ 수량을 올바르게 입력해주세요. (상자: 0-${LIMITS.MAX_BOXES}, 세트: 0-${LIMITS.MAX_SETS}, 개: 0-${LIMITS.MAX_ITEMS})`, 
         ephemeral: true 
       });
     }
     
-    const requiredTotal = Math.round(requiredBoxes * 3456) + Math.round(requiredSets * 64) + Math.round(requiredItems);
+    const requiredTotal = Math.round(requiredBoxes * STACK.ITEMS_PER_BOX) + Math.round(requiredSets * STACK.ITEMS_PER_SET) + Math.round(requiredItems);
     
     if (requiredTotal === 0) {
       return await interaction.reply({ 
@@ -137,94 +138,93 @@ export async function handleAddItemModalStep2(interaction) {
     }
     
     // DB에 저장 (물품 유형에 따른 처리)
-    const inventory = await loadInventory();
+    // const inventory = await loadInventory(); // 중복 체크는 addItem에서 수행됨
     
     if (type === 'inventory') {
-      if (!inventory.categories[category]) {
-        inventory.categories[category] = {};
-      }
-      
-      // 중복 체크
-      if (inventory.categories[category][itemName]) {
-        return await interaction.reply({ 
-          content: `❌ "${itemName}" 아이템이 이미 존재합니다.`, 
-          ephemeral: true 
-        });
-      }
-      
-      inventory.categories[category][itemName] = {
-        quantity: initialTotal,
-        required: requiredTotal,
-        itemType: itemType || 'material'
-      };
-      
-      // 중간 제작품인 경우 제작 레시피도 준비
-      if (itemType === 'intermediate') {
-        if (!inventory.crafting) {
-          inventory.crafting = { categories: {}, recipes: {} };
-        }
-        if (!inventory.crafting.categories[category]) {
-          inventory.crafting.categories[category] = {};
-        }
-        // 제작 섹션에도 실제 아이템 생성
-        inventory.crafting.categories[category][itemName] = {
+      try {
+        // 1. 일반 아이템 추가
+        await addItem({
+          name: itemName,
+          category: category,
+          type: 'inventory',
+          itemType: itemType || 'material',
           quantity: initialTotal,
           required: requiredTotal,
-          itemType: 'intermediate',
-          linkedItem: `inventory/${category}/${itemName}`
-        };
-        // 연동 정보 저장
-        inventory.categories[category][itemName].linkedItem = `crafting/${category}/${itemName}`;
-      }
-      
-      addHistory(inventory, 'inventory', category, itemName, 'add', 
-        `초기: ${initialTotal}개, 목표: ${requiredTotal}개, 유형: ${itemType}`, 
-        interaction.user.displayName || interaction.user.username);
-      
-    } else {
-      if (!inventory.crafting) {
-        inventory.crafting = { categories: {}, recipes: {} };
-      }
-      if (!inventory.crafting.categories[category]) {
-        inventory.crafting.categories[category] = {};
-      }
-      
-      if (inventory.crafting.categories[category][itemName]) {
-        return await interaction.reply({ 
-          content: `❌ "${itemName}" 제작품이 이미 존재합니다.`, 
-          ephemeral: true 
+          linkedItem: itemType === 'intermediate' ? `crafting/${category}/${itemName}` : null
         });
-      }
-      
-      inventory.crafting.categories[category][itemName] = {
-        quantity: initialTotal,
-        required: requiredTotal,
-        itemType: itemType || 'final'
-      };
-      
-      // 중간 제작품인 경우 재고와 연동
-      if (itemType === 'intermediate') {
-        if (!inventory.categories[category]) {
-          inventory.categories[category] = {};
-        }
-        if (!inventory.categories[category][itemName]) {
-          inventory.categories[category][itemName] = {
+        
+        // 2. 중간 제작품인 경우 제작 섹션에도 추가
+        if (itemType === 'intermediate') {
+          await addItem({
+            name: itemName,
+            category: category,
+            type: 'crafting',
+            itemType: 'intermediate',
             quantity: initialTotal,
             required: requiredTotal,
-            itemType: 'intermediate',
-            linkedItem: `crafting/${category}/${itemName}`
-          };
+            linkedItem: `inventory/${category}/${itemName}`
+          });
         }
-        inventory.crafting.categories[category][itemName].linkedItem = `inventory/${category}/${itemName}`;
+        
+        await addHistory('inventory', category, itemName, 'add',
+          `초기: ${initialTotal}개, 목표: ${requiredTotal}개, 유형: ${itemType}`,
+          interaction.user.displayName || interaction.user.username);
+          
+      } catch (error) {
+        if (error.message.includes('이미 존재')) {
+          return await interaction.reply({ 
+            content: `❌ "${itemName}" 아이템이 이미 존재합니다.`, 
+            ephemeral: true 
+          });
+        }
+        throw error;
       }
       
-      addHistory(inventory, 'crafting', category, itemName, 'add', 
-        `초기: ${initialTotal}개, 목표: ${requiredTotal}개, 유형: ${itemType}`, 
-        interaction.user.displayName || interaction.user.username);
+    } else {
+      try {
+        // 1. 제작품 추가
+        await addItem({
+          name: itemName,
+          category: category,
+          type: 'crafting',
+          itemType: itemType || 'final',
+          quantity: initialTotal,
+          required: requiredTotal,
+          linkedItem: itemType === 'intermediate' ? `inventory/${category}/${itemName}` : null
+        });
+        
+        // 2. 중간 제작품인 경우 재고 섹션에도 추가
+        if (itemType === 'intermediate') {
+          await addItem({
+            name: itemName,
+            category: category,
+            type: 'inventory',
+            itemType: 'intermediate',
+            quantity: initialTotal,
+            required: requiredTotal,
+            linkedItem: `crafting/${category}/${itemName}`
+          });
+        }
+        
+        await addHistory('crafting', category, itemName, 'add',
+          `초기: ${initialTotal}개, 목표: ${requiredTotal}개, 유형: ${itemType}`,
+          interaction.user.displayName || interaction.user.username);
+          
+      } catch (error) {
+        if (error.message.includes('이미 존재')) {
+          return await interaction.reply({ 
+            content: `❌ "${itemName}" 제작품이 이미 존재합니다.`, 
+            ephemeral: true 
+          });
+        }
+        throw error;
+      }
     }
     
-    await saveInventory(inventory);
+    // await saveInventory(inventory); // 제거됨
     
+    // 임베드 생성용 재고 로드 (아이콘 등 확인)
+    const inventory = await loadInventory();
     const icon = getItemIcon(itemName, inventory);
     const initialFormatted = formatQuantity(initialTotal);
     const requiredFormatted = formatQuantity(requiredTotal);
@@ -286,12 +286,12 @@ export async function handleEditNameModal(interaction) {
     
     // 입력값 sanitization
     const newNameRaw = interaction.fields.getTextInputValue('new_name').trim();
-    const newName = sanitizeInput(newNameRaw, { maxLength: 50 });
+    const newName = sanitizeInput(newNameRaw, { maxLength: LIMITS.NAME_MAX_LENGTH });
     
     // 이름 검증
     if (!isValidName(newName)) {
       return await interaction.reply({ 
-        content: '❌ 새 이름이 유효하지 않습니다. (한글, 영문, 숫자, 공백, -, _, ()만 사용 가능, 최대 50자)', 
+        content: `❌ 새 이름이 유효하지 않습니다. (한글, 영문, 숫자, 공백, -, _, ()만 사용 가능, 최대 ${LIMITS.NAME_MAX_LENGTH}자)`, 
         ephemeral: true 
       });
     }
@@ -320,33 +320,15 @@ export async function handleEditNameModal(interaction) {
       });
     }
     
-    // 이름 변경
-    targetData[category][newName] = targetData[category][oldName];
-    delete targetData[category][oldName];
+    // 이름 변경 (DB 반영)
+    // updateItemDetails가 레시피 이름 변경 및 태그 내 이름 업데이트도 처리함
+    await updateItemDetails(type, category, oldName, { name: newName });
     
-    // 레시피도 함께 변경 (제작품인 경우)
-    let recipeUpdated = false;
-    if (type === 'crafting' && inventory.crafting?.recipes?.[category]?.[oldName]) {
-      inventory.crafting.recipes[category][newName] = inventory.crafting.recipes[category][oldName];
-      delete inventory.crafting.recipes[category][oldName];
-      recipeUpdated = true;
-    }
-    
-    // 태그도 함께 변경
-    if (inventory.tags?.[type]?.[category]) {
-      for (const [tagName, items] of Object.entries(inventory.tags[type][category])) {
-        const index = items.indexOf(oldName);
-        if (index !== -1) {
-          items[index] = newName;
-        }
-      }
-    }
-    
-    addHistory(inventory, type, category, newName, 'rename', 
-      `"${oldName}" → "${newName}"${recipeUpdated ? ' (레시피 포함)' : ''}`, 
+    const recipeUpdated = type === 'crafting' && inventory.crafting?.recipes?.[category]?.[oldName];
+
+    await addHistory(type, category, newName, 'rename',
+      `"${oldName}" → "${newName}"${recipeUpdated ? ' (레시피 포함)' : ''}`,
       interaction.user.displayName || interaction.user.username);
-    
-    await saveInventory(inventory);
     
     const successEmbed = new EmbedBuilder()
       .setColor(0x57F287)

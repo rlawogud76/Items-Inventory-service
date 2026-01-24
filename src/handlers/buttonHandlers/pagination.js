@@ -1,6 +1,6 @@
-﻿// 페이지네이션 핸들러
+// 페이지네이션 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
-import { loadInventory } from '../../database-old.js';
+import { loadInventory } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 import { getItemIcon } from '../../utils.js';
 

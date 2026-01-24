@@ -2,7 +2,7 @@
 
 import { EmbedBuilder } from 'discord.js';
 import { createCraftingEmbed, createButtons } from '../../embeds.js';
-import { loadInventory, saveInventory } from '../../database-old.js';
+import { loadInventory, addItem, removeItem, saveRecipe } from '../../database.js';
 import { getItemIcon, addHistory, sendTemporaryReply } from '../../utils.js';
 
 /**
@@ -72,20 +72,7 @@ export async function handleCraftingAddCommand(interaction) {
 
   const inventory = await loadInventory();
   
-  if (!inventory.crafting) {
-    inventory.crafting = { categories: {}, crafting: {}, recipes: {} };
-  }
-  if (!inventory.crafting.categories[category]) {
-    inventory.crafting.categories[category] = {};
-  }
-  if (!inventory.crafting.recipes) {
-    inventory.crafting.recipes = {};
-  }
-  if (!inventory.crafting.recipes[category]) {
-    inventory.crafting.recipes[category] = {};
-  }
-  
-  if (inventory.crafting.categories[category][itemName]) {
+  if (inventory.crafting?.categories?.[category]?.[itemName]) {
     return sendTemporaryReply(interaction, `❌ "${itemName}" 제작품이 이미 존재합니다.`);
   }
 
@@ -118,26 +105,25 @@ export async function handleCraftingAddCommand(interaction) {
     materials.push({ name: material3, quantity: material3Qty, category: category });
   }
 
-  // 제작품 추가
-  inventory.crafting.categories[category][itemName] = {
+  // 제작품 추가 (DB 반영)
+  await addItem({
+    name: itemName,
+    category: category,
+    type: 'crafting',
+    itemType: 'final', // 기본값
     quantity: initialQuantity,
-    required: requiredQuantity
-  };
+    required: requiredQuantity,
+    emoji: emoji
+  });
   
-  if (emoji) {
-    inventory.crafting.categories[category][itemName].emoji = emoji;
-  }
-  
-  // 레시피 저장
-  inventory.crafting.recipes[category][itemName] = materials;
+  // 레시피 저장 (DB 반영)
+  await saveRecipe(category, itemName, materials);
   
   // 수정 내역 추가
-  addHistory(inventory, 'crafting', category, itemName, 'add', 
-    `초기: ${initialQuantity}개, 목표: ${requiredQuantity}개, 레시피: ${materials.map(m => `${m.name} x${m.quantity}`).join(', ')}`, 
+  await addHistory('crafting', category, itemName, 'add',
+    `초기: ${initialQuantity}개, 목표: ${requiredQuantity}개, 레시피: ${materials.map(m => `${m.name} x${m.quantity}`).join(', ')}`,
     interaction.user.displayName || interaction.user.username);
   
-  await saveInventory(inventory);
-
   // 레시피 표시
   const recipeText = materials.map(m => {
     const icon = getItemIcon(m.name, inventory);
@@ -167,15 +153,15 @@ export async function handleCraftingRemoveCommand(interaction) {
   }
 
   const itemData = inventory.crafting.categories[category][itemName];
-  delete inventory.crafting.categories[category][itemName];
+  
+  // 아이템 삭제 (DB 반영)
+  await removeItem('crafting', category, itemName);
   
   // 수정 내역 추가
-  addHistory(inventory, 'crafting', category, itemName, 'remove', 
-    `수량: ${itemData.quantity}/${itemData.required}`, 
+  await addHistory('crafting', category, itemName, 'remove',
+    `수량: ${itemData.quantity}/${itemData.required}`,
     interaction.user.displayName || interaction.user.username);
   
-  await saveInventory(inventory);
-
   const successEmbed = new EmbedBuilder()
     .setColor(0xED4245)
     .setDescription(`### ✅ 제작 목록 제거 완료\n**카테고리:** ${category}\n**${itemName}**이(가) 제작 목록에서 제거되었습니다.`);

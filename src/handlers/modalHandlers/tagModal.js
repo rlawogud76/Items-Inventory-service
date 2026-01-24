@@ -1,6 +1,6 @@
 // 태그 modal 핸들러
 import { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database-old.js';
+import { loadInventory, saveInventory } from '../../database.js';
 import { getItemIcon, getItemTag } from '../../utils.js';
 
 // 색상 옵션 정의

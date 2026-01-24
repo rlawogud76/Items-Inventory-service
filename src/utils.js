@@ -1,4 +1,6 @@
 // 유틸리티 함수들
+import { addHistoryEntry } from './database.js';
+import { STACK, LIMITS, UI, EMOJIS } from './constants.js';
 
 /**
  * 사용자 입력 sanitization
@@ -110,10 +112,10 @@ export function isValidName(name) {
 
 // 수량을 상자/세트/개로 변환하는 함수
 export function formatQuantity(quantity) {
-  const boxes = Math.floor(quantity / 3456); // 1상자 = 54세트 = 3456개
-  const remainingAfterBoxes = quantity % 3456;
-  const sets = Math.floor(remainingAfterBoxes / 64);
-  const items = remainingAfterBoxes % 64;
+  const boxes = Math.floor(quantity / STACK.ITEMS_PER_BOX);
+  const remainingAfterBoxes = quantity % STACK.ITEMS_PER_BOX;
+  const sets = Math.floor(remainingAfterBoxes / STACK.ITEMS_PER_SET);
+  const items = remainingAfterBoxes % STACK.ITEMS_PER_SET;
   
   return { boxes, sets, items };
 }
@@ -167,13 +169,13 @@ export function applyTagColor(text, color) {
   if (!color || color === 'default') return text;
   
   const COLOR_EMOJIS = {
-    'red': '🔴',
-    'green': '🟢', 
-    'blue': '🔵',
-    'yellow': '🟡',
-    'purple': '🟣',
-    'cyan': '🔵',
-    'white': '⚪'
+    'red': EMOJIS.COLORS.RED,
+    'green': EMOJIS.COLORS.GREEN, 
+    'blue': EMOJIS.COLORS.BLUE,
+    'yellow': EMOJIS.COLORS.YELLOW,
+    'purple': EMOJIS.COLORS.PURPLE,
+    'cyan': EMOJIS.COLORS.CYAN,
+    'white': EMOJIS.COLORS.WHITE
   };
   
   const emoji = COLOR_EMOJIS[color];
@@ -226,43 +228,34 @@ export function getItemIcon(itemName, inventory = null) {
     '철괴': '⚙️',
     '나무': '🪵',
     '음식': '🍖',
-    '레드스톤': '🔴'
+    '레드스톤': EMOJIS.COLORS.RED
   };
-  return icons[itemName] || '📦';
+  return icons[itemName] || EMOJIS.BOX;
 }
 
 // 프로그레스 바 생성
-export function createProgressBar(current, required, length = 10) {
+export function createProgressBar(current, required, length = UI.DEFAULT_BAR_LENGTH) {
   const percentage = Math.min(current / required, 1);
   const filled = Math.round(percentage * length);
   const empty = length - filled;
   
-  const filledChar = '█';
-  const emptyChar = '░';
+  const filledChar = UI.PROGRESS_BAR_FILLED;
+  const emptyChar = UI.PROGRESS_BAR_EMPTY;
   
   return filledChar.repeat(filled) + emptyChar.repeat(empty);
 }
 
-// 수정 내역 추가
-export function addHistory(inventory, type, category, itemName, action, details, userName) {
-  if (!inventory.history) {
-    inventory.history = [];
-  }
-  
-  inventory.history.unshift({
+// 수정 내역 추가 (History 컬렉션에 저장, 최대 1000개 유지)
+export async function addHistory(type, category, itemName, action, details, userName) {
+  await addHistoryEntry({
     timestamp: new Date().toISOString(),
-    type: type, // 'inventory' or 'crafting'
-    category: category,
-    itemName: itemName,
-    action: action, // 'add', 'remove', 'update_quantity', 'update_required'
-    details: details,
-    userName: userName
+    type,
+    category,
+    itemName,
+    action,
+    details,
+    userName
   });
-  
-  // 최대 100개까지만 보관
-  if (inventory.history.length > 100) {
-    inventory.history = inventory.history.slice(0, 100);
-  }
 }
 
 // ephemeral 메시지 자동 삭제
