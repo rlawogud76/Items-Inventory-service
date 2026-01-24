@@ -1,7 +1,7 @@
 // 관리(추가/수정) modal 핸들러
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, addItem, updateItemDetails } from '../../database.js';
-import { formatQuantity, getItemIcon, addHistory, sanitizeInput, sanitizeNumber, isValidName } from '../../utils.js';
+import { formatQuantity, getItemIcon, addHistory, sanitizeInput, sanitizeNumber, isValidName, getTimeoutSettings } from '../../utils.js';
 import { STACK, LIMITS } from '../../constants.js';
 
 /**
@@ -83,12 +83,13 @@ export async function handleAddItemModalStep1(interaction) {
     
     await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
+    const { selectTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ Step 1 모달 제출 에러:', error);
@@ -256,12 +257,13 @@ export async function handleAddItemModalStep2(interaction) {
       
       await interaction.reply({ embeds: [successEmbed], ephemeral: true, fetchReply: true });
       
-      // 15초 후 자동 삭제
+      // 설정된 시간 후 자동 삭제
+      const { infoTimeout } = getTimeoutSettings(inventory);
       setTimeout(async () => {
         try {
           await interaction.deleteReply();
         } catch (error) {}
-      }, 15000);
+      }, infoTimeout);
     }
     
   } catch (error) {
@@ -336,11 +338,12 @@ export async function handleEditNameModal(interaction) {
     
     await interaction.reply({ embeds: [successEmbed], ephemeral: true });
     
+    const { infoTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 15000);
+    }, infoTimeout);
     
   } catch (error) {
     console.error('❌ 이름 수정 모달 제출 에러:', error);
