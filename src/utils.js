@@ -393,3 +393,15 @@ export function getLinkedStatusText(type, category, itemName, inventory) {
   
   return `\n🔗 ${linkedTypeName}와 연동됨 (자동 동기화)`;
 }
+
+
+/**
+ * 설정된 타이머 값 가져오기
+ * @param {Object} inventory - 인벤토리 객체
+ * @returns {Object} - { selectTimeout, infoTimeout } (밀리초)
+ */
+export function getTimeoutSettings(inventory) {
+  const selectTimeout = (inventory?.settings?.selectMessageTimeout || 30) * 1000;
+  const infoTimeout = (inventory?.settings?.infoMessageTimeout || 15) * 1000;
+  return { selectTimeout, infoTimeout };
+}

@@ -9,7 +9,8 @@ import {
   handleEditNameModal,
   handleTagNameInputModal,
   handleTagNameModal,
-  handleBarSizeModal
+  handleBarSizeModal,
+  handleTimeoutSettingsModal
 } from './modalHandlers/index.js';
 
 import { handlePageJumpModal } from './buttonHandlers/pagination.js';
@@ -79,6 +80,12 @@ export async function handleModalInteraction(interaction) {
   // 바 크기 설정
   else if (interaction.customId.startsWith('bar_size_modal_')) {
     await handleBarSizeModal(interaction);
+    return true;
+  }
+  
+  // 타이머 설정
+  else if (interaction.customId.startsWith('timeout_settings_modal_')) {
+    await handleTimeoutSettingsModal(interaction);
     return true;
   }
   

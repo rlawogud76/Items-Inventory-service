@@ -9,6 +9,10 @@ const settingSchema = new mongoose.Schema({
   uiMode: { type: String, default: 'normal' },
   barLength: { type: Number, default: UI.DEFAULT_BAR_LENGTH },
   
+  // 메시지 자동 삭제 시간 설정 (초 단위)
+  selectMessageTimeout: { type: Number, default: 30 }, // 셀렉트 메뉴 메시지 (기본 30초)
+  infoMessageTimeout: { type: Number, default: 15 },   // 안내 메시지 (기본 15초)
+  
   // 태그 시스템 (기존 구조 유지하되 별도 관리)
   // 구조: { inventory: { category: { tagName: [items...] } }, crafting: { ... } }
   tags: {

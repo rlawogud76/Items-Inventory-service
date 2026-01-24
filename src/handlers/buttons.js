@@ -57,6 +57,7 @@ import {
   handleBarSizeButton,
   handleUiModeButton,
   handleAutoRefreshButton,
+  handleTimeoutSettingsButton,
   handleWorkButton,
   handleWorkPageButton,
   handleStopWorkButton,
@@ -206,6 +207,10 @@ export async function handleButtonInteraction(interaction) {
     
     else if (interaction.customId.startsWith('auto_refresh')) {
       return await handleAutoRefreshButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('timeout_settings')) {
+      return await handleTimeoutSettingsButton(interaction);
     }
     
     // ============================================

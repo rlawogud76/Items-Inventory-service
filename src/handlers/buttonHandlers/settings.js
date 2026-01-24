@@ -282,3 +282,56 @@ export async function handleAutoRefreshButton(interaction) {
     }
   }
 }
+
+/**
+ * 타이머 설정 버튼 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleTimeoutSettingsButton(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[2]; // 'inventory' or 'crafting'
+    const category = parts.length > 3 ? parts.slice(3).join('_') : 'all';
+    
+    const inventory = await loadInventory();
+    const selectTimeout = inventory.settings?.selectMessageTimeout || 30;
+    const infoTimeout = inventory.settings?.infoMessageTimeout || 15;
+    
+    // 모달 생성
+    const modal = new ModalBuilder()
+      .setCustomId(`timeout_settings_modal_${type}_${category}`)
+      .setTitle('⏱️ 메시지 자동 삭제 시간 설정');
+    
+    const selectTimeoutInput = new TextInputBuilder()
+      .setCustomId('select_timeout')
+      .setLabel('셀렉트 메뉴 메시지 (초)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('예: 30 (10~300초)')
+      .setValue(String(selectTimeout))
+      .setRequired(true)
+      .setMinLength(2)
+      .setMaxLength(3);
+    
+    const infoTimeoutInput = new TextInputBuilder()
+      .setCustomId('info_timeout')
+      .setLabel('안내 메시지 (초)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('예: 15 (5~300초)')
+      .setValue(String(infoTimeout))
+      .setRequired(true)
+      .setMinLength(1)
+      .setMaxLength(3);
+    
+    const row1 = new ActionRowBuilder().addComponents(selectTimeoutInput);
+    const row2 = new ActionRowBuilder().addComponents(infoTimeoutInput);
+    modal.addComponents(row1, row2);
+    
+    await interaction.showModal(modal);
+    console.log(`⏱️ 타이머 설정 모달 표시 (셀렉트: ${selectTimeout}초, 안내: ${infoTimeout}초)`);
+  } catch (error) {
+    console.error('❌ 타이머 설정 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
+      console.error('❌ 타이머 설정 에러 응답 실패:', err);
+    });
+  }
+}

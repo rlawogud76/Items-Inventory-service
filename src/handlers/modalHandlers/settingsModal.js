@@ -63,3 +63,57 @@ export async function handleBarSizeModal(interaction) {
     });
   }
 }
+
+/**
+ * 타이머 설정 모달 제출 핸들러
+ * timeout_settings_modal_${type}_${category}
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleTimeoutSettingsModal(interaction) {
+  try {
+    const selectTimeoutValue = interaction.fields.getTextInputValue('select_timeout').trim();
+    const infoTimeoutValue = interaction.fields.getTextInputValue('info_timeout').trim();
+    
+    const selectTimeout = parseInt(selectTimeoutValue, 10);
+    const infoTimeout = parseInt(infoTimeoutValue, 10);
+    
+    if (isNaN(selectTimeout) || selectTimeout < 10 || selectTimeout > 300) {
+      return await interaction.reply({
+        content: `❌ 셀렉트 메뉴 타이머는 10~300초 사이여야 합니다. (입력값: ${selectTimeoutValue})`,
+        ephemeral: true
+      });
+    }
+    
+    if (isNaN(infoTimeout) || infoTimeout < 5 || infoTimeout > 300) {
+      return await interaction.reply({
+        content: `❌ 안내 메시지 타이머는 5~300초 사이여야 합니다. (입력값: ${infoTimeoutValue})`,
+        ephemeral: true
+      });
+    }
+    
+    // DB 저장
+    await updateSettings({ 
+      selectMessageTimeout: selectTimeout,
+      infoMessageTimeout: infoTimeout
+    });
+    
+    await interaction.reply({
+      content: `✅ 타이머 설정 완료!\n\n📋 셀렉트 메뉴: ${selectTimeout}초\n💬 안내 메시지: ${infoTimeout}초\n\n_이 메시지는 ${infoTimeout}초 후 자동 삭제됩니다_`,
+      ephemeral: true
+    });
+    
+    // 설정한 시간 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, infoTimeout * 1000);
+    
+    console.log(`⏱️ 타이머 설정 변경: 셀렉트=${selectTimeout}초, 안내=${infoTimeout}초`);
+  } catch (error) {
+    console.error('❌ 타이머 설정 모달 제출 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
+      console.error('❌ 타이머 설정 모달 응답 실패:', err);
+    });
+  }
+}

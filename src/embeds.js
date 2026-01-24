@@ -404,6 +404,10 @@ export function createButtons(categoryName = null, autoRefresh = false, type = '
       new ButtonBuilder()
         .setCustomId(refreshId)
         .setLabel('🔄 새로고침')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`timeout_settings_${type}_${categoryName || 'all'}`)
+        .setLabel('⏱️ 타이머')
         .setStyle(ButtonStyle.Secondary)
     );
   

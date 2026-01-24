@@ -21,6 +21,6 @@ export {
 } from './tagModal.js';
 
 // 설정 (바 크기 등)
-export { handleBarSizeModal } from './settingsModal.js';
+export { handleBarSizeModal, handleTimeoutSettingsModal } from './settingsModal.js';
 
 // 수량 - quantityModal.js / index.js에서 처리
