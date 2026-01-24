@@ -2,7 +2,8 @@
 
 // 페이지네이션 & 새로고침
 export { 
-  handlePageNavigation, 
+  handlePageNavigation,
+  handlePageJump,
   handleRecipeMaterialPageNavigation,
   handleRecipeMaterialStandalonePageNavigation,
   handleRecipeAddPageNavigation
