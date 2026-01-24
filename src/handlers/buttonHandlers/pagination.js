@@ -72,6 +72,43 @@ export async function handlePageNavigation(interaction) {
   }
 }
 
+/**
+ * 페이지 점프 버튼 핸들러 (모달 표시)
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handlePageJump(interaction) {
+  try {
+    const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = await import('discord.js');
+    
+    // customId 형식: page_jump_embed_inventory_해양_2_10 (현재페이지_총페이지)
+    const parts = interaction.customId.split('_');
+    const type = parts[3]; // 'inventory' or 'crafting'
+    const totalPages = parseInt(parts[parts.length - 1]);
+    const currentPage = parseInt(parts[parts.length - 2]);
+    const category = parts.slice(4, -2).join('_');
+    
+    const modal = new ModalBuilder()
+      .setCustomId(`page_jump_modal_${type}_${category}_${totalPages}`)
+      .setTitle('페이지 이동');
+    
+    const pageInput = new TextInputBuilder()
+      .setCustomId('page_number')
+      .setLabel(`이동할 페이지 (1-${totalPages})`)
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder(`현재: ${currentPage + 1}페이지`)
+      .setRequired(true)
+      .setMinLength(1)
+      .setMaxLength(String(totalPages).length);
+    
+    modal.addComponents(new ActionRowBuilder().addComponents(pageInput));
+    
+    await interaction.showModal(modal);
+  } catch (error) {
+    console.error('❌ 페이지 점프 모달 에러:', error);
+    await interaction.reply({ content: '페이지 이동 모달을 표시하는 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+  }
+}
+
 
 /**
  * 레시피 재료 선택 페이지네이션 핸들러
@@ -358,5 +395,71 @@ export async function handleRecipeAddPageNavigation(interaction) {
         console.error('❌ 레시피 추가 제작품 페이지 이동 에러 응답 실패:', err);
       });
     }
+  }
+}
+
+
+/**
+ * 페이지 점프 모달 제출 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handlePageJumpModal(interaction) {
+  try {
+    // customId 형식: page_jump_modal_inventory_해양_10 (총페이지)
+    const parts = interaction.customId.split('_');
+    const type = parts[3]; // 'inventory' or 'crafting'
+    const totalPages = parseInt(parts[parts.length - 1]);
+    const category = parts.slice(4, -1).join('_');
+    
+    const pageInput = interaction.fields.getTextInputValue('page_number').trim();
+    const targetPage = parseInt(pageInput);
+    
+    // 페이지 번호 검증
+    if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
+      return await interaction.reply({
+        content: `❌ 잘못된 페이지 번호입니다. 1부터 ${totalPages}까지 입력해주세요.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
+        ephemeral: true
+      }).then(() => {
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 15000);
+      });
+    }
+    
+    const newPage = targetPage - 1; // 0-based index
+    
+    const inventory = await loadInventory();
+    const uiMode = inventory.settings?.uiMode || 'normal';
+    const barLength = inventory.settings?.barLength || 15;
+    
+    let embed;
+    
+    if (type === 'crafting') {
+      const crafting = inventory.crafting || { categories: {}, crafting: {} };
+      embed = createCraftingEmbed(crafting, category, uiMode, barLength, newPage, inventory);
+    } else {
+      embed = createInventoryEmbed(inventory, category, uiMode, barLength, newPage);
+    }
+    
+    const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, newPage, totalPages);
+    
+    await interaction.update({ embeds: [embed], components: buttons });
+    
+    // 활성 메시지의 페이지 번호 업데이트
+    const messageId = interaction.message.id;
+    const messageData = global.activeMessages?.get(messageId);
+    if (messageData) {
+      messageData.page = newPage;
+      messageData.timestamp = Date.now();
+      global.activeMessages.set(messageId, messageData);
+      console.log(`🔢 페이지 점프: ${targetPage}페이지로 이동 (메시지 ${messageId} 페이지 상태 저장)`);
+    } else {
+      console.log(`🔢 페이지 점프: ${targetPage}페이지로 이동`);
+    }
+  } catch (error) {
+    console.error('❌ 페이지 점프 모달 제출 에러:', error);
+    await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
   }
 }

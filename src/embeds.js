@@ -422,13 +422,13 @@ export function createButtons(categoryName = null, autoRefresh = false, type = '
         .setDisabled(page === 0)
     );
     
-    // 페이지 정보 버튼 (비활성화)
+    // 페이지 정보 버튼 (클릭 시 페이지 선택 모달)
     pageButtons.push(
       new ButtonBuilder()
-        .setCustomId(`page_info_embed_${type}_${categoryName}_${page}`)
-        .setLabel(`페이지 ${page + 1}/${totalPages}`)
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true)
+        .setCustomId(`page_jump_embed_${type}_${categoryName}_${page}_${totalPages}`)
+        .setLabel(`📄 ${page + 1}/${totalPages}`)
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(false)
     );
     
     // 다음 페이지 버튼

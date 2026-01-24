@@ -12,6 +12,8 @@ import {
   handleBarSizeModal
 } from './modalHandlers/index.js';
 
+import { handlePageJumpModal } from './buttonHandlers/pagination.js';
+
 /**
  * Modal 제출 인터랙션 처리 함수
  * @param {Interaction} interaction - Discord 인터랙션
@@ -20,8 +22,14 @@ import {
 export async function handleModalInteraction(interaction) {
   console.log('Modal 제출 감지! customId:', interaction.customId);
   
+  // 페이지 점프 모달
+  if (interaction.customId.startsWith('page_jump_modal_')) {
+    await handlePageJumpModal(interaction);
+    return true;
+  }
+  
   // 레시피 수정 수량
-  if (interaction.customId.startsWith('recipe_edit_quantity_modal_')) {
+  else if (interaction.customId.startsWith('recipe_edit_quantity_modal_')) {
     await handleRecipeEditQuantityModal(interaction);
     return true;
   }

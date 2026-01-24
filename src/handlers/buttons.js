@@ -19,6 +19,7 @@
 // 분리된 핸들러 import
 import { 
   handlePageNavigation,
+  handlePageJump,
   handleRecipeMaterialPageNavigation,
   handleRecipeMaterialStandalonePageNavigation,
   handleRecipeAddPageNavigation,
@@ -72,6 +73,11 @@ export async function handleButtonInteraction(interaction) {
     // ============================================
     if (interaction.customId.startsWith('page_prev_embed_') || interaction.customId.startsWith('page_next_embed_')) {
       return await handlePageNavigation(interaction);
+    }
+    
+    // 페이지 점프 버튼
+    else if (interaction.customId.startsWith('page_jump_embed_')) {
+      return await handlePageJump(interaction);
     }
     
     // ============================================
