@@ -87,6 +87,9 @@ export async function handlePageJump(interaction) {
     const currentPage = parseInt(parts[parts.length - 2]);
     const category = parts.slice(4, -2).join('_');
     
+    const inventory = await loadInventory();
+    const { infoTimeout } = getTimeoutSettings(inventory);
+    
     const modal = new ModalBuilder()
       .setCustomId(`page_jump_modal_${type}_${category}_${totalPages}`)
       .setTitle('페이지 이동');
@@ -414,23 +417,25 @@ export async function handlePageJumpModal(interaction) {
     const pageInput = interaction.fields.getTextInputValue('page_number').trim();
     const targetPage = parseInt(pageInput);
     
+    const inventory = await loadInventory();
+    const { infoTimeout } = getTimeoutSettings(inventory);
+    
     // 페이지 번호 검증
     if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
       return await interaction.reply({
-        content: `❌ 잘못된 페이지 번호입니다. 1부터 ${totalPages}까지 입력해주세요.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
+        content: `❌ 잘못된 페이지 번호입니다. 1부터 ${totalPages}까지 입력해주세요.\n\n_이 메시지는 ${infoTimeout / 1000}초 후 자동 삭제됩니다_`,
         ephemeral: true
       }).then(() => {
         setTimeout(async () => {
           try {
             await interaction.deleteReply();
           } catch (error) {}
-        }, 15000);
+        }, infoTimeout);
       });
     }
     
     const newPage = targetPage - 1; // 0-based index
     
-    const inventory = await loadInventory();
     const uiMode = inventory.settings?.uiMode || 'normal';
     const barLength = inventory.settings?.barLength || 15;
     

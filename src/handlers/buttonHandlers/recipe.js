@@ -27,6 +27,9 @@ export async function handleRecipeButton(interaction) {
     const type = parts[1]; // 'crafting'
     const category = parts.slice(2).join('_');
     
+    const inventory = await loadInventory();
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    
     // 레시피 관리 버튼 생성
     const viewButton = new ButtonBuilder()
       .setCustomId(`recipe_view_${category}_0`)
@@ -46,19 +49,19 @@ export async function handleRecipeButton(interaction) {
     const row = new ActionRowBuilder().addComponents(viewButton, addButton, editButton);
     
     await interaction.reply({
-      content: `📋 **${category}** 카테고리 레시피 관리\n\n원하는 작업을 선택하세요:\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
+      content: `📋 **${category}** 카테고리 레시피 관리\n\n원하는 작업을 선택하세요:\n\n_이 메시지는 ${selectTimeout / 1000}초 후 자동 삭제됩니다_`,
       components: [row],
       ephemeral: true
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {
         // 이미 삭제되었거나 삭제할 수 없는 경우 무시
       }
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 레시피 버튼 에러:', error);
@@ -184,11 +187,13 @@ export async function handleRecipeViewButton(interaction) {
       components
     });
     
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 레시피 조회 에러:', error);
@@ -268,16 +273,18 @@ export async function handleRecipeEditButton(interaction) {
     }
     
     await interaction.update({
-      content: `✏️ **${category}** 카테고리에서 레시피를 수정할 제작품을 선택하세요${totalPages > 1 ? ` (${items.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}:\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
+      content: `✏️ **${category}** 카테고리에서 레시피를 수정할 제작품을 선택하세요${totalPages > 1 ? ` (${items.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}:\n\n_이 메시지는 ${selectTimeout / 1000}초 후 자동 삭제됩니다_`,
       components: rows
     });
     
-    // 30초 후 자동 삭제
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 레시피 수정 에러:', error);
@@ -356,17 +363,19 @@ export async function handleRecipeAddButton(interaction) {
       rows.push(new ActionRowBuilder().addComponents(pageButtons));
     }
     
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    
     await interaction.update({
-      content: `➕ **${category}** 카테고리에서 레시피를 추가할 제작품을 선택하세요${totalPages > 1 ? ` (${items.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}:\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
+      content: `➕ **${category}** 카테고리에서 레시피를 추가할 제작품을 선택하세요${totalPages > 1 ? ` (${items.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}:\n\n_이 메시지는 ${selectTimeout / 1000}초 후 자동 삭제됩니다_`,
       components: rows
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 레시피 추가 에러:', error);
@@ -388,9 +397,12 @@ export async function handleRecipeAddSkipButton(interaction) {
     const category = parts[0];
     const itemName = parts.slice(1).join('_');
     
+    const inventory = await loadInventory();
+    const { infoTimeout } = getTimeoutSettings(inventory);
+    
     if (isSkip) {
       await interaction.update({
-        content: `✅ ${itemName}\n제작품이 추가되었습니다. 나중에 \`/레시피수정\` 명령어로 레시피를 추가할 수 있습니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
+        content: `✅ ${itemName}\n제작품이 추가되었습니다. 나중에 \`/레시피수정\` 명령어로 레시피를 추가할 수 있습니다.\n\n_이 메시지는 ${infoTimeout / 1000}초 후 자동 삭제됩니다_`,
         embeds: [],
         components: []
       });
@@ -399,12 +411,11 @@ export async function handleRecipeAddSkipButton(interaction) {
         try {
           await interaction.deleteReply();
         } catch (error) {}
-      }, 15000);
+      }, infoTimeout);
       return;
     }
     
     // 레시피 추가 - 재료 선택 메뉴 표시
-    const inventory = await loadInventory();
     
     // 같은 카테고리의 재고 아이템 목록 가져오기
     if (!inventory.categories?.[category] || Object.keys(inventory.categories[category]).length === 0) {
@@ -508,6 +519,7 @@ export async function handleRecipeMoreFinishButton(interaction) {
     }
     
     const inventory = await loadInventory();
+    const { infoTimeout, selectTimeout } = getTimeoutSettings(inventory);
     
     if (isFinish) {
       const recipe = inventory.crafting.recipes?.[category]?.[itemName] || [];
@@ -516,7 +528,7 @@ export async function handleRecipeMoreFinishButton(interaction) {
         .join('\n');
       
       await interaction.update({
-        content: `✅ ${itemName}\n레시피 ${isEdit ? '수정' : '추가'} 완료!\n\n**${isEdit ? '새 ' : ''}레시피:**\n${recipeText}\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
+        content: `✅ ${itemName}\n레시피 ${isEdit ? '수정' : '추가'} 완료!\n\n**${isEdit ? '새 ' : ''}레시피:**\n${recipeText}\n\n_이 메시지는 ${infoTimeout / 1000}초 후 자동 삭제됩니다_`,
         components: []
       });
       
@@ -524,7 +536,7 @@ export async function handleRecipeMoreFinishButton(interaction) {
         try {
           await interaction.deleteReply();
         } catch (error) {}
-      }, 15000);
+      }, infoTimeout);
       return;
     }
     
@@ -595,18 +607,18 @@ export async function handleRecipeMoreFinishButton(interaction) {
       : '없음';
     
     await interaction.update({
-      content: `${isEdit ? '✏️' : '📝'} ${itemName}\n레시피 ${isEdit ? '수정' : '추가'}\n\n**현재 레시피:**\n${recipeText}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
+      content: `${isEdit ? '✏️' : '📝'} ${itemName}\n레시피 ${isEdit ? '수정' : '추가'}\n\n**현재 레시피:**\n${recipeText}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}\n\n_이 메시지는 ${selectTimeout / 1000}초 후 자동 삭제됩니다_`,
       components: rows
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {
         // 이미 삭제되었거나 삭제할 수 없는 경우 무시
       }
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 레시피 버튼 에러:', error);
@@ -630,6 +642,7 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
     const itemName = isFinish ? parts.slice(1).join('_') : parts.slice(1, -1).join('_');
     
     const inventory = await loadInventory();
+    const { infoTimeout, selectTimeout } = getTimeoutSettings(inventory);
     
     if (isFinish) {
       const recipe = inventory.crafting.recipes?.[category]?.[itemName] || [];
@@ -638,7 +651,7 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
         .join('\n');
       
       await interaction.update({
-        content: `✅ ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${recipeText}\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
+        content: `✅ ${itemName}\n레시피 추가 완료!\n\n**레시피:**\n${recipeText}\n\n_이 메시지는 ${infoTimeout / 1000}초 후 자동 삭제됩니다_`,
         components: []
       });
       
@@ -646,7 +659,7 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
         try {
           await interaction.deleteReply();
         } catch (error) {}
-      }, 15000);
+      }, infoTimeout);
       return;
     }
     
@@ -717,18 +730,18 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
       : '없음';
     
     await interaction.update({
-      content: `📝 ${itemName}\n레시피 추가\n\n**현재 레시피:**\n${recipeText}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
+      content: `📝 ${itemName}\n레시피 추가\n\n**현재 레시피:**\n${recipeText}\n\n**${step}단계:** ${step}번째 재료를 선택하세요${totalPages > 1 ? ` (${materials.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}\n\n_이 메시지는 ${selectTimeout / 1000}초 후 자동 삭제됩니다_`,
       components: rows
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {
         // 이미 삭제되었거나 삭제할 수 없는 경우 무시
       }
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 레시피 추가 버튼 에러:', error);

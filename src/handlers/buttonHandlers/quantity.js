@@ -101,20 +101,22 @@ export async function handleQuantityButton(interaction) {
     
     const paginationInfo = getPaginationInfo(page, totalPages, itemOptions.length, startIndex, endIndex);
     
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    
     await interaction.reply({
-      content: `📊 **${category}** 카테고리 수량 관리\n${paginationInfo}\n\n수량을 관리할 아이템을 선택하세요:\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
+      content: `📊 **${category}** 카테고리 수량 관리\n${paginationInfo}\n\n수량을 관리할 아이템을 선택하세요:\n\n_이 메시지는 ${selectTimeout / 1000}초 후 자동 삭제됩니다_`,
       components: rows,
       ephemeral: true
     });
     
-    // 15초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {
         // 이미 삭제되었거나 삭제할 수 없는 경우 무시
       }
-    }, 15000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 버튼 에러:', error);

@@ -395,6 +395,7 @@ export async function handleStopWorkButton(interaction) {
     console.log('  - 아이템:', itemName);
     
     const inventory = await loadInventory();
+    const { infoTimeout } = getTimeoutSettings(inventory);
     
     if (isCrafting) {
       if (inventory.crafting?.crafting?.[category]?.[itemName]) {
@@ -410,7 +411,7 @@ export async function handleStopWorkButton(interaction) {
           try {
             await interaction.deleteReply();
           } catch (error) {}
-        }, 15000);
+        }, infoTimeout);
       } else {
         await interaction.update({
           content: `⚠️ ${itemName}\n제작 정보를 찾을 수 없습니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
@@ -422,7 +423,7 @@ export async function handleStopWorkButton(interaction) {
           try {
             await interaction.deleteReply();
           } catch (error) {}
-        }, 15000);
+        }, infoTimeout);
       }
     } else {
       if (inventory.collecting?.[category]?.[itemName]) {
@@ -438,7 +439,7 @@ export async function handleStopWorkButton(interaction) {
           try {
             await interaction.deleteReply();
           } catch (error) {}
-        }, 15000);
+        }, infoTimeout);
       } else {
         await interaction.update({
           content: `⚠️ ${itemName}\n수집 정보를 찾을 수 없습니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
@@ -450,7 +451,7 @@ export async function handleStopWorkButton(interaction) {
           try {
             await interaction.deleteReply();
           } catch (error) {}
-        }, 15000);
+        }, infoTimeout);
       }
     }
   } catch (error) {
