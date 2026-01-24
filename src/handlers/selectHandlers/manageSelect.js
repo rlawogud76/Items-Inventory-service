@@ -1,7 +1,7 @@
 // 관리(삭제/수정/순서변경) select 핸들러
 import { EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, removeItem } from '../../database.js';
-import { addHistory, formatQuantity } from '../../utils.js';
+import { addHistory, formatQuantity, getTimeoutSettings } from '../../utils.js';
 
 /**
  * 삭제 항목 선택 핸들러
@@ -51,12 +51,13 @@ export async function handleRemoveSelect(interaction) {
       components: []
     });
     
-    // 15초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
+    const { infoTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 15000);
+    }, infoTimeout);
     
   } catch (error) {
     console.error('❌ 삭제 선택 에러:', error);
@@ -310,12 +311,13 @@ export async function handleReorderSecondSelect(interaction) {
       components: []
     });
     
-    // 15초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
+    const { infoTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 15000);
+    }, infoTimeout);
     
   } catch (error) {
     console.error('❌ 순서 변경 실행 에러:', error);
