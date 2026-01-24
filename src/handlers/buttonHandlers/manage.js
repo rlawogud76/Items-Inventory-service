@@ -1389,12 +1389,12 @@ export async function handleMoveItemButton(interaction) {
     // 카테고리 데이터 교체
     if (type === 'inventory') {
       inventory.categories[category] = newCategoryData;
+      inventory.markModified?.('categories');
     } else {
       inventory.crafting.categories[category] = newCategoryData;
+      inventory.markModified?.('crafting.categories');
     }
     
-    inventory.markModified('categories');
-    inventory.markModified('crafting');
     await saveInventory(inventory);
     
     // 히스토리 기록
