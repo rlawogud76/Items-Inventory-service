@@ -88,11 +88,12 @@ export async function handleRecipeEditQuantityModal(interaction) {
         ephemeral: true
       });
       
+      const { infoTimeout } = getTimeoutSettings(inventory);
       setTimeout(async () => {
         try {
           await interaction.deleteReply();
         } catch (error) {}
-      }, 15000);
+      }, infoTimeout);
     }
     
   } catch (error) {
@@ -188,11 +189,12 @@ export async function handleRecipeQuantityModal(interaction) {
         ephemeral: true
       });
       
+      const { infoTimeout } = getTimeoutSettings(inventory);
       setTimeout(async () => {
         try {
           await interaction.deleteReply();
         } catch (error) {}
-      }, 15000);
+      }, infoTimeout);
     }
     
   } catch (error) {
@@ -288,11 +290,12 @@ export async function handleRecipeStandaloneQuantityModal(interaction) {
         ephemeral: true
       });
       
+      const { infoTimeout } = getTimeoutSettings(inventory);
       setTimeout(async () => {
         try {
           await interaction.deleteReply();
         } catch (error) {}
-      }, 15000);
+      }, infoTimeout);
     }
     
   } catch (error) {

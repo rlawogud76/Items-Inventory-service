@@ -92,12 +92,13 @@ export async function handleTagNameInputModal(interaction) {
       ephemeral: true
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
+    const { selectTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 태그 이름 입력 모달 제출 에러:', error);
@@ -187,11 +188,12 @@ export async function handleTagNameModal(interaction) {
     
     await interaction.reply({ embeds: [successEmbed], ephemeral: true });
     
+    const { infoTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 15000);
+    }, infoTimeout);
     
   } catch (error) {
     console.error('❌ 태그 이름 모달 제출 에러:', error);

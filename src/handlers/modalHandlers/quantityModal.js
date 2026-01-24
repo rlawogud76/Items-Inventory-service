@@ -203,12 +203,13 @@ export async function handleQuantityModal(interaction) {
       ephemeral: true 
     });
     
-    // 15초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
+    const { infoTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 15000);
+    }, infoTimeout);
     
     console.log('✅ 수량 업데이트 완료 (Atomic)');
     
