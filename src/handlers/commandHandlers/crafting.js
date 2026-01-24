@@ -13,8 +13,8 @@ import { getItemIcon, addHistory, sendTemporaryReply } from '../../utils.js';
 export async function handleCraftingCommand(interaction, activeMessages) {
   const category = interaction.options.getString('카테고리');
   
-  // 먼저 응답 (3초 제한 회피)
-  await interaction.deferReply();
+  // 먼저 응답 (3초 제한 회피) - ephemeral로 변경
+  await interaction.deferReply({ ephemeral: true });
   
   try {
     const inventory = await loadInventory();
