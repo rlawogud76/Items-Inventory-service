@@ -36,6 +36,11 @@ export async function handleRecipeEditQuantityModal(interaction) {
       inventory.crafting.recipes[category][itemName] = [];
     }
     
+    // 레시피 배열이 없으면 생성 (안전장치)
+    if (!inventory.crafting.recipes[category][itemName]) {
+      inventory.crafting.recipes[category][itemName] = [];
+    }
+    
     // 재료 추가
     inventory.crafting.recipes[category][itemName].push({
       name: materialName,
@@ -130,6 +135,11 @@ export async function handleRecipeQuantityModal(interaction) {
       inventory.crafting.recipes[category][itemName] = [];
     }
     
+    // 레시피 배열이 없으면 생성 (안전장치)
+    if (!inventory.crafting.recipes[category][itemName]) {
+      inventory.crafting.recipes[category][itemName] = [];
+    }
+    
     // 재료 추가
     inventory.crafting.recipes[category][itemName].push({
       name: materialName,
@@ -221,6 +231,11 @@ export async function handleRecipeStandaloneQuantityModal(interaction) {
     
     // 첫 번째 재료면 레시피 초기화
     if (step === 1) {
+      inventory.crafting.recipes[category][itemName] = [];
+    }
+    
+    // 레시피 배열이 없으면 생성 (안전장치)
+    if (!inventory.crafting.recipes[category][itemName]) {
       inventory.crafting.recipes[category][itemName] = [];
     }
     
