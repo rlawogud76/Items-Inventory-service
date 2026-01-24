@@ -1,7 +1,7 @@
 // 초기화 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { loadInventory, updateMultipleItems } from '../../database.js';
-import { getItemIcon, sendTemporaryReply } from '../../utils.js';
+import { getItemIcon, sendTemporaryReply, getTimeoutSettings } from '../../utils.js';
 
 /**
  * 이모지 검증 함수 - Select Menu는 유니코드 이모지만 허용
@@ -37,9 +37,13 @@ export async function handleResetButton(interaction) {
     console.log('  - 타입:', type);
     console.log('  - 카테고리:', category || '전체');
     
+    const inventory = await loadInventory();
+    const { infoTimeout, selectTimeout } = getTimeoutSettings(inventory);
+    
     if (!category) {
       return await sendTemporaryReply(interaction, 
-        `❌ 특정 카테고리를 선택한 후 초기화 버튼을 사용해주세요.\n\`/${type === 'inventory' ? '재고' : '제작'} 카테고리:해양\` 처럼 카테고리를 지정해주세요.`
+        `❌ 특정 카테고리를 선택한 후 초기화 버튼을 사용해주세요.\n\`/${type === 'inventory' ? '재고' : '제작'} 카테고리:해양\` 처럼 카테고리를 지정해주세요.`,
+        infoTimeout
       );
     }
     
@@ -59,7 +63,7 @@ export async function handleResetButton(interaction) {
     await sendTemporaryReply(interaction, {
       content: `🔄 **${category}** 카테고리 초기화 방식을 선택하세요:\n\n**개별 초기화**: 특정 ${type === 'inventory' ? '아이템' : '제작품'}만 선택하여 초기화\n**일괄 초기화**: 카테고리 전체를 0으로 초기화`,
       components: [row]
-    }, 15000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 초기화 버튼 에러:', error);
@@ -150,12 +154,13 @@ export async function handleResetTypeButton(interaction) {
         components: []
       });
       
-      // 15초 후 자동 삭제
+      // 설정된 시간 후 자동 삭제
+      const { infoTimeout } = getTimeoutSettings(inventory);
       setTimeout(async () => {
         try {
           await interaction.deleteReply();
         } catch (error) {}
-      }, 15000);
+      }, infoTimeout);
       
     } else {
       // 개별 초기화 - 아이템 선택 메뉴 표시
@@ -233,12 +238,13 @@ export async function handleResetTypeButton(interaction) {
         components: rows
       });
       
-      // 30초 후 자동 삭제
+      // 설정된 시간 후 자동 삭제
+      const { selectTimeout } = getTimeoutSettings(inventory);
       setTimeout(async () => {
         try {
           await interaction.deleteReply();
         } catch (error) {}
-      }, 30000);
+      }, selectTimeout);
     }
     
   } catch (error) {
