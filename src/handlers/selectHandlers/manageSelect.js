@@ -1,7 +1,7 @@
 // 관리(삭제/수정/순서변경) select 핸들러
 import { EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { loadInventory, removeItem } from '../../database.js';
-import { addHistory, formatQuantity, getTimeoutSettings } from '../../utils.js';
+import { loadInventory, removeItem, saveInventory, addHistory as addHistoryDB } from '../../database.js';
+import { formatQuantity, getTimeoutSettings } from '../../utils.js';
 
 /**
  * 삭제 항목 선택 핸들러
@@ -32,11 +32,12 @@ export async function handleRemoveSelect(interaction) {
     // 아이템 삭제 (DB 반영)
     await removeItem(type, category, selectedItem);
     
-    await addHistory(
+    await addHistoryDB(
+      interaction.user.id,
+      'remove',
       type,
       category,
       selectedItem,
-      'remove',
       `수량: ${itemData.quantity}/${itemData.required}${recipeDeleted ? ' (레시피 포함)' : ''}`,
       interaction.user.displayName || interaction.user.username
     );
@@ -282,13 +283,13 @@ export async function handleReorderSecondSelect(interaction) {
     
     await Item.bulkWrite(bulkOps);
     
-    await addHistory(
+    await addHistoryDB(
+      interaction.user.id,
+      'reorder',
       type,
       category,
       movedItem.name,
-      'reorder',
-      `${firstIndex + 1}번 → ${secondIndex + 1}번 위치로 이동`,
-      interaction.user.displayName || interaction.user.username
+      `${firstIndex + 1}번 → ${secondIndex + 1}번 위치로 이동`
     );
     
     const successEmbed = new EmbedBuilder()
@@ -498,7 +499,6 @@ export async function handleSortOptionSelect(interaction) {
     }
     
     // 데이터베이스 업데이트
-    const { saveInventory } = await import('../../database.js');
     const newCategoryData = {};
     
     sortedItems.forEach((itemName, newIndex) => {
@@ -519,7 +519,6 @@ export async function handleSortOptionSelect(interaction) {
     await saveInventory(inventory);
     
     // 히스토리 기록
-    const { addHistory } = await import('../../database.js');
     const sortNames = {
       'name_asc': '이름순 (가나다)',
       'name_desc': '이름순 (역순)',
@@ -530,7 +529,7 @@ export async function handleSortOptionSelect(interaction) {
       'required_desc': '목표 수량순 (많은순)',
       'required_asc': '목표 수량순 (적은순)'
     };
-    await addHistory(interaction.user.id, 'reorder', type, category, null, `자동 정렬: ${sortNames[sortOption]}`);
+    await addHistoryDB(interaction.user.id, 'reorder', type, category, null, `자동 정렬: ${sortNames[sortOption]}`);
     
     // 성공 메시지
     let successMessage = `✅ **${category}** 카테고리가 **${sortNames[sortOption]}**으로 정렬되었습니다!\n\n**새로운 순서:**\n`;

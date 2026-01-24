@@ -1,6 +1,6 @@
 // 물품/품목 관리 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
-import { loadInventory } from '../../database.js';
+import { loadInventory, saveInventory, addHistory } from '../../database.js';
 import { formatQuantity, getItemIcon, getTimeoutSettings } from '../../utils.js';
 
 /**
@@ -1377,7 +1377,6 @@ export async function handleMoveItemButton(interaction) {
     items.splice(newIndex, 0, selectedItem);
     
     // 데이터베이스 업데이트
-    const { saveInventory } = await import('../../database.js');
     const newCategoryData = {};
     
     items.forEach((itemName, index) => {
@@ -1398,7 +1397,6 @@ export async function handleMoveItemButton(interaction) {
     await saveInventory(inventory);
     
     // 히스토리 기록
-    const { addHistory } = await import('../../database.js');
     const directionNames = {
       'top': '맨 위로',
       'up5': '위로 5칸',
