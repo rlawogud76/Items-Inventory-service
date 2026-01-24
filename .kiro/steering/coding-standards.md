@@ -2,6 +2,20 @@
 
 ## 작업 이력
 
+### 2025-01-24: 임시 메시지 자동 삭제 타이머 표시 추가 (완료)
+- **새 기능**: 모든 임시 ephemeral 메시지에 자동 삭제 타이머 표시
+- **수정된 파일**: 14개 핸들러 파일
+  - Button handlers: quantity.js, recipe.js, tag.js, work.js, manage.js
+  - Modal handlers: quantityModal.js, recipeModal.js, tagModal.js, manageModal.js
+  - Select handlers: quantitySelect.js, resetSelect.js, tagSelect.js, manageSelect.js
+  - Utils: utils.js (sendTemporaryReply 함수)
+- **적용 내용**:
+  - 15초 자동 삭제 메시지: "_이 메시지는 15초 후 자동 삭제됩니다_" 추가
+  - 30초 자동 삭제 메시지: "_이 메시지는 30초 후 자동 삭제됩니다_" 추가
+  - 모든 `interaction.reply()` 및 `interaction.update()` 메시지에 타이머 표시
+  - 사용자가 메시지가 언제 사라지는지 명확히 알 수 있도록 개선
+- **커밋**: "Add: 모든 임시 메시지에 자동 삭제 타이머 표시 추가"
+
 ### 2025-01-24: 레시피 재료 페이지네이션 파싱 버그 수정 (완료)
 - **문제**: `page_next_recipe_material_edit_해양_물결 수호의 핵_1_0` 파싱 시 category가 'material'로 잘못 파싱됨
 - **원인**: pagination.js에서 `parts[3] === 'edit'` 체크가 잘못됨 (parts[3]은 'material', parts[4]가 'edit')

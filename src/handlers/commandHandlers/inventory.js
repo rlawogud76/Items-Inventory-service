@@ -33,6 +33,7 @@ export async function handleInventoryCommand(interaction, activeMessages) {
       interaction,
       category,
       type: 'inventory',
+      page: 0,
       timestamp: Date.now()
     });
     

@@ -36,6 +36,7 @@ export async function handleCraftingCommand(interaction, activeMessages) {
       interaction,
       category,
       type: 'crafting',
+      page: 0,
       timestamp: Date.now()
     });
     

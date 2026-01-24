@@ -50,7 +50,18 @@ export async function handlePageNavigation(interaction) {
     const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, newPage, totalPages);
     
     await interaction.update({ embeds: [embed], components: buttons });
-    console.log(`📄 임베드 페이지 이동: ${currentPage + 1} → ${newPage + 1}`);
+    
+    // 활성 메시지의 페이지 번호 업데이트
+    const messageId = interaction.message.id;
+    const messageData = global.activeMessages?.get(messageId);
+    if (messageData) {
+      messageData.page = newPage;
+      messageData.timestamp = Date.now(); // 타임스탬프도 갱신
+      global.activeMessages.set(messageId, messageData);
+      console.log(`📄 임베드 페이지 이동: ${currentPage + 1} → ${newPage + 1} (메시지 ${messageId} 페이지 상태 저장)`);
+    } else {
+      console.log(`📄 임베드 페이지 이동: ${currentPage + 1} → ${newPage + 1}`);
+    }
   } catch (error) {
     console.error('❌ 페이지 이동 에러:', error);
     if (!interaction.replied && !interaction.deferred) {

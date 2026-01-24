@@ -18,7 +18,10 @@ const client = new Client({
 });
 
 // 활성 메시지 추적 (변경 감지용)
-const activeMessages = new Map(); // messageId -> { interaction, category, type }
+const activeMessages = new Map(); // messageId -> { interaction, category, type, page, timestamp }
+
+// 전역으로 activeMessages 노출 (다른 모듈에서 접근 가능하도록)
+global.activeMessages = activeMessages;
 
 // 봇 종료 시 정리
 process.on('SIGINT', () => {
@@ -87,7 +90,7 @@ client.on('ready', async () => {
           continue;
         }
         
-        const { interaction, category, type } = data;
+        const { interaction, category, type, page = 0 } = data;
         const inventory = await loadInventory();
         const uiMode = inventory.settings?.uiMode || 'normal';
         const barLength = inventory.settings?.barLength || 15;
@@ -97,14 +100,14 @@ client.on('ready', async () => {
           const crafting = inventory.crafting || { categories: {}, crafting: {} };
           items = Object.entries(crafting.categories[category] || {});
           totalPages = Math.ceil(items.length / 25);
-          embed = createCraftingEmbed(crafting, category, uiMode, barLength, 0, inventory);
+          embed = createCraftingEmbed(crafting, category, uiMode, barLength, page, inventory);
         } else {
           items = Object.entries(inventory.categories[category] || {});
           totalPages = Math.ceil(items.length / 25);
-          embed = createInventoryEmbed(inventory, category, uiMode, barLength, 0);
+          embed = createInventoryEmbed(inventory, category, uiMode, barLength, page);
         }
         
-        const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
+        const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, page, totalPages);
         await interaction.editReply({ embeds: [embed], components: buttons });
         
         console.log(`✅ 메시지 업데이트 완료: ${messageId}`);
