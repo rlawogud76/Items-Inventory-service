@@ -2,6 +2,22 @@
 
 ## 작업 이력
 
+### 2025-01-25: 순서 변경 버튼 라우팅 충돌 해결 (완료)
+- **문제**: 순서 변경 버튼 클릭 시 관리 메뉴가 다시 표시됨
+- **원인**: buttons.js의 일반 `manage` 핸들러가 `manage_reorder`를 먼저 잡아챔
+- **증상**: `manage_reorder_inventory_해양` 클릭 시 `handleManageButton`이 실행되어 관리 메뉴 재표시
+- **해결**: 
+  1. buttons.js 120번째 줄 제외 조건에 `!startsWith('manage_reorder')` 추가
+  2. manage.js의 `handleManageReorderButton`에서 `interaction.update()` → `interaction.reply()` 변경
+- **수정된 파일**: buttons.js, manage.js
+- **핵심 교훈**: 
+  - 라우팅 순서가 중요: 더 구체적인 패턴을 먼저 체크하거나 일반 패턴에서 제외해야 함
+  - 새로운 `manage_*` 핸들러 추가 시 반드시 일반 `manage` 핸들러의 제외 조건에 추가 필요
+  - `interaction.update()`는 기존 메시지 업데이트용, 새 메시지는 `interaction.reply()` 사용
+- **커밋**: 
+  - "Fix: 순서 변경 버튼 클릭 시 관리 메뉴 재표시 버그 수정 (update → reply)"
+  - "Fix: buttons.js에서 manage_reorder 라우팅 제외 조건 추가"
+
 ### 2025-01-25: 중복 인터랙션 방지를 디바운스 방식으로 개선 (완료)
 - **문제**: 같은 버튼 클릭이 여러 번 처리되어 "이미 응답한 인터랙션" 에러 발생
 - **근본 원인**: Discord가 같은 버튼 클릭을 **다른 interaction.id**로 여러 번 전송
