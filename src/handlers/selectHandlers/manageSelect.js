@@ -469,6 +469,20 @@ export async function handleSortOptionSelect(interaction) {
       sortedItems = items.sort((a, b) => {
         return sortOrder === 'asc' ? a.localeCompare(b, 'ko') : b.localeCompare(a, 'ko');
       });
+    } else if (sortBy === 'tag') {
+      // 태그별 정렬: 태그명으로 먼저 정렬, 같은 태그 내에서는 이름순
+      sortedItems = items.sort((a, b) => {
+        const tagA = targetData[category][a].tag || '태그없음';
+        const tagB = targetData[category][b].tag || '태그없음';
+        
+        // 태그가 다르면 태그로 정렬
+        if (tagA !== tagB) {
+          return sortOrder === 'asc' ? tagA.localeCompare(tagB, 'ko') : tagB.localeCompare(tagA, 'ko');
+        }
+        
+        // 같은 태그면 이름으로 정렬
+        return a.localeCompare(b, 'ko');
+      });
     } else if (sortBy === 'quantity') {
       sortedItems = items.sort((a, b) => {
         const qtyA = targetData[category][a].quantity || 0;
@@ -509,6 +523,8 @@ export async function handleSortOptionSelect(interaction) {
     const sortNames = {
       'name_asc': '이름순 (가나다)',
       'name_desc': '이름순 (역순)',
+      'tag_asc': '태그별 (가나다)',
+      'tag_desc': '태그별 (역순)',
       'quantity_desc': '현재 수량순 (많은순)',
       'quantity_asc': '현재 수량순 (적은순)',
       'required_desc': '목표 수량순 (많은순)',
@@ -518,9 +534,25 @@ export async function handleSortOptionSelect(interaction) {
     
     // 성공 메시지
     let successMessage = `✅ **${category}** 카테고리가 **${sortNames[sortOption]}**으로 정렬되었습니다!\n\n**새로운 순서:**\n`;
-    sortedItems.slice(0, 15).forEach((item, idx) => {
-      successMessage += `${idx + 1}. ${item}\n`;
-    });
+    
+    // 태그별 정렬인 경우 태그 정보도 표시
+    if (sortBy === 'tag') {
+      let currentTag = null;
+      sortedItems.slice(0, 15).forEach((item, idx) => {
+        const itemTag = targetData[category][item].tag || '태그없음';
+        if (currentTag !== itemTag) {
+          if (currentTag !== null) successMessage += '\n';
+          successMessage += `[${itemTag}]\n`;
+          currentTag = itemTag;
+        }
+        successMessage += `${idx + 1}. ${item}\n`;
+      });
+    } else {
+      sortedItems.slice(0, 15).forEach((item, idx) => {
+        successMessage += `${idx + 1}. ${item}\n`;
+      });
+    }
+    
     if (sortedItems.length > 15) {
       successMessage += `... 외 ${sortedItems.length - 15}개\n`;
     }

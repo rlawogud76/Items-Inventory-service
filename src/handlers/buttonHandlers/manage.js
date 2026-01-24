@@ -1080,6 +1080,18 @@ export async function handleReorderSortButton(interaction) {
           emoji: '🔡'
         },
         {
+          label: '🏷️ 태그별 (가나다)',
+          value: 'tag_asc',
+          description: '태그별로 묶어서 가나다순 정렬',
+          emoji: '🏷️'
+        },
+        {
+          label: '🏷️ 태그별 (역순)',
+          value: 'tag_desc',
+          description: '태그별로 묶어서 역순 정렬',
+          emoji: '🏷️'
+        },
+        {
           label: '📊 현재 수량순 (많은순)',
           value: 'quantity_desc',
           description: '현재 수량이 많은 순서대로',
@@ -1111,6 +1123,7 @@ export async function handleReorderSortButton(interaction) {
     contentMessage += `정렬 방식을 선택하면 자동으로 순서가 변경됩니다.\n`;
     contentMessage += `\n**정렬 옵션:**\n`;
     contentMessage += `• 이름순 (가나다/역순)\n`;
+    contentMessage += `• 태그별 (같은 태그끼리 묶어서 정렬)\n`;
     contentMessage += `• 현재 수량순 (많은순/적은순)\n`;
     contentMessage += `• 목표 수량순 (많은순/적은순)`;
     contentMessage += `\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
