@@ -20,6 +20,9 @@ const itemSchema = new mongoose.Schema({
   
   // UI 관련
   emoji: { type: String, default: null },
+  
+  // 순서 (정렬용)
+  order: { type: Number, default: 0 },
 
   // 작업 상태
   worker: {

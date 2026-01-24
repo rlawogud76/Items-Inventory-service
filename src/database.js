@@ -356,7 +356,7 @@ export async function loadInventory() {
     
     // 병렬로 데이터 로드
     const [items, recipes, setting] = await Promise.all([
-      Item.find({}).lean(),
+      Item.find({}).sort({ order: 1 }).lean(), // order 필드로 정렬
       Recipe.find({}).lean(),
       Setting.findById('global').lean()
     ]);

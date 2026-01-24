@@ -6,8 +6,13 @@ export { handleQuantitySelect } from './quantitySelect.js';
 // 초기화
 export { handleResetSelect } from './resetSelect.js';
 
-// 관리 (삭제/수정)
-export { handleRemoveSelect, handleEditSelect } from './manageSelect.js';
+// 관리 (삭제/수정/순서변경)
+export { 
+  handleRemoveSelect, 
+  handleEditSelect,
+  handleReorderFirstSelect,
+  handleReorderSecondSelect
+} from './manageSelect.js';
 
 // 작업 (수집/제작)
 export { handleWorkItemSelect } from './workSelect.js';

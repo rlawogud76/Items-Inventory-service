@@ -5,6 +5,8 @@ import {
   handleResetSelect,
   handleRemoveSelect,
   handleEditSelect,
+  handleReorderFirstSelect,
+  handleReorderSecondSelect,
   handleWorkItemSelect,
   handleTagItemsSelect,
   handleConfirmTagRemoveSelect,
@@ -47,6 +49,16 @@ export async function handleSelectInteraction(interaction) {
   // 수정
   else if (interaction.customId.startsWith('select_edit_')) {
     return await handleEditSelect(interaction);
+  }
+  
+  // 순서 변경 첫 번째 선택
+  else if (interaction.customId.startsWith('select_reorder_first_')) {
+    return await handleReorderFirstSelect(interaction);
+  }
+  
+  // 순서 변경 두 번째 선택
+  else if (interaction.customId.startsWith('select_reorder_second_')) {
+    return await handleReorderSecondSelect(interaction);
   }
   
   // 물품 유형 선택 (must be before select_item_ to avoid conflict)

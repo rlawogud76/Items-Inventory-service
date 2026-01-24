@@ -40,6 +40,8 @@ import {
   handleManageRemovePageButton,
   handleManageEditPageButton,
   handleManageTagButton,
+  handleManageReorderButton,
+  handleManageReorderPageButton,
   handleTagSetButton,
   handleTagRemoveButton,
   handleTagColorButton,
@@ -138,6 +140,10 @@ export async function handleButtonInteraction(interaction) {
     
     else if (interaction.customId.startsWith('manage_edit')) {
       return await handleManageEditButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('manage_reorder')) {
+      return await handleManageReorderButton(interaction);
     }
     
     // ============================================
@@ -251,6 +257,10 @@ export async function handleButtonInteraction(interaction) {
       // 유형 변경 페이지 이동
       else if (interaction.customId.includes('_type_')) {
         return await handleManageTypePageButton(interaction);
+      }
+      // 순서 변경 페이지 이동
+      else if (interaction.customId.includes('_reorder_')) {
+        return await handleManageReorderPageButton(interaction);
       }
     }
     
