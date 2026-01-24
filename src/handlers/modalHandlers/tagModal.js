@@ -1,7 +1,7 @@
 // 태그 modal 핸들러
 import { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 import { loadInventory, updateSettings } from '../../database.js';
-import { getItemIcon, getItemTag } from '../../utils.js';
+import { getItemIcon, getItemTag, getTimeoutSettings } from '../../utils.js';
 
 // 색상 옵션 정의
 const COLOR_OPTIONS = {

@@ -1,7 +1,7 @@
 // 초기화 select 핸들러
 import { EmbedBuilder } from 'discord.js';
 import { loadInventory, updateItemQuantity } from '../../database.js';
-import { getItemIcon } from '../../utils.js';
+import { getItemIcon, getTimeoutSettings } from '../../utils.js';
 
 /**
  * 초기화 항목 선택 핸들러

@@ -1,7 +1,7 @@
 // 레시피 select 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, StringSelectMenuBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { loadInventory } from '../../database.js';
-import { getItemIcon } from '../../utils.js';
+import { getItemIcon, getTimeoutSettings } from '../../utils.js';
 
 /**
  * 레시피 수정 시작 - 제작품 선택 후 1단계(첫 재료 선택) 핸들러

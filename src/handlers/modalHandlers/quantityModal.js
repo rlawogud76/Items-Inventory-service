@@ -1,6 +1,6 @@
 // 수량 관리 modal 핸들러
 import { loadInventory, updateMultipleItems } from '../../database.js';
-import { sanitizeNumber } from '../../utils.js';
+import { sanitizeNumber, getTimeoutSettings } from '../../utils.js';
 import { consumeRecipeMaterials, returnRecipeMaterials, adjustRecipeMaterials } from '../../recipeService.js';
 import { STACK, LIMITS } from '../../constants.js';
 

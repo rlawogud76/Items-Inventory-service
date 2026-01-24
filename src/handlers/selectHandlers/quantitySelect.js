@@ -1,7 +1,7 @@
 // 수량 관리 select 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory } from '../../database.js';
-import { formatQuantity, getItemIcon } from '../../utils.js';
+import { formatQuantity, getItemIcon, getTimeoutSettings } from '../../utils.js';
 
 /**
  * 수량 관리 항목 선택 핸들러

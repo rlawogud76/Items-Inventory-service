@@ -1,7 +1,7 @@
 // 레시피 modal 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, saveRecipe } from '../../database.js';
-import { getItemIcon } from '../../utils.js';
+import { getItemIcon, getTimeoutSettings } from '../../utils.js';
 
 /**
  * 레시피 수정 수량 modal 핸들러

@@ -1,7 +1,7 @@
 // 태그 select 핸들러
 import { EmbedBuilder, ActionRowBuilder } from 'discord.js';
 import { loadInventory, updateSettings, updateItemDetails, addItem } from '../../database.js';
-import { getItemIcon, getItemTag, getLinkedItem } from '../../utils.js';
+import { getItemIcon, getItemTag, getLinkedItem, getTimeoutSettings } from '../../utils.js';
 
 /**
  * 태그 항목 선택 핸들러 (태그에 추가할 항목들)

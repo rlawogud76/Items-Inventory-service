@@ -1,6 +1,6 @@
 // 작업(수집/제작) select 핸들러
 import { loadInventory, updateItemWorker } from '../../database.js';
-import { getItemIcon, getItemsByTag } from '../../utils.js';
+import { getItemIcon, getItemsByTag, getTimeoutSettings } from '../../utils.js';
 
 /**
  * 작업 항목 선택 핸들러

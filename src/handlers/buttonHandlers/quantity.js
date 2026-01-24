@@ -1,7 +1,7 @@
 // 수량 관리 핸들러
 import { ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 import { loadInventory } from '../../database.js';
-import { formatQuantity, getItemIcon } from '../../utils.js';
+import { formatQuantity, getItemIcon, getTimeoutSettings } from '../../utils.js';
 import { paginateItems, createPaginationButtons, getPaginationInfo } from '../../paginationUtils.js';
 
 /**

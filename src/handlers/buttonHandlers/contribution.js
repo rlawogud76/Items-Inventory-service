@@ -1,6 +1,7 @@
 // 기여도 초기화 핸들러
 import { EmbedBuilder } from 'discord.js';
 import { clearHistory, getHistoryCount } from '../../database.js';
+import { getTimeoutSettingsAsync } from '../../utils.js';
 
 /**
  * 기여도 초기화 확인 버튼 핸들러

@@ -2,7 +2,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
 import { loadInventory } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
-import { getItemIcon } from '../../utils.js';
+import { getItemIcon, getTimeoutSettings } from '../../utils.js';
 
 /**
  * 이모지 검증 함수 - Select Menu는 유니코드 이모지만 허용
