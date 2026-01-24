@@ -390,6 +390,18 @@ export async function loadInventory() {
           linkedItem: item.linkedItem,
           emoji: item.emoji
         };
+
+        // 작업 상태 복원
+        if (item.worker && item.worker.userId) {
+          if (!inventory.collecting[item.category]) {
+            inventory.collecting[item.category] = {};
+          }
+          inventory.collecting[item.category][item.name] = {
+            userId: item.worker.userId,
+            userName: item.worker.userName,
+            startTime: item.worker.startTime
+          };
+        }
       } else if (item.type === 'crafting') {
         if (!inventory.crafting.categories[item.category]) {
           inventory.crafting.categories[item.category] = {};
@@ -401,6 +413,18 @@ export async function loadInventory() {
           linkedItem: item.linkedItem,
           emoji: item.emoji
         };
+
+        // 작업 상태 복원
+        if (item.worker && item.worker.userId) {
+          if (!inventory.crafting.crafting[item.category]) {
+            inventory.crafting.crafting[item.category] = {};
+          }
+          inventory.crafting.crafting[item.category][item.name] = {
+            userId: item.worker.userId,
+            userName: item.worker.userName,
+            startTime: item.worker.startTime
+          };
+        }
       }
     });
     
@@ -706,6 +730,59 @@ export async function removeRecipe(category, resultName) {
 }
 
 
+
+/**
+ * 아이템 작업자 업데이트
+ * @param {string} type - 'inventory' 또는 'crafting'
+ * @param {string} category - 카테고리
+ * @param {string} itemName - 아이템 이름
+ * @param {object} workerData - { userId, userName, startTime } 또는 null (작업 중단)
+ */
+export async function updateItemWorker(type, category, itemName, workerData) {
+  try {
+    const update = workerData 
+      ? { worker: workerData } 
+      : { worker: { userId: null, userName: null, startTime: null } }; // Reset
+      
+    const result = await Item.findOneAndUpdate(
+      { type, category, name: itemName },
+      { $set: update },
+      { new: true }
+    );
+    
+    if (result) {
+      inventoryCache = null;
+      notifyChangeListeners();
+      return true;
+    }
+    console.error(`❌ 작업자 업데이트 실패: ${type}/${category}/${itemName} (문서 없음)`);
+    return false;
+  } catch (error) {
+    console.error('❌ 작업자 업데이트 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * 설정 업데이트
+ * @param {object} updates - 업데이트할 설정 객체 (예: { uiMode: 'detailed', barLength: 20 })
+ */
+export async function updateSettings(updates) {
+  try {
+    const result = await Setting.findByIdAndUpdate(
+      'global',
+      { $set: updates },
+      { new: true, upsert: true }
+    );
+    
+    inventoryCache = null; // 캐시 무효화
+    notifyChangeListeners();
+    return result;
+  } catch (error) {
+    console.error('❌ 설정 업데이트 실패:', error);
+    throw error;
+  }
+}
 
 // data.js에서 MongoDB로 마이그레이션
 export async function migrateFromDataFile(inventoryData) {

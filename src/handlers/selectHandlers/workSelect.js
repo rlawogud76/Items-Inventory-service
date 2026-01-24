@@ -1,5 +1,5 @@
 // 작업(수집/제작) select 핸들러
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, updateItemWorker } from '../../database.js';
 import { getItemIcon, getItemsByTag } from '../../utils.js';
 
 /**
@@ -84,30 +84,22 @@ export async function handleWorkItemSelect(interaction) {
       }
       
       // 작업 등록
-      if (isCrafting) {
-        if (!inventory.crafting.crafting) inventory.crafting.crafting = {};
-        if (!inventory.crafting.crafting[category]) inventory.crafting.crafting[category] = {};
-        
-        inventory.crafting.crafting[category][selectedItem] = {
-          userId: userId,
-          userName: userName,
-          startTime: new Date().toISOString()
-        };
-      } else {
-        if (!inventory.collecting) inventory.collecting = {};
-        if (!inventory.collecting[category]) inventory.collecting[category] = {};
-        
-        inventory.collecting[category][selectedItem] = {
-          userId: userId,
-          userName: userName,
-          startTime: new Date().toISOString()
-        };
+      try {
+        await updateItemWorker(
+          isCrafting ? 'crafting' : 'inventory',
+          category,
+          selectedItem,
+          {
+            userId: userId,
+            userName: userName,
+            startTime: new Date().toISOString()
+          }
+        );
+        success.push(selectedItem);
+      } catch (e) {
+        console.error('Failed to update worker:', e);
       }
-      
-      success.push(selectedItem);
     }
-    
-    await saveInventory(inventory);
     
     // 결과 메시지 생성
     let message = '';

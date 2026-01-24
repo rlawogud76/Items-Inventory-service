@@ -1,5 +1,5 @@
 // 설정 관련 modal 핸들러 (바 크기 등)
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, updateSettings } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 import { getAutoRefreshTimers } from '../buttonHandlers/settings.js';
 
@@ -27,9 +27,13 @@ export async function handleBarSizeModal(interaction) {
     const newLength = Math.round(percentage / 10);
 
     const inventory = await loadInventory();
+    
+    // DB 저장 (새 스키마)
+    await updateSettings({ barLength: newLength });
+    
+    // UI 업데이트를 위해 로컬 객체도 수정 (loadInventory를 다시 부르지 않기 위해)
     if (!inventory.settings) inventory.settings = {};
     inventory.settings.barLength = newLength;
-    await saveInventory(inventory);
 
     const uiMode = inventory.settings?.uiMode || 'normal';
     let embed;

@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits } from 'discord.js';
 import dotenv from 'dotenv';
-import { connectDatabase, loadInventory, saveInventory, watchInventoryChanges, addChangeListener, migrateFromDataFile } from './src/database.js';
+import { connectDatabase, loadInventory, watchInventoryChanges, addChangeListener, migrateFromDataFile } from './src/database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from './src/embeds.js';
 import { handleButtonInteraction } from './src/handlers/buttons.js';
 import { handleSelectInteraction } from './src/handlers/selects.js';

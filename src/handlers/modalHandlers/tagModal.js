@@ -1,6 +1,6 @@
 // 태그 modal 핸들러
 import { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, updateSettings } from '../../database.js';
 import { getItemIcon, getItemTag } from '../../utils.js';
 
 // 색상 옵션 정의
@@ -169,7 +169,8 @@ export async function handleTagNameModal(interaction) {
       inventory.tags[type][category][tagName].items.push(itemName);
     }
     
-    await saveInventory(inventory);
+    // DB 저장 (새 스키마)
+    await updateSettings({ tags: inventory.tags });
     
     const icon = getItemIcon(itemName, inventory);
     const successEmbed = new EmbedBuilder()

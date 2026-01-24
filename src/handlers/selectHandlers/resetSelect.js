@@ -1,7 +1,7 @@
 // 초기화 select 핸들러
 import { EmbedBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
-import { getItemIcon, addHistory } from '../../utils.js';
+import { loadInventory, updateItemQuantity } from '../../database.js';
+import { getItemIcon } from '../../utils.js';
 
 /**
  * 초기화 항목 선택 핸들러
@@ -33,13 +33,12 @@ export async function handleResetSelect(interaction) {
       });
     }
     
-    targetData.categories[category][selectedItem].quantity = 0;
-    
-    await addHistory(type, category, selectedItem, 'reset',
-      `${oldQuantity}개 → 0개`,
-      interaction.user.displayName || interaction.user.username);
-    
-    await saveInventory(inventory);
+    // DB 저장 (새 스키마)
+    await updateItemQuantity(type, category, selectedItem, -oldQuantity, 
+      interaction.user.displayName || interaction.user.username, 
+      'reset', 
+      `${oldQuantity}개 → 0개`
+    );
     
     const icon = getItemIcon(selectedItem, inventory);
     const successEmbed = new EmbedBuilder()

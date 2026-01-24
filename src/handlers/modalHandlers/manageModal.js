@@ -221,7 +221,6 @@ export async function handleAddItemModalStep2(interaction) {
       }
     }
     
-    // await saveInventory(inventory); // 제거됨
     
     // 임베드 생성용 재고 로드 (아이콘 등 확인)
     const inventory = await loadInventory();

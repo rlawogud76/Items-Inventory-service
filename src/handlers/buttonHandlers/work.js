@@ -1,6 +1,6 @@
 // 수집/제작 작업 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, updateItemWorker } from '../../database.js';
 import { getItemIcon, formatQuantity, getAllTags, getItemsByTag, getItemTag } from '../../utils.js';
 
 /**
@@ -73,14 +73,17 @@ export async function handleWorkButton(interaction) {
     if (myWorkingItems.length > 0) {
       // 모든 작업 중인 항목 중단
       for (const itemName of myWorkingItems) {
-        if (isCrafting) {
-          delete inventory.crafting.crafting[category][itemName];
-        } else {
-          delete inventory.collecting[category][itemName];
+        try {
+          await updateItemWorker(
+            isCrafting ? 'crafting' : 'inventory', 
+            category, 
+            itemName, 
+            null
+          );
+        } catch (e) {
+          console.error('Failed to stop worker:', e);
         }
       }
-      
-      await saveInventory(inventory);
       
       const itemList = myWorkingItems.map(item => `${getItemIcon(item, inventory)} ${item}`).join(', ');
       
@@ -375,8 +378,7 @@ export async function handleStopWorkButton(interaction) {
     
     if (isCrafting) {
       if (inventory.crafting?.crafting?.[category]?.[itemName]) {
-        delete inventory.crafting.crafting[category][itemName];
-        await saveInventory(inventory);
+        await updateItemWorker('crafting', category, itemName, null);
         
         await interaction.update({
           content: `✅ ${itemName}\n제작을 중단했습니다.`,
@@ -384,13 +386,10 @@ export async function handleStopWorkButton(interaction) {
         });
         console.log(`✅ ${itemName} 제작 중단 완료`);
         
-        // 15초 후 메시지 삭제
         setTimeout(async () => {
           try {
             await interaction.deleteReply();
-          } catch (error) {
-            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
-          }
+          } catch (error) {}
         }, 15000);
       } else {
         await interaction.update({
@@ -399,7 +398,6 @@ export async function handleStopWorkButton(interaction) {
         });
         console.log(`⚠️ ${itemName} 제작 정보 없음`);
         
-        // 15초 후 메시지 삭제
         setTimeout(async () => {
           try {
             await interaction.deleteReply();
@@ -408,8 +406,7 @@ export async function handleStopWorkButton(interaction) {
       }
     } else {
       if (inventory.collecting?.[category]?.[itemName]) {
-        delete inventory.collecting[category][itemName];
-        await saveInventory(inventory);
+        await updateItemWorker('inventory', category, itemName, null);
         
         await interaction.update({
           content: `✅ ${itemName}\n수집을 중단했습니다.`,
@@ -417,13 +414,10 @@ export async function handleStopWorkButton(interaction) {
         });
         console.log(`✅ ${itemName} 수집 중단 완료`);
         
-        // 15초 후 메시지 삭제
         setTimeout(async () => {
           try {
             await interaction.deleteReply();
-          } catch (error) {
-            // 이미 삭제되었거나 삭제할 수 없는 경우 무시
-          }
+          } catch (error) {}
         }, 15000);
       } else {
         await interaction.update({
@@ -432,7 +426,6 @@ export async function handleStopWorkButton(interaction) {
         });
         console.log(`⚠️ ${itemName} 수집 정보 없음`);
         
-        // 15초 후 메시지 삭제
         setTimeout(async () => {
           try {
             await interaction.deleteReply();

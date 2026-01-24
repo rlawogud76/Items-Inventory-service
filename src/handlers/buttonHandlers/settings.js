@@ -1,6 +1,6 @@
 // 설정 핸들러 (UI 모드, 바 크기)
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, updateSettings } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 
 // 자동 새로고침 타이머 저장소 (messageId -> setInterval). settings.js에서 단일 관리.
@@ -80,10 +80,12 @@ export async function handleUiModeButton(interaction) {
     
     console.log('📏 모드 변경:', currentMode, '->', newMode);
     
-    // 설정 저장
+    // DB 저장 (새 스키마)
+    await updateSettings({ uiMode: newMode });
+    
+    // UI 업데이트를 위해 로컬 객체도 수정
     if (!inventory.settings) inventory.settings = {};
     inventory.settings.uiMode = newMode;
-    await saveInventory(inventory);
     
     const barLength = inventory.settings?.barLength || 15;
     let embed, items, totalPages;

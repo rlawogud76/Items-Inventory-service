@@ -1,6 +1,6 @@
 // 태그 select 핸들러
 import { EmbedBuilder, ActionRowBuilder } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, updateSettings, updateItemDetails, addItem } from '../../database.js';
 import { getItemIcon, getItemTag, getLinkedItem } from '../../utils.js';
 
 /**
@@ -83,7 +83,8 @@ export async function handleTagItemsSelect(interaction) {
       delete global.tempTagColors[`${type}_${category}_${tagName}`];
     }
     
-    await saveInventory(inventory);
+    // DB 저장 (새 스키마)
+    await updateSettings({ tags: inventory.tags });
     
     const successEmbed = new EmbedBuilder()
       .setColor(0x57F287)
@@ -150,7 +151,7 @@ export async function handleConfirmTagRemoveSelect(interaction) {
     // 태그 제거
     delete inventory.tags[type][category][tagName];
     
-    await saveInventory(inventory);
+    await updateSettings({ tags: inventory.tags });
     
     const successEmbed = new EmbedBuilder()
       .setColor(0x57F287)
@@ -359,7 +360,7 @@ export async function handleChangeTagColor(interaction) {
       tagData.color = newColor;
     }
     
-    await saveInventory(inventory);
+    await updateSettings({ tags: inventory.tags });
     
     const colorNames = {
       'default': '기본 🏷️',
@@ -568,54 +569,64 @@ export async function handleConfirmTypeChange(interaction) {
     }
     
     // 유형 변경
-    itemData.itemType = newType;
+    const updates = { itemType: newType };
     
     // 중간 제작품으로 변경 시 연동 설정
     if (newType === 'intermediate') {
       if (type === 'inventory') {
         // 재고 → 제작 연동 생성
-        if (!inventory.crafting) {
-          inventory.crafting = { categories: {}, recipes: {} };
-        }
-        if (!inventory.crafting.categories[category]) {
-          inventory.crafting.categories[category] = {};
-        }
-        if (!inventory.crafting.categories[category][itemName]) {
-          inventory.crafting.categories[category][itemName] = {
+        try {
+          await addItem({
+            name: itemName,
+            category: category,
+            type: 'crafting',
+            itemType: 'intermediate',
             quantity: itemData.quantity,
             required: itemData.required,
-            itemType: 'intermediate',
-            linkedItem: `inventory/${category}/${itemName}`
-          };
+            linkedItem: `inventory/${category}/${itemName}`,
+            emoji: itemData.emoji
+          });
+        } catch (e) {
+          console.warn('Linked item creation failed (may exist):', e.message);
         }
-        itemData.linkedItem = `crafting/${category}/${itemName}`;
+        updates.linkedItem = `crafting/${category}/${itemName}`;
       } else {
         // 제작 → 재고 연동 생성
-        if (!inventory.categories[category]) {
-          inventory.categories[category] = {};
-        }
-        if (!inventory.categories[category][itemName]) {
-          inventory.categories[category][itemName] = {
+        try {
+          await addItem({
+            name: itemName,
+            category: category,
+            type: 'inventory',
+            itemType: 'intermediate',
             quantity: itemData.quantity,
             required: itemData.required,
-            itemType: 'intermediate',
-            linkedItem: `crafting/${category}/${itemName}`
-          };
+            linkedItem: `crafting/${category}/${itemName}`,
+            emoji: itemData.emoji
+          });
+        } catch (e) {
+          console.warn('Linked item creation failed (may exist):', e.message);
         }
-        itemData.linkedItem = `inventory/${category}/${itemName}`;
+        updates.linkedItem = `inventory/${category}/${itemName}`;
       }
     } else {
       // 중간 제작품이 아니면 연동 해제
       if (itemData.linkedItem) {
-        const linkedItem = getLinkedItem(itemData.linkedItem, inventory);
-        if (linkedItem) {
-          delete linkedItem.linkedItem;
+        const parts = itemData.linkedItem.split('/');
+        if (parts.length === 3) {
+          const [lType, lCategory, lName] = parts;
+          // 연동된 아이템의 링크 해제
+          try {
+            await updateItemDetails(lType, lCategory, lName, { linkedItem: null });
+          } catch (e) {
+            console.warn('Unlinking failed:', e.message);
+          }
         }
-        delete itemData.linkedItem;
       }
+      updates.linkedItem = null;
     }
     
-    await saveInventory(inventory);
+    // DB 저장 (새 스키마)
+    await updateItemDetails(type, category, itemName, updates);
     
     const typeNames = {
       'material': '📦 재료',

@@ -20,6 +20,13 @@ const itemSchema = new mongoose.Schema({
   
   // UI 관련
   emoji: { type: String, default: null },
+
+  // 작업 상태
+  worker: {
+    userId: { type: String, default: null },
+    userName: { type: String, default: null },
+    startTime: { type: Date, default: null }
+  },
   
   // 메타데이터
   updatedAt: { type: Date, default: Date.now }

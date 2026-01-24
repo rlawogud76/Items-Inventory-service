@@ -1,6 +1,6 @@
 // 레시피 modal 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { loadInventory, saveInventory } from '../../database.js';
+import { loadInventory, saveRecipe } from '../../database.js';
 import { getItemIcon } from '../../utils.js';
 
 /**
@@ -48,7 +48,8 @@ export async function handleRecipeEditQuantityModal(interaction) {
       category: category
     });
     
-    await saveInventory(inventory);
+    // DB 저장 (새 스키마)
+    await saveRecipe(category, itemName, inventory.crafting.recipes[category][itemName]);
     
     const icon = getItemIcon(materialName, inventory);
     
@@ -147,7 +148,8 @@ export async function handleRecipeQuantityModal(interaction) {
       category: category
     });
     
-    await saveInventory(inventory);
+    // DB 저장 (새 스키마)
+    await saveRecipe(category, itemName, inventory.crafting.recipes[category][itemName]);
     
     const icon = getItemIcon(materialName, inventory);
     
@@ -246,7 +248,8 @@ export async function handleRecipeStandaloneQuantityModal(interaction) {
       category: category
     });
     
-    await saveInventory(inventory);
+    // DB 저장 (새 스키마)
+    await saveRecipe(category, itemName, inventory.crafting.recipes[category][itemName]);
     
     const icon = getItemIcon(materialName, inventory);
     
