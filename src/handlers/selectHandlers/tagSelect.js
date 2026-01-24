@@ -106,12 +106,13 @@ export async function handleTagItemsSelect(interaction) {
       components: [] 
     });
     
-    // 15초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
+    const { infoTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 15000);
+    }, infoTimeout);
     
   } catch (error) {
     console.error('❌ 태그 항목 선택 에러:', error);
@@ -170,12 +171,13 @@ export async function handleConfirmTagRemoveSelect(interaction) {
       components: [] 
     });
     
-    // 15초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
+    const { infoTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 15000);
+    }, infoTimeout);
     
   } catch (error) {
     console.error('❌ 태그 제거 확인 에러:', error);
@@ -380,12 +382,13 @@ export async function handleChangeTagColor(interaction) {
       components: []
     });
     
-    // 15초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
+    const { infoTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 15000);
+    }, infoTimeout);
     
   } catch (error) {
     console.error('❌ 태그 색상 변경 에러:', error);
@@ -651,12 +654,13 @@ export async function handleConfirmTypeChange(interaction) {
     
     await interaction.editReply({ embeds: [successEmbed], components: [] });
     
-    // 15초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
+    const { infoTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 15000);
+    }, infoTimeout);
     
   } catch (error) {
     console.error('❌ 유형 변경 확인 에러:', error);

@@ -139,12 +139,13 @@ export async function handleWorkItemSelect(interaction) {
       components: []
     });
     
-    // 15초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
+    const { infoTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 15000);
+    }, infoTimeout);
     
     console.log(`${isCrafting ? '🔨' : '📦'} ${userName}님이 ${category}에서 ${success.length}개 항목 ${isCrafting ? '제작' : '수집'} 시작`);
     

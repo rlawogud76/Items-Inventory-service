@@ -51,12 +51,13 @@ export async function handleResetSelect(interaction) {
       components: []
     });
     
-    // 15초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
+    const { infoTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 15000);
+    }, infoTimeout);
     
     console.log(`🔄 ${interaction.user.displayName}님이 ${category} - ${selectedItem} 초기화: ${oldQuantity} -> 0`);
     

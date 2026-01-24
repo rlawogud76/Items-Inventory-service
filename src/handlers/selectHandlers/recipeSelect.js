@@ -78,9 +78,10 @@ export async function handleRecipeEditStartSelect(interaction) {
       components: rows
     });
 
+    const { selectTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try { await interaction.deleteReply(); } catch (_) {}
-    }, 30000);
+    }, selectTimeout);
   } catch (error) {
     console.error('❌ 레시피 수정 선택 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {

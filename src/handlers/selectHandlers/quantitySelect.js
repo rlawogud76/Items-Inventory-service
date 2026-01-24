@@ -57,12 +57,13 @@ export async function handleQuantitySelect(interaction) {
       components: [row]
     });
     
-    // 15초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
+    const { selectTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 15000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 수량관리 선택 에러:', error);
