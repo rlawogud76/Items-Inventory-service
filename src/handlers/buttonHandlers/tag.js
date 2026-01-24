@@ -1,7 +1,7 @@
 // 태그 관리 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { loadInventory } from '../../database.js';
-import { getItemIcon } from '../../utils.js';
+import { getItemIcon, getTimeoutSettings } from '../../utils.js';
 
 /**
  * 태그 관리 메인 버튼 핸들러
@@ -42,17 +42,20 @@ export async function handleManageTagButton(interaction) {
     const row1 = new ActionRowBuilder().addComponents(setTagButton, removeTagButton);
     const row2 = new ActionRowBuilder().addComponents(colorTagButton, viewTagsButton);
     
+    const inventory = await loadInventory();
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    
     await interaction.update({
-      content: `🏷️ **${category}** 카테고리 태그 관리\n\n태그를 사용하면 관련 물품들을 그룹으로 묶을 수 있습니다.\n예: "산호 블럭", "뇌 산호 블럭" → "산호" 태그\n\n원하는 작업을 선택하세요:\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
+      content: `🏷️ **${category}** 카테고리 태그 관리\n\n태그를 사용하면 관련 물품들을 그룹으로 묶을 수 있습니다.\n예: "산호 블럭", "뇌 산호 블럭" → "산호" 태그\n\n원하는 작업을 선택하세요:\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`,
       components: [row1, row2]
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 태그 관리 에러:', error);
@@ -151,17 +154,19 @@ export async function handleTagRemoveButton(interaction) {
     
     const row = new ActionRowBuilder().addComponents(selectMenu);
     
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    
     await interaction.update({
-      content: `🗑️ **태그 제거**\n\n제거할 태그를 선택하세요.\n⚠️ 태그만 제거되며, 항목은 유지됩니다.\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
+      content: `🗑️ **태그 제거**\n\n제거할 태그를 선택하세요.\n⚠️ 태그만 제거되며, 항목은 유지됩니다.\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`,
       components: [row]
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 태그 제거 버튼 에러:', error);
@@ -223,11 +228,12 @@ export async function handleTagViewButton(interaction) {
       components: []
     });
     
+    const { selectTimeout } = getTimeoutSettings(inventory);
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 태그 보기 에러:', error);
@@ -282,17 +288,19 @@ export async function handleTagColorButton(interaction) {
     
     const row = new ActionRowBuilder().addComponents(selectMenu);
     
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    
     await interaction.update({
-      content: `🎨 **태그 색상 변경**\n\n색상을 변경할 태그를 선택하세요.\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
+      content: `🎨 **태그 색상 변경**\n\n색상을 변경할 태그를 선택하세요.\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`,
       components: [row]
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 태그 색상 버튼 에러:', error);

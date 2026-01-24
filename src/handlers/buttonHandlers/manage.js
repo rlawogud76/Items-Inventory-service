@@ -1,7 +1,7 @@
 // 물품/품목 관리 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { loadInventory } from '../../database.js';
-import { formatQuantity, getItemIcon } from '../../utils.js';
+import { formatQuantity, getItemIcon, getTimeoutSettings } from '../../utils.js';
 
 /**
  * 관리 메인 버튼 핸들러
@@ -60,18 +60,22 @@ export async function handleManageButton(interaction) {
     const row1 = new ActionRowBuilder().addComponents(addButton, editButton, removeButton);
     const row2 = new ActionRowBuilder().addComponents(typeButton, tagButton, reorderButton);
     
+    // 타이머 설정 가져오기
+    const inventory = await loadInventory();
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    
     await interaction.reply({
-      content: `📝 **${category}** 카테고리 ${type === 'inventory' ? '물품' : '품목'} 관리\n\n원하는 작업을 선택하세요:\n\n_이 메시지는 30초 후 자동 삭제됩니다_`,
+      content: `📝 **${category}** 카테고리 ${type === 'inventory' ? '물품' : '품목'} 관리\n\n원하는 작업을 선택하세요:\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`,
       components: [row1, row2],
       ephemeral: true
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 관리 버튼 에러:', error);
@@ -230,19 +234,21 @@ export async function handleManageRemoveButton(interaction) {
     if (totalPages > 1) {
       contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
     }
-    contentMessage += `\n\n_이 메시지는 30초 후 자동 삭제됩니다_`;
+    
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    contentMessage += `\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
     
     await interaction.update({
       content: contentMessage,
       components: rows
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 삭제 선택 에러:', error);
@@ -333,19 +339,21 @@ export async function handleManageEditButton(interaction) {
     if (totalPages > 1) {
       contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
     }
-    contentMessage += `\n\n_이 메시지는 30초 후 자동 삭제됩니다_`;
+    
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    contentMessage += `\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
     
     await interaction.update({
       content: contentMessage,
       components: rows
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 이름 수정 선택 에러:', error);
@@ -727,19 +735,21 @@ export async function handleManageTypeButton(interaction) {
     if (totalPages > 1) {
       contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
     }
-    contentMessage += `\n\n_이 메시지는 30초 후 자동 삭제됩니다_`;
+    
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    contentMessage += `\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
     
     await interaction.update({
       content: contentMessage,
       components: rows
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 유형 변경 선택 에러:', error);
@@ -862,17 +872,18 @@ export async function handleManageReorderButton(interaction) {
     
     const inventory = await loadInventory();
     const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    const { infoTimeout } = getTimeoutSettings(inventory);
     
     if (!targetData?.[category] || Object.keys(targetData[category]).length === 0) {
       return await interaction.reply({
-        content: `❌ "${category}" 카테고리에 ${type === 'inventory' ? '아이템' : '제작품'}이 없습니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
+        content: `❌ "${category}" 카테고리에 ${type === 'inventory' ? '아이템' : '제작품'}이 없습니다.\n\n_이 메시지는 ${infoTimeout/1000}초 후 자동 삭제됩니다_`,
         ephemeral: true
       }).then(() => {
         setTimeout(async () => {
           try {
             await interaction.deleteReply();
           } catch (error) {}
-        }, 15000);
+        }, infoTimeout);
       });
     }
     
@@ -880,14 +891,14 @@ export async function handleManageReorderButton(interaction) {
     
     if (items.length < 2) {
       return await interaction.reply({
-        content: `❌ 순서를 변경하려면 최소 2개 이상의 항목이 필요합니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
+        content: `❌ 순서를 변경하려면 최소 2개 이상의 항목이 필요합니다.\n\n_이 메시지는 ${infoTimeout/1000}초 후 자동 삭제됩니다_`,
         ephemeral: true
       }).then(() => {
         setTimeout(async () => {
           try {
             await interaction.deleteReply();
           } catch (error) {}
-        }, 15000);
+        }, infoTimeout);
       });
     }
     
@@ -953,7 +964,9 @@ export async function handleManageReorderButton(interaction) {
     if (totalPages > 1) {
       contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
     }
-    contentMessage += `\n\n_이 메시지는 30초 후 자동 삭제됩니다_`;
+    
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    contentMessage += `\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
     
     await interaction.reply({
       content: contentMessage,
@@ -961,12 +974,12 @@ export async function handleManageReorderButton(interaction) {
       ephemeral: true
     });
     
-    // 30초 후 자동 삭제
+    // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
         await interaction.deleteReply();
       } catch (error) {}
-    }, 30000);
+    }, selectTimeout);
     
   } catch (error) {
     console.error('❌ 순서 변경 버튼 에러:', error);

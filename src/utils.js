@@ -397,11 +397,26 @@ export function getLinkedStatusText(type, category, itemName, inventory) {
 
 /**
  * 설정된 타이머 값 가져오기
- * @param {Object} inventory - 인벤토리 객체
+ * @param {Object} inventory - 인벤토리 객체 (선택사항)
  * @returns {Object} - { selectTimeout, infoTimeout } (밀리초)
  */
-export function getTimeoutSettings(inventory) {
+export function getTimeoutSettings(inventory = null) {
   const selectTimeout = (inventory?.settings?.selectMessageTimeout || 30) * 1000;
   const infoTimeout = (inventory?.settings?.infoMessageTimeout || 15) * 1000;
   return { selectTimeout, infoTimeout };
+}
+
+/**
+ * 설정된 타이머 값을 비동기로 가져오기 (DB에서 직접 로드)
+ * @returns {Promise<Object>} - { selectTimeout, infoTimeout } (밀리초)
+ */
+export async function getTimeoutSettingsAsync() {
+  try {
+    const { loadInventory } = await import('./database.js');
+    const inventory = await loadInventory();
+    return getTimeoutSettings(inventory);
+  } catch (error) {
+    console.error('❌ 타이머 설정 로드 실패, 기본값 사용:', error);
+    return { selectTimeout: 30000, infoTimeout: 15000 };
+  }
 }
