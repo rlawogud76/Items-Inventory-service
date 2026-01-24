@@ -208,16 +208,8 @@ export async function handleHistoryCommand(interaction) {
     embed.setFooter({ text: `총 ${total}개 중 ${limit}개 표시` });
   }
   
-  const reply = await interaction.reply({ embeds: [embed], ephemeral: true, fetchReply: true });
-  
-  // 30초 후 자동 삭제
-  setTimeout(async () => {
-    try {
-      await interaction.deleteReply();
-    } catch (error) {
-      // 이미 삭제되었거나 삭제할 수 없는 경우 무시
-    }
-  }, 30000);
+  // 수정 내역 메시지는 사용자가 직접 닫을 때까지 유지 (자동 삭제 안함)
+  await interaction.reply({ embeds: [embed], ephemeral: true });
 }
 
 /**

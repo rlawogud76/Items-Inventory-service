@@ -344,5 +344,6 @@ export async function handleStatsCommand(interaction) {
     });
   }
   
-  await sendTemporaryReply(interaction, { embeds: [statsEmbed] }, 30000);
+  // 통계 메시지는 사용자가 직접 닫을 때까지 유지 (자동 삭제 안함)
+  await interaction.reply({ embeds: [statsEmbed], ephemeral: true });
 }
