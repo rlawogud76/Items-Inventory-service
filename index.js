@@ -217,9 +217,27 @@ client.on('ready', async () => {
 });
 
 
+// 중복 인터랙션 방지용 Set (5초 동안 유지)
+const processedInteractions = new Set();
+
 // 슬래시 커맨드 처리
 client.on('interactionCreate', async (interaction) => {
   console.log('인터랙션 수신:', interaction.type, '/ customId:', interaction.customId || 'N/A');
+  
+  // 중복 인터랙션 체크 (같은 interaction.id가 5초 이내에 다시 오면 무시)
+  const interactionKey = `${interaction.id}_${interaction.customId}`;
+  if (processedInteractions.has(interactionKey)) {
+    console.log('⚠️ 중복 인터랙션 감지, 무시:', interactionKey);
+    return;
+  }
+  
+  // 처리 목록에 추가
+  processedInteractions.add(interactionKey);
+  
+  // 5초 후 제거
+  setTimeout(() => {
+    processedInteractions.delete(interactionKey);
+  }, 5000);
   
   // 이벤트 로깅
   addEvent('interaction', {

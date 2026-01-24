@@ -858,6 +858,8 @@ export async function handleManageReorderButton(interaction) {
     const type = parts[2]; // 'inventory' or 'crafting'
     const category = parts.slice(3).join('_');
     
+    console.log(`🔀 순서 변경 시작: ${type}/${category}`);
+    
     const inventory = await loadInventory();
     const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
     

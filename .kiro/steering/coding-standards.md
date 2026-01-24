@@ -2,6 +2,26 @@
 
 ## 작업 이력
 
+### 2025-01-24: 물품 순서 변경 기능 추가 (완료)
+- **새 기능**: 관리 메뉴에서 물품/품목 순서를 변경할 수 있는 기능 추가
+- **수정된 파일**: manage.js, manageSelect.js, buttons.js, selects.js, buttonHandlers/index.js, selectHandlers/index.js, Item.js, database.js
+- **추가된 핸들러**:
+  - `handleManageReorderButton`: 순서 변경 버튼 (🔀 순서 변경)
+  - `handleManageReorderPageButton`: 순서 변경 페이지네이션
+  - `handleReorderFirstSelect`: 이동할 항목 선택 (1단계)
+  - `handleReorderSecondSelect`: 이동할 위치 선택 및 실행 (2단계)
+- **적용 내용**:
+  - 관리 메뉴에 "🔀 순서 변경" 버튼 추가
+  - 2단계 선택 방식: 이동할 항목 선택 → 이동할 위치 선택
+  - 현재 순서를 번호와 함께 표시
+  - 선택한 항목을 원하는 위치로 이동
+  - Item 모델에 `order` 필드 추가 (정렬용)
+  - loadInventory에서 order 필드로 자동 정렬
+  - 페이지네이션 지원 (25개 초과 시)
+  - 히스토리 기록 (reorder 액션)
+- **해결된 문제**: 물품이 뒤죽박죽 섞여있어 찾기 어려운 문제 해결
+- **커밋**: "Add: 물품 순서 변경 기능 추가 (2단계 선택 방식)"
+
 ### 2025-01-24: 페이지 점프 기능 추가 (완료)
 - **새 기능**: 페이지 번호 버튼 클릭 시 모달로 원하는 페이지로 직접 이동
 - **수정된 파일**: embeds.js, pagination.js, buttons.js, modals.js
