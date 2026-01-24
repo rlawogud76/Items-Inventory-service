@@ -864,18 +864,30 @@ export async function handleManageReorderButton(interaction) {
     const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
     
     if (!targetData?.[category] || Object.keys(targetData[category]).length === 0) {
-      return await interaction.update({
-        content: `❌ "${category}" 카테고리에 ${type === 'inventory' ? '아이템' : '제작품'}이 없습니다.`,
-        components: []
+      return await interaction.reply({
+        content: `❌ "${category}" 카테고리에 ${type === 'inventory' ? '아이템' : '제작품'}이 없습니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
+        ephemeral: true
+      }).then(() => {
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 15000);
       });
     }
     
     const items = Object.keys(targetData[category]);
     
     if (items.length < 2) {
-      return await interaction.update({
-        content: `❌ 순서를 변경하려면 최소 2개 이상의 항목이 필요합니다.`,
-        components: []
+      return await interaction.reply({
+        content: `❌ 순서를 변경하려면 최소 2개 이상의 항목이 필요합니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
+        ephemeral: true
+      }).then(() => {
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, 15000);
       });
     }
     
@@ -943,9 +955,10 @@ export async function handleManageReorderButton(interaction) {
     }
     contentMessage += `\n\n_이 메시지는 30초 후 자동 삭제됩니다_`;
     
-    await interaction.update({
+    await interaction.reply({
       content: contentMessage,
-      components: rows
+      components: rows,
+      ephemeral: true
     });
     
     // 30초 후 자동 삭제

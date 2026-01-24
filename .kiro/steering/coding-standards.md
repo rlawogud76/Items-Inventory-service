@@ -2,7 +2,20 @@
 
 ## 작업 이력
 
-### 2025-01-25: 중복 인터랙션 방지 메커니즘 추가 (완료)
+### 2025-01-25: 중복 인터랙션 방지를 디바운스 방식으로 개선 (완료)
+- **문제**: 같은 버튼 클릭이 여러 번 처리되어 "이미 응답한 인터랙션" 에러 발생
+- **근본 원인**: Discord가 같은 버튼 클릭을 **다른 interaction.id**로 여러 번 전송
+- **이전 해결책의 문제**: `interaction.id + customId` 조합으로 체크했지만, ID가 매번 달라서 작동 안함
+- **새로운 해결책**: **customId만으로 디바운스** (1초 내 같은 customId 무시)
+- **수정된 파일**: index.js
+- **적용 내용**:
+  - `lastProcessedTime` Map으로 customId별 마지막 처리 시간 추적
+  - 1초 내 같은 customId 인터랙션 자동 무시 (디바운스)
+  - 5초 후 Map에서 자동 제거 (메모리 관리)
+  - 상세한 디버그 로그 추가 (처리 시작, 중복 감지 시간 표시)
+- **커밋**: "Fix: 중복 인터랙션 방지를 디바운스 방식으로 변경 (customId 기반)"
+
+### 2025-01-25: 중복 인터랙션 방지 메커니즘 추가 (실패 - 위 방식으로 대체됨)
 - **문제**: 같은 버튼 클릭이 여러 번 처리되어 "이미 응답한 인터랙션" 에러 발생
 - **원인**: Discord가 같은 인터랙션을 여러 번 전송하는 경우 발생
 - **해결**: 전역 Set을 사용한 중복 인터랙션 필터링
@@ -151,6 +164,40 @@
 - **Null 필터링**: 모든 `.map()` 함수에 `.filter(item => item !== null)` 추가
 
 ## 최근 발견된 이슈 및 해결 방법
+
+### 중복 인터랙션 문제 (2025-01-25 해결)
+**문제**: 같은 버튼을 한 번만 클릭해도 여러 번 처리되어 "이미 응답한 인터랙션" 에러 발생
+
+**근본 원인**: 
+- Discord가 같은 버튼 클릭을 **다른 interaction.id**로 여러 번 전송
+- 네트워크 지연이나 Discord 서버 문제로 발생
+
+**해결 방법**:
+```javascript
+// index.js에 디바운스 메커니즘 추가
+const lastProcessedTime = new Map();
+const DEBOUNCE_MS = 1000; // 1초
+
+client.on('interactionCreate', async (interaction) => {
+  const customId = interaction.customId || `command_${interaction.commandName}`;
+  const now = Date.now();
+  
+  // 1초 내 같은 customId 무시
+  const lastTime = lastProcessedTime.get(customId);
+  if (lastTime && (now - lastTime) < DEBOUNCE_MS) {
+    console.log('⚠️ 중복 인터랙션 감지 (디바운스), 무시');
+    return;
+  }
+  
+  lastProcessedTime.set(customId, now);
+  // ... 나머지 처리
+});
+```
+
+**핵심**: 
+- `interaction.id`가 아닌 **`customId`만으로 체크**
+- 1초 디바운스 윈도우 적용
+- Map으로 마지막 처리 시간 추적
 
 ### Discord API 제한 사항
 1. **Select Menu Options 제한**: 최대 25개
