@@ -43,6 +43,8 @@ import {
   handleManageReorderButton,
   handleManageReorderPageButton,
   handleManageReorderSecondPageButton,
+  handleReorderQuickButton,
+  handleReorderManualButton,
   handleTagSetButton,
   handleTagRemoveButton,
   handleTagColorButton,
@@ -146,6 +148,14 @@ export async function handleButtonInteraction(interaction) {
     
     else if (interaction.customId.startsWith('manage_reorder')) {
       return await handleManageReorderButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('reorder_quick_')) {
+      return await handleReorderQuickButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('reorder_manual_')) {
+      return await handleReorderManualButton(interaction);
     }
     
     // ============================================

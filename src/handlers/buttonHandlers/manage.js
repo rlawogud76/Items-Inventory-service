@@ -872,7 +872,7 @@ export async function handleManageReorderButton(interaction) {
     
     const inventory = await loadInventory();
     const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
-    const { infoTimeout } = getTimeoutSettings(inventory);
+    const { infoTimeout, selectTimeout } = getTimeoutSettings(inventory);
     
     if (!targetData?.[category] || Object.keys(targetData[category]).length === 0) {
       return await interaction.reply({
@@ -901,6 +901,65 @@ export async function handleManageReorderButton(interaction) {
         }, infoTimeout);
       });
     }
+    
+    // 방법 선택 버튼
+    const quickButton = new ButtonBuilder()
+      .setCustomId(`reorder_quick_${type}_${category}`)
+      .setLabel('⚡ 빠른 순서 변경')
+      .setStyle(ButtonStyle.Success);
+    
+    const manualButton = new ButtonBuilder()
+      .setCustomId(`reorder_manual_${type}_${category}`)
+      .setLabel('✏️ 수동 순서 변경')
+      .setStyle(ButtonStyle.Primary);
+    
+    const row = new ActionRowBuilder().addComponents(quickButton, manualButton);
+    
+    // 현재 순서 표시
+    let contentMessage = `🔀 **${category}** 카테고리 순서 변경\n\n`;
+    contentMessage += `**현재 순서:**\n`;
+    items.forEach((item, idx) => {
+      contentMessage += `${idx + 1}. ${item}\n`;
+    });
+    contentMessage += `\n**방법을 선택하세요:**\n`;
+    contentMessage += `⚡ **빠른 순서 변경** - 한 항목을 선택해서 원하는 위치로 이동\n`;
+    contentMessage += `✏️ **수동 순서 변경** - 모달에서 전체 순서를 한번에 입력 (빠름!)`;
+    contentMessage += `\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
+    
+    await interaction.reply({
+      content: contentMessage,
+      components: [row],
+      ephemeral: true
+    });
+    
+    // 설정된 시간 후 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, selectTimeout);
+    
+  } catch (error) {
+    console.error('❌ 순서 변경 버튼 에러:', error);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    }
+  }
+}
+
+/**
+ * 빠른 순서 변경 버튼 핸들러 (기존 방식)
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleReorderQuickButton(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[2]; // 'inventory' or 'crafting'
+    const category = parts.slice(3).join('_');
+    
+    const inventory = await loadInventory();
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    const items = Object.keys(targetData[category]);
     
     // 현재 순서를 번호와 함께 표시
     const itemOptions = items.map((item, index) => {
@@ -951,7 +1010,7 @@ export async function handleManageReorderButton(interaction) {
       rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
     }
     
-    let contentMessage = `🔀 **${category}** 카테고리 순서 변경\n\n`;
+    let contentMessage = `🔀 **${category}** 카테고리 순서 변경 (빠른 방식)\n\n`;
     contentMessage += `**현재 순서:**\n`;
     items.slice(0, 10).forEach((item, idx) => {
       contentMessage += `${idx + 1}. ${item}\n`;
@@ -968,10 +1027,9 @@ export async function handleManageReorderButton(interaction) {
     const { selectTimeout } = getTimeoutSettings(inventory);
     contentMessage += `\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
     
-    await interaction.reply({
+    await interaction.update({
       content: contentMessage,
-      components: rows,
-      ephemeral: true
+      components: rows
     });
     
     // 설정된 시간 후 자동 삭제
@@ -982,10 +1040,48 @@ export async function handleManageReorderButton(interaction) {
     }, selectTimeout);
     
   } catch (error) {
-    console.error('❌ 순서 변경 버튼 에러:', error);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
-    }
+    console.error('❌ 빠른 순서 변경 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 수동 순서 변경 버튼 핸들러 (모달 방식)
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleReorderManualButton(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[2]; // 'inventory' or 'crafting'
+    const category = parts.slice(3).join('_');
+    
+    const inventory = await loadInventory();
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    const items = Object.keys(targetData[category]);
+    
+    // 현재 순서를 번호로 표시
+    const currentOrder = items.map((item, idx) => `${idx + 1}. ${item}`).join('\n');
+    
+    // 모달 생성
+    const modal = new ModalBuilder()
+      .setCustomId(`reorder_modal_${type}_${category}`)
+      .setTitle(`순서 변경 - ${category}`);
+    
+    const orderInput = new TextInputBuilder()
+      .setCustomId('new_order')
+      .setLabel('새로운 순서 (번호를 쉼표로 구분)')
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder(`예: 3,1,2,4,5 (3번을 1번으로, 1번을 2번으로...)`)
+      .setValue(items.map((_, idx) => idx + 1).join(','))
+      .setRequired(true);
+    
+    modal.addComponents(new ActionRowBuilder().addComponents(orderInput));
+    
+    await interaction.showModal(modal);
+    
+  } catch (error) {
+    console.error('❌ 수동 순서 변경 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
   }
 }
 

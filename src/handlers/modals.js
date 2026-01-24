@@ -7,6 +7,7 @@ import {
   handleAddItemModalStep1,
   handleAddItemModalStep2,
   handleEditNameModal,
+  handleReorderModal,
   handleTagNameInputModal,
   handleTagNameModal,
   handleBarSizeModal,
@@ -62,6 +63,12 @@ export async function handleModalInteraction(interaction) {
   // 이름 수정
   else if (interaction.customId.startsWith('edit_name_modal_')) {
     await handleEditNameModal(interaction);
+    return true;
+  }
+  
+  // 순서 변경 (수동)
+  else if (interaction.customId.startsWith('reorder_modal_')) {
+    await handleReorderModal(interaction);
     return true;
   }
   

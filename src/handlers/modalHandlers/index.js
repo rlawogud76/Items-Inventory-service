@@ -11,7 +11,8 @@ export {
 export { 
   handleAddItemModalStep1,
   handleAddItemModalStep2,
-  handleEditNameModal 
+  handleEditNameModal,
+  handleReorderModal
 } from './manageModal.js';
 
 // 태그

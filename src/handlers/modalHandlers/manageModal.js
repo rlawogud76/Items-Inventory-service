@@ -413,3 +413,109 @@ export async function handleAddItemTypeButton(interaction) {
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }
+
+/**
+ * 순서 변경 모달 제출 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleReorderModal(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[2]; // 'inventory' or 'crafting'
+    const category = parts.slice(3).join('_');
+    
+    const newOrderInput = interaction.fields.getTextInputValue('new_order').trim();
+    
+    const inventory = await loadInventory();
+    const { infoTimeout } = getTimeoutSettings(inventory);
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    const items = Object.keys(targetData[category]);
+    
+    // 입력 파싱 (쉼표로 구분된 번호)
+    const newOrderNumbers = newOrderInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+    
+    // 검증
+    if (newOrderNumbers.length !== items.length) {
+      return await interaction.reply({
+        content: `❌ 입력한 번호 개수(${newOrderNumbers.length}개)가 항목 개수(${items.length}개)와 일치하지 않습니다.\n\n_이 메시지는 ${infoTimeout/1000}초 후 자동 삭제됩니다_`,
+        ephemeral: true
+      }).then(() => {
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, infoTimeout);
+      });
+    }
+    
+    // 1부터 items.length까지의 모든 번호가 있는지 확인
+    const sortedNumbers = [...newOrderNumbers].sort((a, b) => a - b);
+    const expectedNumbers = Array.from({ length: items.length }, (_, i) => i + 1);
+    const isValid = sortedNumbers.every((num, idx) => num === expectedNumbers[idx]);
+    
+    if (!isValid) {
+      return await interaction.reply({
+        content: `❌ 잘못된 번호가 있습니다. 1부터 ${items.length}까지의 번호를 모두 사용해야 합니다.\n\n_이 메시지는 ${infoTimeout/1000}초 후 자동 삭제됩니다_`,
+        ephemeral: true
+      }).then(() => {
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, infoTimeout);
+      });
+    }
+    
+    // 새로운 순서로 재배열
+    const newItems = newOrderNumbers.map(num => items[num - 1]);
+    
+    // 데이터베이스 업데이트
+    const { saveInventory } = await import('../../database.js');
+    const newCategoryData = {};
+    
+    newItems.forEach((itemName, newIndex) => {
+      const itemData = targetData[category][itemName];
+      itemData.order = newIndex;
+      newCategoryData[itemName] = itemData;
+    });
+    
+    // 카테고리 데이터 교체
+    if (type === 'inventory') {
+      inventory.categories[category] = newCategoryData;
+    } else {
+      inventory.crafting.categories[category] = newCategoryData;
+    }
+    
+    inventory.markModified('categories');
+    inventory.markModified('crafting');
+    await saveInventory(inventory);
+    
+    // 히스토리 기록
+    const { addHistory } = await import('../../database.js');
+    await addHistory(interaction.user.id, 'reorder', type, category, null, `순서 변경 (수동)`);
+    
+    // 성공 메시지
+    let successMessage = `✅ **${category}** 카테고리 순서가 변경되었습니다!\n\n**새로운 순서:**\n`;
+    newItems.forEach((item, idx) => {
+      successMessage += `${idx + 1}. ${item}\n`;
+    });
+    successMessage += `\n_이 메시지는 ${infoTimeout/1000}초 후 자동 삭제됩니다_`;
+    
+    await interaction.reply({
+      content: successMessage,
+      ephemeral: true
+    });
+    
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, infoTimeout);
+    
+    console.log(`✅ 순서 변경 완료 (수동): ${type}/${category} - ${newItems.length}개 항목`);
+    
+  } catch (error) {
+    console.error('❌ 순서 변경 모달 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}

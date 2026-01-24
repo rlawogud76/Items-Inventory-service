@@ -2,6 +2,29 @@
 
 ## 작업 이력
 
+### 2025-01-25: 메시지 자동 삭제 시간 사용자 설정 기능 추가 (완료)
+- **새 기능**: 사용자가 메시지 자동 삭제 시간을 직접 설정 가능
+- **설정 항목**:
+  - 셀렉트 메뉴 타이머: 10~300초 (기본 30초)
+  - 안내 메시지 타이머: 5~300초 (기본 15초)
+- **수정된 파일**: 총 19개 핸들러 파일
+  - Setting 모델에 `selectMessageTimeout`, `infoMessageTimeout` 필드 추가
+  - utils.js에 `getTimeoutSettings()`, `getTimeoutSettingsAsync()` 함수 추가
+  - embeds.js에 "⏱️ 타이머" 설정 버튼 추가
+  - settingsModal.js에 타이머 설정 모달 추가
+  - 모든 핸들러 파일의 하드코딩된 타이머(15000, 30000)를 설정값으로 교체
+- **적용된 핸들러**:
+  - Button handlers: manage.js, tag.js, reset.js, quantity.js, pagination.js, contribution.js, recipe.js, work.js
+  - Modal handlers: manageModal.js, recipeModal.js, tagModal.js, quantityModal.js
+  - Select handlers: manageSelect.js, tagSelect.js, quantitySelect.js, resetSelect.js, workSelect.js, recipeSelect.js
+- **커밋**:
+  - "Add: 메시지 자동 삭제 시간 사용자 설정 기능 추가 (Setting 모델, utils, embeds, settingsModal)"
+  - "Update: manage.js, tag.js, reset.js에 사용자 설정 타이머 적용"
+  - "Update: 모달 핸들러들에 사용자 설정 타이머 적용 (manageModal, recipeModal, tagModal, quantityModal)"
+  - "Update: 셀렉트 핸들러들에 사용자 설정 타이머 적용 (manageSelect, tagSelect, quantitySelect, resetSelect, workSelect, recipeSelect)"
+  - "Update: work.js에 사용자 설정 타이머 적용 (4개 타이머)"
+  - "Update: 나머지 핸들러 파일들에 사용자 설정 타이머 적용 (quantity, pagination, contribution, recipe)"
+
 ### 2025-01-25: 순서 변경 버튼 라우팅 충돌 해결 (완료)
 - **문제**: 순서 변경 버튼 클릭 시 관리 메뉴가 다시 표시됨
 - **원인**: buttons.js의 일반 `manage` 핸들러가 `manage_reorder`를 먼저 잡아챔
