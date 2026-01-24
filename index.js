@@ -217,26 +217,31 @@ client.on('ready', async () => {
 });
 
 
-// 중복 인터랙션 방지용 Set (5초 동안 유지)
-const processedInteractions = new Set();
+// 중복 인터랙션 방지용 Map (customId별 마지막 처리 시간 추적)
+const lastProcessedTime = new Map();
+const DEBOUNCE_MS = 1000; // 1초 내 중복 무시
 
 // 슬래시 커맨드 처리
 client.on('interactionCreate', async (interaction) => {
-  console.log('인터랙션 수신:', interaction.type, '/ customId:', interaction.customId || 'N/A');
+  const customId = interaction.customId || `command_${interaction.commandName}`;
+  const now = Date.now();
   
-  // 중복 인터랙션 체크 (같은 interaction.id가 5초 이내에 다시 오면 무시)
-  const interactionKey = `${interaction.id}_${interaction.customId}`;
-  if (processedInteractions.has(interactionKey)) {
-    console.log('⚠️ 중복 인터랙션 감지, 무시:', interactionKey);
+  console.log('인터랙션 수신:', interaction.type, '/ customId:', interaction.customId || 'N/A', '/ ID:', interaction.id);
+  
+  // 중복 인터랙션 체크 (같은 customId가 1초 이내에 다시 오면 무시)
+  const lastTime = lastProcessedTime.get(customId);
+  if (lastTime && (now - lastTime) < DEBOUNCE_MS) {
+    console.log('⚠️ 중복 인터랙션 감지 (디바운스), 무시:', customId, `(${now - lastTime}ms 전)`);
     return;
   }
   
-  // 처리 목록에 추가
-  processedInteractions.add(interactionKey);
+  // 마지막 처리 시간 업데이트
+  lastProcessedTime.set(customId, now);
+  console.log('✅ 인터랙션 처리 시작:', customId);
   
-  // 5초 후 제거
+  // 5초 후 Map에서 제거 (메모리 관리)
   setTimeout(() => {
-    processedInteractions.delete(interactionKey);
+    lastProcessedTime.delete(customId);
   }, 5000);
   
   // 이벤트 로깅

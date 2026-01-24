@@ -2,6 +2,18 @@
 
 ## 작업 이력
 
+### 2025-01-25: 중복 인터랙션 방지 메커니즘 추가 (완료)
+- **문제**: 같은 버튼 클릭이 여러 번 처리되어 "이미 응답한 인터랙션" 에러 발생
+- **원인**: Discord가 같은 인터랙션을 여러 번 전송하는 경우 발생
+- **해결**: 전역 Set을 사용한 중복 인터랙션 필터링
+- **수정된 파일**: index.js, manage.js
+- **적용 내용**:
+  - `processedInteractions` Set 추가 (interaction.id + customId 조합으로 추적)
+  - 5초 윈도우 내 중복 인터랙션 자동 무시
+  - 5초 후 자동 제거로 메모리 누수 방지
+  - 순서 변경 핸들러에 디버그 로그 추가
+- **커밋**: "Fix: 중복 인터랙션 방지 메커니즘 추가 (5초 윈도우)"
+
 ### 2025-01-24: 물품 순서 변경 기능 추가 (완료)
 - **새 기능**: 관리 메뉴에서 물품/품목 순서를 변경할 수 있는 기능 추가
 - **수정된 파일**: manage.js, manageSelect.js, buttons.js, selects.js, buttonHandlers/index.js, selectHandlers/index.js, Item.js, database.js
