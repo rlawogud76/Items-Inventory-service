@@ -407,6 +407,16 @@ export async function handleReorderMoveSelect(interaction) {
       );
     }
     
+    // 지정 위치로 (항목이 3개 이상일 때만)
+    if (items.length >= 3) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`move_item_position_${type}_${category}_${selectedIndex}`)
+          .setLabel('📍 지정 위치로')
+          .setStyle(ButtonStyle.Success)
+      );
+    }
+    
     // 버튼을 5개씩 나눠서 행 생성
     const rows = [];
     for (let i = 0; i < buttons.length; i += 5) {

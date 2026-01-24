@@ -7,6 +7,7 @@ import {
   handleAddItemModalStep1,
   handleAddItemModalStep2,
   handleEditNameModal,
+  handleMovePositionModal,
   handleTagNameInputModal,
   handleTagNameModal,
   handleBarSizeModal,
@@ -62,6 +63,12 @@ export async function handleModalInteraction(interaction) {
   // 이름 수정
   else if (interaction.customId.startsWith('edit_name_modal_')) {
     await handleEditNameModal(interaction);
+    return true;
+  }
+  
+  // 지정 위치로 이동
+  else if (interaction.customId.startsWith('move_position_modal_')) {
+    await handleMovePositionModal(interaction);
     return true;
   }
   

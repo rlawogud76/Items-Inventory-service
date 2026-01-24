@@ -45,6 +45,7 @@ import {
   handleManageReorderSecondPageButton,
   handleReorderMoveButton,
   handleReorderSortButton,
+  handleMoveItemPositionButton,
   handleMoveItemButton,
   handleTagSetButton,
   handleTagRemoveButton,
@@ -157,6 +158,10 @@ export async function handleButtonInteraction(interaction) {
     
     else if (interaction.customId.startsWith('reorder_sort_')) {
       return await handleReorderSortButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('move_item_position_')) {
+      return await handleMoveItemPositionButton(interaction);
     }
     
     else if (interaction.customId.startsWith('move_item_')) {

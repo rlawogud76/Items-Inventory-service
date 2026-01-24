@@ -1426,3 +1426,44 @@ export async function handleMoveItemButton(interaction) {
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }
+
+
+/**
+ * 지정 위치로 이동 버튼 핸들러 (모달 표시)
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleMoveItemPositionButton(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[3]; // 'inventory' or 'crafting'
+    const category = parts.slice(4, -1).join('_');
+    const currentIndex = parseInt(parts[parts.length - 1]);
+    
+    const inventory = await loadInventory();
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    const items = Object.keys(targetData[category]);
+    const selectedItem = items[currentIndex];
+    
+    // 모달 생성
+    const modal = new ModalBuilder()
+      .setCustomId(`move_position_modal_${type}_${category}_${currentIndex}`)
+      .setTitle(`지정 위치로 이동 - ${category}`);
+    
+    const positionInput = new TextInputBuilder()
+      .setCustomId('target_position')
+      .setLabel(`이동할 위치 (1-${items.length})`)
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder(`현재: ${currentIndex + 1}번`)
+      .setRequired(true)
+      .setMinLength(1)
+      .setMaxLength(String(items.length).length);
+    
+    modal.addComponents(new ActionRowBuilder().addComponents(positionInput));
+    
+    await interaction.showModal(modal);
+    
+  } catch (error) {
+    console.error('❌ 지정 위치 이동 모달 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+  }
+}

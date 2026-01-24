@@ -519,3 +519,105 @@ export async function handleReorderModal(interaction) {
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }
+
+
+/**
+ * 지정 위치로 이동 모달 제출 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleMovePositionModal(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[3]; // 'inventory' or 'crafting'
+    const category = parts.slice(4, -1).join('_');
+    const currentIndex = parseInt(parts[parts.length - 1]);
+    
+    const positionInput = interaction.fields.getTextInputValue('target_position').trim();
+    const targetPosition = parseInt(positionInput);
+    
+    const { loadInventory } = await import('../../database.js');
+    const inventory = await loadInventory();
+    const { infoTimeout } = await import('../../utils.js').then(m => ({ infoTimeout: m.getTimeoutSettings(inventory).infoTimeout }));
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    const items = Object.keys(targetData[category]);
+    
+    // 위치 검증
+    if (isNaN(targetPosition) || targetPosition < 1 || targetPosition > items.length) {
+      return await interaction.reply({
+        content: `❌ 잘못된 위치입니다. 1부터 ${items.length}까지 입력해주세요.\n\n_이 메시지는 ${infoTimeout/1000}초 후 자동 삭제됩니다_`,
+        ephemeral: true
+      }).then(() => {
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, infoTimeout);
+      });
+    }
+    
+    const newIndex = targetPosition - 1; // 0-based index
+    
+    // 같은 위치면 무시
+    if (newIndex === currentIndex) {
+      return await interaction.reply({
+        content: `ℹ️ 이미 ${targetPosition}번 위치에 있습니다.\n\n_이 메시지는 ${infoTimeout/1000}초 후 자동 삭제됩니다_`,
+        ephemeral: true
+      }).then(() => {
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, infoTimeout);
+      });
+    }
+    
+    const selectedItem = items[currentIndex];
+    
+    // 순서 변경
+    items.splice(currentIndex, 1);
+    items.splice(newIndex, 0, selectedItem);
+    
+    // 데이터베이스 업데이트
+    const { updateItemsOrder } = await import('../../database.js');
+    const itemsToUpdate = items.map((itemName, index) => ({
+      name: itemName,
+      order: index
+    }));
+    
+    await updateItemsOrder(type, category, itemsToUpdate);
+    
+    // 히스토리 기록
+    const { addHistory } = await import('../../utils.js');
+    await addHistory(type, category, selectedItem, 'reorder', `지정 위치로 이동 (${currentIndex + 1} → ${newIndex + 1})`, interaction.user.username);
+    
+    // 성공 메시지
+    let successMessage = `✅ **${selectedItem}**을(를) **${targetPosition}번 위치**로 이동했습니다!\n`;
+    successMessage += `(${currentIndex + 1}번 → ${newIndex + 1}번)\n\n`;
+    successMessage += `**새로운 순서:**\n`;
+    items.slice(0, 15).forEach((item, idx) => {
+      const marker = idx === newIndex ? ' ← 이동됨' : '';
+      successMessage += `${idx + 1}. ${item}${marker}\n`;
+    });
+    if (items.length > 15) {
+      successMessage += `... 외 ${items.length - 15}개\n`;
+    }
+    successMessage += `\n_이 메시지는 ${infoTimeout/1000}초 후 자동 삭제됩니다_`;
+    
+    await interaction.reply({
+      content: successMessage,
+      ephemeral: true
+    });
+    
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, infoTimeout);
+    
+    console.log(`✅ 지정 위치 이동 완료: ${type}/${category}/${selectedItem} - ${currentIndex + 1} → ${newIndex + 1}`);
+    
+  } catch (error) {
+    console.error('❌ 지정 위치 이동 모달 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}
