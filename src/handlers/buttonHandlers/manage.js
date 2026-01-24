@@ -1061,3 +1061,102 @@ export async function handleManageReorderPageButton(interaction) {
     await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
   }
 }
+
+/**
+ * 순서 변경 두 번째 단계 페이지 이동 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleManageReorderSecondPageButton(interaction) {
+  try {
+    const isNext = interaction.customId.startsWith('page_next_');
+    const prefix = isNext ? 'page_next_reorder_second_' : 'page_prev_reorder_second_';
+    const parts = interaction.customId.replace(prefix, '').split('_');
+    const type = parts[0]; // 'inventory' or 'crafting'
+    const currentPage = parseInt(parts[parts.length - 1]);
+    const firstIndex = parseInt(parts[parts.length - 2]);
+    const category = parts.slice(1, -2).join('_');
+    
+    const newPage = isNext ? currentPage + 1 : currentPage - 1;
+    
+    const inventory = await loadInventory();
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    
+    if (!targetData?.[category]) {
+      return await interaction.update({
+        content: `❌ 카테고리를 찾을 수 없습니다.`,
+        components: []
+      });
+    }
+    
+    const items = Object.keys(targetData[category]);
+    const selectedItem = items[firstIndex];
+    
+    const itemOptions = items.map((item, index) => {
+      const formatted = formatQuantity(targetData[category][item].quantity);
+      const isCurrent = index === firstIndex;
+      return {
+        label: `${index + 1}. ${item}${isCurrent ? ' (현재 위치)' : ''}`,
+        value: `${index}`,
+        description: isCurrent ? '현재 선택된 항목' : `이 위치로 이동 (${formatted.items}개)`.substring(0, 100)
+      };
+    });
+    
+    // 페이지네이션
+    const pageSize = 25;
+    const totalPages = Math.ceil(itemOptions.length / pageSize);
+    const startIdx = newPage * pageSize;
+    const endIdx = startIdx + pageSize;
+    const limitedOptions = itemOptions.slice(startIdx, endIdx);
+    
+    const { StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`select_reorder_second_${type}_${category}_${firstIndex}`)
+      .setPlaceholder('이동할 위치를 선택하세요 (2단계)')
+      .addOptions(limitedOptions);
+    
+    const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+    
+    // 페이지네이션 버튼
+    const prevButton = new ButtonBuilder()
+      .setCustomId(`page_prev_reorder_second_${type}_${category}_${firstIndex}_${newPage}`)
+      .setLabel('◀ 이전')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(newPage === 0);
+    
+    const nextButton = new ButtonBuilder()
+      .setCustomId(`page_next_reorder_second_${type}_${category}_${firstIndex}_${newPage}`)
+      .setLabel('다음 ▶')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(newPage === totalPages - 1);
+    
+    const pageInfo = new ButtonBuilder()
+      .setCustomId(`page_info_${newPage}`)
+      .setLabel(`${newPage + 1} / ${totalPages}`)
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(true);
+    
+    rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
+    
+    let contentMessage = `🔀 **${category}** 카테고리 순서 변경\n\n`;
+    contentMessage += `**선택한 항목:** ${firstIndex + 1}. ${selectedItem}\n\n`;
+    contentMessage += `**현재 순서:**\n`;
+    items.slice(0, 10).forEach((item, idx) => {
+      const marker = idx === firstIndex ? ' ← 선택됨' : '';
+      contentMessage += `${idx + 1}. ${item}${marker}\n`;
+    });
+    if (items.length > 10) {
+      contentMessage += `... 외 ${items.length - 10}개\n`;
+    }
+    contentMessage += `\n이동할 위치를 선택하세요 (2/2 단계)`;
+    contentMessage += `\n\n📄 페이지 ${newPage + 1}/${totalPages}`;
+    
+    await interaction.update({
+      content: contentMessage,
+      components: rows
+    });
+    
+  } catch (error) {
+    console.error('❌ 순서 변경 두 번째 단계 페이지 이동 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+  }
+}

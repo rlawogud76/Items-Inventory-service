@@ -42,6 +42,7 @@ import {
   handleManageTagButton,
   handleManageReorderButton,
   handleManageReorderPageButton,
+  handleManageReorderSecondPageButton,
   handleTagSetButton,
   handleTagRemoveButton,
   handleTagColorButton,
@@ -259,6 +260,9 @@ export async function handleButtonInteraction(interaction) {
         return await handleManageTypePageButton(interaction);
       }
       // 순서 변경 페이지 이동
+      else if (interaction.customId.includes('_reorder_second_')) {
+        return await handleManageReorderSecondPageButton(interaction);
+      }
       else if (interaction.customId.includes('_reorder_')) {
         return await handleManageReorderPageButton(interaction);
       }
