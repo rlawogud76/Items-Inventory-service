@@ -4,8 +4,6 @@
 export { 
   handlePageNavigation,
   handlePageJump,
-  handleGenericPageJump,
-  handleGenericPageJumpModal,
   handleRecipeMaterialPageNavigation,
   handleRecipeMaterialStandalonePageNavigation,
   handleRecipeAddPageNavigation

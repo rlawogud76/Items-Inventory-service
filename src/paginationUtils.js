@@ -42,11 +42,14 @@ export function createPaginationButtons(baseId, page, totalPages, suffix = '', e
     .setStyle(ButtonStyle.Secondary)
     .setDisabled(page === 0);
   
+  // 페이지 점프는 임베드 페이지네이션(page_embed_)에서만 활성화
+  const isEmbedPagination = baseId.includes('_embed_');
+  
   const infoButton = new ButtonBuilder()
     .setCustomId(`${baseId}_jump${suffixStr}_${page}_${totalPages}`)
     .setLabel(`📄 ${page + 1}/${totalPages}`)
     .setStyle(ButtonStyle.Primary)
-    .setDisabled(!enableJump || totalPages <= 1);
+    .setDisabled(!enableJump || totalPages <= 1 || !isEmbedPagination);
   
   const nextButton = new ButtonBuilder()
     .setCustomId(`${baseId}_next${suffixStr}_${page}`)

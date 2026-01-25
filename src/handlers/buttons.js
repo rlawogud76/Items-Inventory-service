@@ -20,7 +20,6 @@
 import { 
   handlePageNavigation,
   handlePageJump,
-  handleGenericPageJump,
   handleRecipeMaterialPageNavigation,
   handleRecipeMaterialStandalonePageNavigation,
   handleRecipeAddPageNavigation,
@@ -84,12 +83,7 @@ export async function handleButtonInteraction(interaction) {
       return await handlePageNavigation(interaction);
     }
     
-    else if (interaction.customId.startsWith('page_') && interaction.customId.includes('_jump_')) {
-      // 페이지 점프 버튼 (모든 타입)
-      return await handleGenericPageJump(interaction);
-    }
-    
-    // 페이지 점프 버튼
+    // 페이지 점프 버튼 (임베드용만)
     else if (interaction.customId.startsWith('page_jump_embed_')) {
       return await handlePageJump(interaction);
     }

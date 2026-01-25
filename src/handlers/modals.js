@@ -14,7 +14,7 @@ import {
   handleTimeoutSettingsModal
 } from './modalHandlers/index.js';
 
-import { handlePageJumpModal, handleGenericPageJumpModal } from './buttonHandlers/pagination.js';
+import { handlePageJumpModal } from './buttonHandlers/pagination.js';
 
 /**
  * Modal 제출 인터랙션 처리 함수
@@ -27,12 +27,6 @@ export async function handleModalInteraction(interaction) {
   // 페이지 점프 모달 (임베드용)
   if (interaction.customId.startsWith('page_jump_modal_')) {
     await handlePageJumpModal(interaction);
-    return true;
-  }
-  
-  // 범용 페이지 점프 모달
-  else if (interaction.customId.startsWith('generic_page_jump_modal_')) {
-    await handleGenericPageJumpModal(interaction);
     return true;
   }
   
