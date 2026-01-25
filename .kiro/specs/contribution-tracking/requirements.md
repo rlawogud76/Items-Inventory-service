@@ -116,3 +116,31 @@ This document specifies the requirements for a contribution tracking system that
 3. THE Contribution_System SHALL maintain the existing message persistence behavior (no auto-delete)
 4. THE Contribution_System SHALL use the same embed styling and color scheme as existing commands
 5. THE Contribution_System SHALL include a timestamp in the embed footer
+
+### Requirement 9: Period Filtering
+
+**User Story:** As a guild member, I want to see contributions for specific time periods, so that I can track progress between resets.
+
+#### Acceptance Criteria
+
+1. WHEN calculating contributions, THE Contribution_System SHALL support filtering by time period
+2. THE Contribution_System SHALL provide a "current period" filter that shows contributions from the last reset action until now
+3. WHEN a reset action occurs in the history, THE Contribution_System SHALL treat it as the start of a new contribution period
+4. WHEN no reset action exists in history, THE Contribution_System SHALL calculate contributions from the beginning of all history data
+5. WHEN displaying rankings, THE Ranking_Display SHALL indicate the current period start date (e.g., "2025-01-15부터 현재까지")
+6. THE Contribution_System SHALL default to showing current period contributions unless otherwise specified
+
+### Requirement 10: Error Handling and Edge Cases
+
+**User Story:** As a developer, I want comprehensive error handling, so that the system remains stable under unexpected conditions.
+
+#### Acceptance Criteria
+
+1. WHEN no history data exists, THE Contribution_System SHALL display a message indicating "기여도 데이터가 없습니다"
+2. WHEN history detail parsing fails, THE Contribution_System SHALL log the error and assign zero contribution points for that entry
+3. WHEN an item has no configured point value, THE Contribution_System SHALL default to 1 point without throwing an error
+4. WHEN a user's total contribution score is negative (edge case), THE Contribution_System SHALL display it as 0.00
+5. WHEN calculating contributions for a deleted item, THE Contribution_System SHALL still count the historical contributions using the item name from history
+6. WHEN the database connection fails during points update, THE Points_Manager SHALL display an error message and not modify any data
+7. WHEN parsing quantity from history details encounters an invalid format, THE Contribution_System SHALL skip that entry and continue processing
+8. WHEN displaying rankings with tied scores, THE Contribution_System SHALL sort by username alphabetically as a tiebreaker
