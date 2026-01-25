@@ -8,7 +8,7 @@ This document specifies the requirements for a contribution tracking system that
 
 - **Contribution_System**: The system that tracks, calculates, and displays user contributions
 - **Item_Points**: User-configurable score values assigned to each item (default: 1)
-- **Contribution_Score**: Calculated value representing a user's contribution (Count × Quantity × Item Points)
+- **Contribution_Score**: Calculated value representing a user's contribution ((Count × Quantity × Item Points) / 100, rounded to 2 decimal places)
 - **History_Entry**: A record of a user action (add, update, craft) stored in the database
 - **Ranking_Display**: Visual representation showing top contributors in each category
 - **Points_Manager**: Interface for managing item point values
@@ -21,12 +21,13 @@ This document specifies the requirements for a contribution tracking system that
 
 #### Acceptance Criteria
 
-1. WHEN calculating a contribution score, THE Contribution_System SHALL multiply count by quantity by item points
+1. WHEN calculating a contribution score, THE Contribution_System SHALL multiply count by quantity by item points, then divide by 100
 2. WHEN an item has no configured point value, THE Contribution_System SHALL use a default value of 1
 3. WHEN a user performs multiple actions on the same item, THE Contribution_System SHALL sum all contribution scores for that item
 4. WHEN calculating inventory contributions, THE Contribution_System SHALL count all quantity changes including additions, subtractions, and updates
 5. WHEN calculating crafting contributions, THE Contribution_System SHALL count all crafting actions with their quantities
 6. WHEN calculating quantity changes from updates, THE Contribution_System SHALL use the absolute difference to count both increases and decreases
+7. WHEN displaying contribution scores, THE Contribution_System SHALL round the final score to 2 decimal places for readability
 
 ### Requirement 2: Item Points Management
 
@@ -48,9 +49,10 @@ This document specifies the requirements for a contribution tracking system that
 
 1. WHEN a user executes `/기여도`, THE Ranking_Display SHALL show two separate ranking sections for inventory and crafting
 2. WHEN displaying rankings, THE Ranking_Display SHALL show the top 3 users in each category
-3. WHEN displaying a ranking entry, THE Ranking_Display SHALL include rank position, username, and total contribution score
+3. WHEN displaying a ranking entry, THE Ranking_Display SHALL include rank position, username, and total contribution score (divided by 100 and rounded to 2 decimal places)
 4. WHEN displaying rankings, THE Ranking_Display SHALL use medal emojis (🥇🥈🥉) for the top 3 positions
 5. WHEN no contribution data exists for a category, THE Ranking_Display SHALL show an appropriate message indicating no data
+6. WHEN displaying contribution scores, THE Ranking_Display SHALL format numbers with appropriate decimal places (e.g., "1234.56" instead of "123456")
 
 ### Requirement 4: Data Persistence
 
