@@ -11,7 +11,13 @@ export async function handlePointsManageButton(interaction, isBackButton = false
   try {
     console.log('⭐ 배점 관리 버튼 핸들러 시작, isBackButton:', isBackButton);
     
-    const timeouts = await getTimeoutSettings();
+    // getTimeoutSettingsAsync() 사용 (DB에서 로드)
+    const { loadInventory } = await import('../../database.js');
+    const inventory = await loadInventory();
+    const selectTimeout = (inventory?.settings?.selectMessageTimeout || 30) * 1000;
+    const infoTimeout = (inventory?.settings?.infoMessageTimeout || 15) * 1000;
+    
+    console.log('⭐ 타이머 설정:', { selectTimeout, infoTimeout });
     
     const row1 = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -31,7 +37,8 @@ export async function handlePointsManageButton(interaction, isBackButton = false
         .setStyle(ButtonStyle.Danger)
     );
     
-    const content = `⭐ **배점 설정**\n\n배점을 설정할 분야를 선택하세요.\n\n_이 메시지는 ${timeouts.select}초 후 자동 삭제됩니다_`;
+    const selectTimeoutSeconds = Math.round(selectTimeout / 1000);
+    const content = `⭐ **배점 설정**\n\n배점을 설정할 분야를 선택하세요.\n\n_이 메시지는 ${selectTimeoutSeconds}초 후 자동 삭제됩니다_`;
     
     // 뒤로가기 버튼인 경우 update, 첫 클릭인 경우 reply
     if (isBackButton) {
@@ -49,14 +56,17 @@ export async function handlePointsManageButton(interaction, isBackButton = false
       });
     }
     
-    console.log('⭐ 배점 관리 메뉴 표시 완료');
+    console.log('⭐ 배점 관리 메뉴 표시 완료, 자동 삭제:', selectTimeout, 'ms');
     
-    // 자동 삭제
+    // 자동 삭제 (selectTimeout는 이미 밀리초)
     setTimeout(async () => {
       try {
+        console.log('⏰ 배점 관리 메뉴 자동 삭제 실행');
         await interaction.deleteReply();
-      } catch (error) {}
-    }, timeouts.select * 1000);
+      } catch (error) {
+        console.error('❌ 자동 삭제 실패:', error);
+      }
+    }, selectTimeout);
   } catch (error) {
     console.error('❌ 배점 관리 버튼 핸들러 에러:', error);
     console.error('❌ 에러 스택:', error.stack);
