@@ -352,7 +352,11 @@ export async function handleButtonInteraction(interaction) {
     // 13. 배점 관리 핸들러 (분리됨)
     // ============================================
     else if (interaction.customId === 'points_manage') {
-      return await handlePointsManageButton(interaction);
+      // 첫 클릭인지 뒤로가기인지 구분
+      // 첫 클릭: interaction.message가 임베드 메시지 (embeds 있음)
+      // 뒤로가기: interaction.message가 배점 메뉴 (embeds 없음)
+      const isBackButton = !interaction.message.embeds || interaction.message.embeds.length === 0;
+      return await handlePointsManageButton(interaction, isBackButton);
     }
     
     else if (interaction.customId.startsWith('points_type_')) {

@@ -7,7 +7,7 @@ import { getTimeoutSettings } from '../../utils.js';
 /**
  * 배점 관리 메인 버튼
  */
-export async function handlePointsManageButton(interaction) {
+export async function handlePointsManageButton(interaction, isBackButton = false) {
   const timeouts = await getTimeoutSettings();
   
   const row1 = new ActionRowBuilder().addComponents(
@@ -25,18 +25,24 @@ export async function handlePointsManageButton(interaction) {
     new ButtonBuilder()
       .setCustomId('points_reset')
       .setLabel('🔄 전체 초기화 (모두 1점으로)')
-      .setStyle(ButtonStyle.Danger),
-    new ButtonBuilder()
-      .setCustomId('settings_back')
-      .setLabel('◀️ 돌아가기')
-      .setStyle(ButtonStyle.Secondary)
+      .setStyle(ButtonStyle.Danger)
   );
   
-  await interaction.update({
-    content: '⭐ **배점 설정**\n\n배점을 설정할 분야를 선택하세요.',
-    components: [row1, row2],
-    embeds: []
-  });
+  const content = `⭐ **배점 설정**\n\n배점을 설정할 분야를 선택하세요.\n\n_이 메시지는 ${timeouts.select}초 후 자동 삭제됩니다_`;
+  
+  // 뒤로가기 버튼인 경우 update, 첫 클릭인 경우 reply
+  if (isBackButton) {
+    await interaction.update({
+      content,
+      components: [row1, row2]
+    });
+  } else {
+    await interaction.reply({
+      content,
+      components: [row1, row2],
+      ephemeral: true
+    });
+  }
   
   // 자동 삭제
   setTimeout(async () => {
@@ -101,9 +107,8 @@ export async function handlePointsTypeButton(interaction, parts) {
   
   const timeouts = await getTimeoutSettings();
   await interaction.update({
-    content: `⭐ **${typeLabel} 배점 설정**\n\n카테고리를 선택하세요.`,
-    components: rows.slice(0, 5), // 최대 5개 row
-    embeds: []
+    content: `⭐ **${typeLabel} 배점 설정**\n\n카테고리를 선택하세요.\n\n_이 메시지는 ${timeouts.select}초 후 자동 삭제됩니다_`,
+    components: rows.slice(0, 5) // 최대 5개 row
   });
   
   setTimeout(async () => {
@@ -219,9 +224,8 @@ export async function handlePointsCategoryButton(interaction, parts) {
   
   const timeouts = await getTimeoutSettings();
   await interaction.update({
-    content: `⭐ **${typeLabel} > ${category} 배점 설정**\n\n배점을 수정할 항목을 선택하세요.\n(${startIdx + 1}-${endIdx} / 총 ${itemList.length}개)`,
-    components: rows,
-    embeds: []
+    content: `⭐ **${typeLabel} > ${category} 배점 설정**\n\n배점을 수정할 항목을 선택하세요.\n(${startIdx + 1}-${endIdx} / 총 ${itemList.length}개)\n\n_이 메시지는 ${timeouts.select}초 후 자동 삭제됩니다_`,
+    components: rows
   });
   
   setTimeout(async () => {
