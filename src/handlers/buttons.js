@@ -89,14 +89,14 @@ export async function handleButtonInteraction(interaction) {
       return await handlePageNavigation(interaction);
     }
     
-    // 페이지 점프 버튼 (모든 타입)
-    else if (interaction.customId.startsWith('page_') && interaction.customId.includes('_jump_')) {
-      return await handleGenericPageJump(interaction);
-    }
-    
-    // 페이지 점프 버튼 (임베드용)
+    // 페이지 점프 버튼 (임베드용) - 먼저 체크해야 함!
     else if (interaction.customId.startsWith('page_jump_embed_')) {
       return await handlePageJump(interaction);
+    }
+    
+    // 페이지 점프 버튼 (범용 - 셀렉트 메뉴 등)
+    else if (interaction.customId.startsWith('page_') && interaction.customId.includes('_jump_')) {
+      return await handleGenericPageJump(interaction);
     }
     
     // ============================================
