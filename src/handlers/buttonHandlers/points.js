@@ -50,7 +50,11 @@ export async function handlePointsManageButton(interaction, isBackButton = false
       new ButtonBuilder()
         .setCustomId('points_type_crafting')
         .setLabel('🔨 제작 배점 설정')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('points_view')
+        .setLabel('📋 배점 조회')
+        .setStyle(ButtonStyle.Secondary)
     );
     
     const row2 = new ActionRowBuilder().addComponents(
@@ -377,5 +381,217 @@ export async function handlePointsResetButton(interaction) {
       content: '❌ 배점 초기화 중 오류가 발생했습니다.',
       components: []
     }).catch(() => {});
+  }
+}
+
+/**
+ * 배점 조회 - 타입 선택
+ */
+export async function handlePointsViewButton(interaction) {
+  try {
+    const inventory = await loadInventory();
+    const selectTimeout = (inventory?.settings?.selectMessageTimeout || 30) * 1000;
+    
+    const row1 = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('points_view_type_inventory_0')
+        .setLabel('📦 재고 배점 조회')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('points_view_type_crafting_0')
+        .setLabel('🔨 제작 배점 조회')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('points_view_all_0')
+        .setLabel('📋 전체 배점 조회')
+        .setStyle(ButtonStyle.Success)
+    );
+    
+    const row2 = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('points_manage')
+        .setLabel('◀️ 돌아가기')
+        .setStyle(ButtonStyle.Secondary)
+    );
+    
+    const selectSeconds = Math.round(selectTimeout / 1000);
+    await interaction.update({
+      content: `📋 **배점 조회**\n\n조회할 분야를 선택하세요.\n\n_이 메시지는 ${selectSeconds}초 후 자동 삭제됩니다_`,
+      components: [row1, row2]
+    });
+    
+    const messageId = interaction.message.id;
+    setMessageTimer(messageId, async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {
+        if (error.code !== 10008) {
+          console.error('❌ 자동 삭제 실패:', error);
+        }
+      }
+    }, selectTimeout);
+    
+  } catch (error) {
+    console.error('❌ 배점 조회 버튼 에러:', error);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: '❌ 배점 조회 메뉴를 여는 중 오류가 발생했습니다.',
+        flags: 64
+      }).catch(err => console.error('❌ 에러 응답 실패:', err));
+    }
+  }
+}
+
+/**
+ * 배점 조회 - 실제 조회 표시
+ */
+export async function handlePointsViewTypeButton(interaction, parts) {
+  try {
+    // points_view_type_inventory_0 또는 points_view_all_0
+    const viewType = parts[2]; // 'type' 또는 'all'
+    const type = viewType === 'all' ? 'all' : parts[3]; // 'inventory', 'crafting', or 'all'
+    const page = parseInt(parts[parts.length - 1]) || 0;
+    
+    const [inventory, itemPoints] = await Promise.all([
+      loadInventory(),
+      getItemPoints()
+    ]);
+    
+    const selectTimeout = (inventory?.settings?.selectMessageTimeout || 30) * 1000;
+    
+    // 배점이 설정된 아이템 목록 수집
+    const pointsList = [];
+    
+    const collectPoints = (targetType, typeLabel) => {
+      const categories = itemPoints?.[targetType] || {};
+      for (const [category, items] of Object.entries(categories)) {
+        for (const [itemName, points] of Object.entries(items)) {
+          if (points !== 1) { // 기본값(1)이 아닌 것만 표시
+            pointsList.push({
+              type: targetType,
+              typeLabel,
+              category,
+              itemName,
+              points
+            });
+          }
+        }
+      }
+    };
+    
+    if (type === 'all' || type === 'inventory') {
+      collectPoints('inventory', '📦 재고');
+    }
+    if (type === 'all' || type === 'crafting') {
+      collectPoints('crafting', '🔨 제작');
+    }
+    
+    // 점수 내림차순 정렬
+    pointsList.sort((a, b) => b.points - a.points);
+    
+    // 페이지네이션
+    const itemsPerPage = 15;
+    const totalPages = Math.ceil(pointsList.length / itemsPerPage) || 1;
+    const startIdx = page * itemsPerPage;
+    const endIdx = Math.min(startIdx + itemsPerPage, pointsList.length);
+    const pageItems = pointsList.slice(startIdx, endIdx);
+    
+    // 타이틀 설정
+    let title;
+    if (type === 'all') {
+      title = '📋 전체 배점 조회';
+    } else if (type === 'inventory') {
+      title = '📦 재고 배점 조회';
+    } else {
+      title = '🔨 제작 배점 조회';
+    }
+    
+    // 내용 생성
+    let content;
+    if (pointsList.length === 0) {
+      content = `${title}\n\n기본값(1점)과 다르게 설정된 배점이 없습니다.\n모든 아이템이 기본 1점으로 계산됩니다.`;
+    } else {
+      const lines = pageItems.map((item, idx) => {
+        const rank = startIdx + idx + 1;
+        return `**${rank}.** ${item.typeLabel} > ${item.category} > **${item.itemName}** - \`${item.points}점\``;
+      });
+      
+      content = `${title}\n\n` +
+        `📊 기본값(1점)이 아닌 배점 목록:\n` +
+        `(${startIdx + 1}-${endIdx} / 총 ${pointsList.length}개)\n\n` +
+        lines.join('\n');
+    }
+    
+    // 버튼 생성
+    const rows = [];
+    
+    // 페이지네이션 버튼
+    if (totalPages > 1) {
+      const pageButtons = [];
+      
+      if (page > 0) {
+        pageButtons.push(
+          new ButtonBuilder()
+            .setCustomId(type === 'all' ? `points_view_all_${page - 1}` : `points_view_type_${type}_${page - 1}`)
+            .setLabel('◀️ 이전')
+            .setStyle(ButtonStyle.Secondary)
+        );
+      }
+      
+      pageButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`points_view_page_info`)
+          .setLabel(`${page + 1}/${totalPages}`)
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
+      );
+      
+      if (page < totalPages - 1) {
+        pageButtons.push(
+          new ButtonBuilder()
+            .setCustomId(type === 'all' ? `points_view_all_${page + 1}` : `points_view_type_${type}_${page + 1}`)
+            .setLabel('다음 ▶️')
+            .setStyle(ButtonStyle.Secondary)
+        );
+      }
+      
+      rows.push(new ActionRowBuilder().addComponents(pageButtons));
+    }
+    
+    // 뒤로가기 버튼
+    rows.push(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('points_view')
+          .setLabel('◀️ 돌아가기')
+          .setStyle(ButtonStyle.Secondary)
+      )
+    );
+    
+    const selectSeconds = Math.round(selectTimeout / 1000);
+    await interaction.update({
+      content: content + `\n\n_이 메시지는 ${selectSeconds}초 후 자동 삭제됩니다_`,
+      components: rows
+    });
+    
+    const messageId = interaction.message.id;
+    setMessageTimer(messageId, async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {
+        if (error.code !== 10008) {
+          console.error('❌ 자동 삭제 실패:', error);
+        }
+      }
+    }, selectTimeout);
+    
+  } catch (error) {
+    console.error('❌ 배점 조회 타입 핸들러 에러:', error);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: '❌ 배점 조회 중 오류가 발생했습니다.',
+        flags: 64
+      }).catch(err => console.error('❌ 에러 응답 실패:', err));
+    }
   }
 }

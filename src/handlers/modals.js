@@ -12,7 +12,8 @@ import {
   handleTagNameModal,
   handleBarSizeModal,
   handleTimeoutSettingsModal,
-  handlePointsModal
+  handlePointsModal,
+  handleContributionPointsModal
 } from './modalHandlers/index.js';
 
 import { handlePageJumpModal, handleGenericPageJumpModal } from './buttonHandlers/pagination.js';
@@ -108,6 +109,13 @@ export async function handleModalInteraction(interaction) {
   else if (interaction.customId.startsWith('modal_points_')) {
     const parts = interaction.customId.split('_');
     await handlePointsModal(interaction, parts);
+    return true;
+  }
+  
+  // 기여도 배점 설정
+  else if (interaction.customId.startsWith('contribution_modal_points_')) {
+    const parts = interaction.customId.split('_');
+    await handleContributionPointsModal(interaction, parts);
     return true;
   }
   

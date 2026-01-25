@@ -27,4 +27,4 @@ export { handleBarSizeModal, handleTimeoutSettingsModal } from './settingsModal.
 // 수량 - quantityModal.js / index.js에서 처리
 
 // 배점 관리
-export { handlePointsModal } from './pointsModal.js';
+export { handlePointsModal, handleContributionPointsModal } from './pointsModal.js';

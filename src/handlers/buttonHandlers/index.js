@@ -85,10 +85,19 @@ export {
 // 수량 액션 (추가/수정/차감)
 export { handleQuantityActionButton } from './quantityActions.js';
 
-// 기여도 초기화
+// 기여도 관리
 export { 
   handleConfirmContributionReset, 
-  handleCancelContributionReset 
+  handleCancelContributionReset,
+  handleContributionRefresh,
+  handleContributionResetConfirm,
+  handleContributionPointsManage,
+  handleContributionPointsType,
+  handleContributionPointsCategory,
+  handleContributionPointsResetAll,
+  handleContributionPointsView,
+  handleContributionViewType,
+  handleContributionBack
 } from './contribution.js';
 
 // 배점 관리
@@ -96,5 +105,7 @@ export {
   handlePointsManageButton,
   handlePointsTypeButton,
   handlePointsCategoryButton,
-  handlePointsResetButton
+  handlePointsResetButton,
+  handlePointsViewButton,
+  handlePointsViewTypeButton
 } from './points.js';

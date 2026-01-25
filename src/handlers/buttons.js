@@ -69,12 +69,23 @@ import {
   handleQuantityActionButton,
   handleConfirmContributionReset,
   handleCancelContributionReset,
+  handleContributionRefresh,
+  handleContributionResetConfirm,
+  handleContributionPointsManage,
+  handleContributionPointsType,
+  handleContributionPointsCategory,
+  handleContributionPointsResetAll,
+  handleContributionPointsView,
+  handleContributionViewType,
+  handleContributionBack,
   handleRecipeMaterialPagination,
   handleRecipeEditPagination,
   handlePointsManageButton,
   handlePointsTypeButton,
   handlePointsCategoryButton,
-  handlePointsResetButton
+  handlePointsResetButton,
+  handlePointsViewButton,
+  handlePointsViewTypeButton
 } from './buttonHandlers/index.js';
 
 // 버튼 인터랙션 처리 함수
@@ -339,7 +350,7 @@ export async function handleButtonInteraction(interaction) {
     }
     
     // ============================================
-    // 12. 기여도 초기화 핸들러 (분리됨)
+    // 12. 기여도 관리 핸들러 (분리됨)
     // ============================================
     else if (interaction.customId === 'confirm_contribution_reset') {
       return await handleConfirmContributionReset(interaction);
@@ -349,8 +360,66 @@ export async function handleButtonInteraction(interaction) {
       return await handleCancelContributionReset(interaction);
     }
     
+    // 기여도 새로고침
+    else if (interaction.customId === 'contribution_refresh') {
+      return await handleContributionRefresh(interaction);
+    }
+    
+    // 기여도 초기화 확인 요청
+    else if (interaction.customId === 'contribution_reset_confirm') {
+      return await handleContributionResetConfirm(interaction);
+    }
+    
+    // 기여도 배점 설정 메뉴
+    else if (interaction.customId === 'contribution_points_manage') {
+      return await handleContributionPointsManage(interaction);
+    }
+    
+    // 기여도 배점 타입 선택
+    else if (interaction.customId.startsWith('contribution_points_type_')) {
+      const type = interaction.customId.split('_')[3]; // inventory or crafting
+      return await handleContributionPointsType(interaction, type);
+    }
+    
+    // 기여도 배점 카테고리 선택
+    else if (interaction.customId.startsWith('contribution_points_category_')) {
+      const parts = interaction.customId.split('_');
+      const type = parts[3];
+      const category = parts[4];
+      const page = parseInt(parts[5]) || 0;
+      return await handleContributionPointsCategory(interaction, type, category, page);
+    }
+    
+    // 기여도 배점 전체 초기화
+    else if (interaction.customId === 'contribution_points_reset_all') {
+      return await handleContributionPointsResetAll(interaction);
+    }
+    
+    // 기여도 배점 조회 메뉴
+    else if (interaction.customId === 'contribution_points_view') {
+      return await handleContributionPointsView(interaction);
+    }
+    
+    // 기여도 배점 조회 - 타입별/전체
+    else if (interaction.customId.startsWith('contribution_view_type_') || interaction.customId.startsWith('contribution_view_all_')) {
+      const parts = interaction.customId.split('_');
+      if (parts[2] === 'all') {
+        const page = parseInt(parts[3]) || 0;
+        return await handleContributionViewType(interaction, 'all', page);
+      } else {
+        const type = parts[3];
+        const page = parseInt(parts[4]) || 0;
+        return await handleContributionViewType(interaction, type, page);
+      }
+    }
+    
+    // 기여도 메인 화면으로 돌아가기
+    else if (interaction.customId === 'contribution_back') {
+      return await handleContributionBack(interaction);
+    }
+    
     // ============================================
-    // 13. 배점 관리 핸들러 (분리됨)
+    // 13. 배점 관리 핸들러 (재고/제작용 - 분리됨)
     // ============================================
     else if (interaction.customId === 'points_manage') {
       // 첫 클릭인지 뒤로가기인지 구분
@@ -372,6 +441,17 @@ export async function handleButtonInteraction(interaction) {
     
     else if (interaction.customId === 'points_reset') {
       return await handlePointsResetButton(interaction);
+    }
+    
+    // 배점 조회 메뉴
+    else if (interaction.customId === 'points_view') {
+      return await handlePointsViewButton(interaction);
+    }
+    
+    // 배점 조회 (타입별/전체) - points_view_type_inventory_0, points_view_all_0
+    else if (interaction.customId.startsWith('points_view_type_') || interaction.customId.startsWith('points_view_all_')) {
+      const parts = interaction.customId.split('_');
+      return await handlePointsViewTypeButton(interaction, parts);
     }
   } catch (error) {
     console.error('버튼 처리 에러:', error);

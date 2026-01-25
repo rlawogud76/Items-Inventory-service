@@ -42,4 +42,4 @@ export {
 } from './recipeSelect.js';
 
 // 배점 관리
-export { handlePointsItemSelect } from './pointsSelect.js';
+export { handlePointsItemSelect, handleContributionPointsItemSelect } from './pointsSelect.js';

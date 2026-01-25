@@ -20,8 +20,44 @@ export function parseQuantityFromDetails(action, details) {
     }
     
     // update 액션들
-    if (action === 'update_quantity' || action === 'update_required') {
-      // "N -> M" 형식: 절대값 차이
+    if (action === 'update_quantity' || action === 'update_required' || action === 'edit_required') {
+      // "추가: +N개 (M → O)" 형식 - 실제 사용 형식
+      const addPlusMatch = details.match(/추가:\s*\+(\d+)개/);
+      if (addPlusMatch) {
+        return parseInt(addPlusMatch[1]);
+      }
+      
+      // "차감: -N개 (M → O)" 형식 - 실제 사용 형식
+      const subtractMinusMatch = details.match(/차감:\s*-(\d+)개/);
+      if (subtractMinusMatch) {
+        return parseInt(subtractMinusMatch[1]);
+      }
+      
+      // "수정: N개 → M개" 형식 - 실제 사용 형식 (유니코드 화살표)
+      const editUnicodeMatch = details.match(/수정:\s*(\d+)개?\s*→\s*(\d+)개?/);
+      if (editUnicodeMatch) {
+        const oldQty = parseInt(editUnicodeMatch[1]);
+        const newQty = parseInt(editUnicodeMatch[2]);
+        return Math.abs(newQty - oldQty);
+      }
+      
+      // "목표 수정: N개 → M개" 형식
+      const targetEditMatch = details.match(/목표\s*수정:\s*(\d+)개?\s*→\s*(\d+)개?/);
+      if (targetEditMatch) {
+        const oldQty = parseInt(targetEditMatch[1]);
+        const newQty = parseInt(targetEditMatch[2]);
+        return Math.abs(newQty - oldQty);
+      }
+      
+      // "(N → M)" 형식 - 괄호 안의 변경량 (유니코드 화살표)
+      const parenUnicodeMatch = details.match(/\((\d+)\s*→\s*(\d+)\)/);
+      if (parenUnicodeMatch) {
+        const oldQty = parseInt(parenUnicodeMatch[1]);
+        const newQty = parseInt(parenUnicodeMatch[2]);
+        return Math.abs(newQty - oldQty);
+      }
+      
+      // "N -> M" 형식: 절대값 차이 (ASCII 화살표 - 레거시 지원)
       const arrowMatch = details.match(/(\d+)\s*->\s*(\d+)/);
       if (arrowMatch) {
         const oldQty = parseInt(arrowMatch[1]);
@@ -29,19 +65,19 @@ export function parseQuantityFromDetails(action, details) {
         return Math.abs(newQty - oldQty);
       }
       
-      // "N개 추가" 형식
+      // "N개 추가" 형식 (레거시 지원)
       const addMatch = details.match(/(\d+)개\s*추가/);
       if (addMatch) {
         return parseInt(addMatch[1]);
       }
       
-      // "N개 차감" 형식
+      // "N개 차감" 형식 (레거시 지원)
       const subtractMatch = details.match(/(\d+)개\s*차감/);
       if (subtractMatch) {
         return parseInt(subtractMatch[1]);
       }
       
-      // "수정: N -> M" 형식
+      // "수정: N -> M" 형식 (ASCII 화살표 - 레거시 지원)
       const editMatch = details.match(/수정:\s*(\d+)\s*->\s*(\d+)/);
       if (editMatch) {
         const oldQty = parseInt(editMatch[1]);
@@ -56,6 +92,15 @@ export function parseQuantityFromDetails(action, details) {
       return match ? parseInt(match[1]) : 0;
     }
     
+    // 재료 소모/반환: "N개 소모", "N개 반환"
+    if (details.includes('소모') || details.includes('반환')) {
+      const consumeMatch = details.match(/(\d+)개\s*(소모|반환)/);
+      if (consumeMatch) {
+        return parseInt(consumeMatch[1]);
+      }
+    }
+    
+    console.log(`⚠️ 파싱 실패 - action: ${action}, details: ${details}`);
     return 0;
   } catch (error) {
     console.error('⚠️ 수량 파싱 실패:', action, details, error);

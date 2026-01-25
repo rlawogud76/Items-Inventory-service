@@ -24,7 +24,8 @@ import {
   handleItemTypeSelect,
   handleTypeChangeSelect,
   handleConfirmTypeChange,
-  handlePointsItemSelect
+  handlePointsItemSelect,
+  handleContributionPointsItemSelect
 } from './selectHandlers/index.js';
 
 /**
@@ -154,6 +155,11 @@ export async function handleSelectInteraction(interaction) {
   else if (interaction.customId.startsWith('select_points_item_')) {
     const parts = interaction.customId.split('_');
     return await handlePointsItemSelect(interaction, parts);
+  }
+  
+  // 기여도 배점 관리 - 아이템 선택
+  else if (interaction.customId.startsWith('contribution_select_points_')) {
+    return await handleContributionPointsItemSelect(interaction);
   }
   } catch (error) {
     console.error('셀렉트 처리 에러:', error);
