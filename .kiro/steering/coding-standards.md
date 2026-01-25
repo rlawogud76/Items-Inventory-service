@@ -2,30 +2,23 @@
 
 ## 작업 이력
 
-### 2025-01-25: 모든 페이지네이션에 페이지 점프 기능 추가 (완료)
+### 2025-01-25: 모든 페이지네이션에 페이지 점프 기능 추가 (부분 완료)
 - **새 기능**: 페이지 번호 버튼 클릭 시 모달로 원하는 페이지로 직접 이동
-- **적용 범위**: 모든 페이지네이션 메시지 (수량 관리, 물품 관리, 레시피, 작업, 초기화 등)
-- **수정된 파일**: pagination.js, modals.js, buttons.js
-- **추가된 핸들러**:
-  - `handleGenericPageJump`: 범용 페이지 점프 버튼 핸들러 (모달 표시)
-  - `handleGenericPageJumpModal`: 범용 페이지 점프 모달 제출 핸들러
+- **적용 범위**: `/재고`, `/제작` 임베드 메시지만 지원 (ephemeral 메시지는 기술적 제약으로 미지원)
+- **수정된 파일**: pagination.js, paginationUtils.js
 - **적용 내용**:
-  - `paginationUtils.js`의 `createPaginationButtons` 함수가 이미 `_jump` customId 생성
-  - 페이지 정보 버튼 클릭 시 모달 표시
+  - `/재고`, `/제작` 명령어의 임베드 메시지에서 페이지 정보 버튼 클릭 시 모달 표시
   - 입력한 페이지로 즉시 이동
   - 페이지 번호 검증 (1~총페이지 범위)
-  - 모든 페이지네이션 타입 지원:
-    - `page_quantity_`: 수량 관리
-    - `page_prev_remove_`, `page_next_remove_`: 물품 삭제
-    - `page_prev_edit_`, `page_next_edit_`: 이름 수정
-    - `page_prev_type_`, `page_next_type_`: 유형 변경
-    - `page_prev_reorder_`, `page_next_reorder_`: 순서 변경
-    - `page_prev_reset_`, `page_next_reset_`: 초기화
-    - `page_prev_collecting_`, `page_next_crafting_`: 작업
-    - `page_prev_recipe_`, `page_next_recipe_`: 레시피
+  - 자동 새로고침 시 사용자별 페이지 상태 유지
+- **기술적 제약**:
+  - ephemeral 메시지(수량 관리, 물품 관리 등)는 Discord API 제약으로 모달 제출 후 `interaction.update()` 불가
+  - 임베드 메시지만 페이지 점프 지원
 - **커밋**:
   - "Add: 범용 페이지 점프 기능 추가 (모든 페이지네이션에 적용)"
   - "Fix: 범용 페이지 점프 customId 파싱 로직 수정"
+  - "Fix: handleGenericPageJump export 누락 수정"
+  - "Fix: 페이지 점프 기능을 임베드 페이지네이션만 지원하도록 수정 (interaction.reply 에러 해결)"
 
 ### 2025-01-25: 자동 정렬에 태그별 정렬 옵션 추가 (완료)
 - **새 기능**: 태그별로 묶어서 정렬하는 옵션 추가
