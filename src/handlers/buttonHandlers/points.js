@@ -8,48 +8,65 @@ import { getTimeoutSettings } from '../../utils.js';
  * 배점 관리 메인 버튼
  */
 export async function handlePointsManageButton(interaction, isBackButton = false) {
-  const timeouts = await getTimeoutSettings();
-  
-  const row1 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('points_type_inventory')
-      .setLabel('📦 재고 배점 설정')
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId('points_type_crafting')
-      .setLabel('🔨 제작 배점 설정')
-      .setStyle(ButtonStyle.Primary)
-  );
-  
-  const row2 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('points_reset')
-      .setLabel('🔄 전체 초기화 (모두 1점으로)')
-      .setStyle(ButtonStyle.Danger)
-  );
-  
-  const content = `⭐ **배점 설정**\n\n배점을 설정할 분야를 선택하세요.\n\n_이 메시지는 ${timeouts.select}초 후 자동 삭제됩니다_`;
-  
-  // 뒤로가기 버튼인 경우 update, 첫 클릭인 경우 reply
-  if (isBackButton) {
-    await interaction.update({
-      content,
-      components: [row1, row2]
-    });
-  } else {
-    await interaction.reply({
-      content,
-      components: [row1, row2],
-      ephemeral: true
-    });
+  try {
+    console.log('⭐ 배점 관리 버튼 핸들러 시작, isBackButton:', isBackButton);
+    
+    const timeouts = await getTimeoutSettings();
+    
+    const row1 = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('points_type_inventory')
+        .setLabel('📦 재고 배점 설정')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('points_type_crafting')
+        .setLabel('🔨 제작 배점 설정')
+        .setStyle(ButtonStyle.Primary)
+    );
+    
+    const row2 = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('points_reset')
+        .setLabel('🔄 전체 초기화 (모두 1점으로)')
+        .setStyle(ButtonStyle.Danger)
+    );
+    
+    const content = `⭐ **배점 설정**\n\n배점을 설정할 분야를 선택하세요.\n\n_이 메시지는 ${timeouts.select}초 후 자동 삭제됩니다_`;
+    
+    // 뒤로가기 버튼인 경우 update, 첫 클릭인 경우 reply
+    if (isBackButton) {
+      console.log('⭐ 뒤로가기 - interaction.update() 호출');
+      await interaction.update({
+        content,
+        components: [row1, row2]
+      });
+    } else {
+      console.log('⭐ 첫 클릭 - interaction.reply() 호출');
+      await interaction.reply({
+        content,
+        components: [row1, row2],
+        flags: 64 // ephemeral
+      });
+    }
+    
+    console.log('⭐ 배점 관리 메뉴 표시 완료');
+    
+    // 자동 삭제
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, timeouts.select * 1000);
+  } catch (error) {
+    console.error('❌ 배점 관리 버튼 핸들러 에러:', error);
+    console.error('❌ 에러 스택:', error.stack);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: '❌ 배점 설정 메뉴를 여는 중 오류가 발생했습니다.',
+        flags: 64
+      }).catch(err => console.error('❌ 에러 응답 실패:', err));
+    }
   }
-  
-  // 자동 삭제
-  setTimeout(async () => {
-    try {
-      await interaction.deleteReply();
-    } catch (error) {}
-  }, timeouts.select * 1000);
 }
 
 /**
