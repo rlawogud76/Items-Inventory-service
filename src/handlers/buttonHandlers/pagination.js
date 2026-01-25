@@ -2,21 +2,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
 import { loadInventory } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
-import { getItemIcon, getTimeoutSettings } from '../../utils.js';
-
-/**
- * 이모지 검증 함수 - Select Menu는 유니코드 이모지만 허용
- * @param {string} emoji - 검증할 이모지
- * @returns {string} - 유효한 이모지 또는 기본 이모지
- */
-function validateEmoji(emoji) {
-  if (!emoji) return '📦';
-  // 커스텀 Discord 이모지 형식(<:name:id> 또는 <a:name:id>)이거나 잘못된 형식이면 기본 이모지 사용
-  if (emoji.startsWith('<') || emoji.length > 10) {
-    return '📦';
-  }
-  return emoji;
-}
+import { getItemIcon, getTimeoutSettings, validateEmoji } from '../../utils.js';
 
 export async function handlePageNavigation(interaction) {
   try {

@@ -385,7 +385,9 @@ export async function loadInventory() {
       tags: setting?.tags || { inventory: {}, crafting: {} },
       settings: {
         uiMode: setting?.uiMode || 'normal',
-        barLength: setting?.barLength || 15
+        barLength: setting?.barLength || 15,
+        selectMessageTimeout: setting?.selectMessageTimeout || 30,
+        infoMessageTimeout: setting?.infoMessageTimeout || 15
       },
       collecting: {} // 기존 호환성 유지용 빈 객체
     };
@@ -658,10 +660,24 @@ export async function updateItemDetails(type, category, oldName, updates) {
       const setting = await Setting.findById('global');
       if (setting && setting.tags && setting.tags[type] && setting.tags[type][category]) {
         let modified = false;
-        for (const [tagName, items] of Object.entries(setting.tags[type][category])) {
-          const idx = items.indexOf(oldName);
+        for (const [tagName, tagData] of Object.entries(setting.tags[type][category])) {
+          // 태그 데이터가 배열(기존 형식)인지 객체(새 형식)인지 확인
+          let itemsArray;
+          if (Array.isArray(tagData)) {
+            // 기존 형식: tagData가 직접 배열
+            itemsArray = tagData;
+          } else if (tagData && Array.isArray(tagData.items)) {
+            // 새 형식: { items: [...], color: '...' }
+            itemsArray = tagData.items;
+          } else {
+            // 알 수 없는 형식 - 건너뛰기
+            console.warn(`⚠️ 알 수 없는 태그 형식: ${tagName}`, tagData);
+            continue;
+          }
+          
+          const idx = itemsArray.indexOf(oldName);
           if (idx !== -1) {
-            items[idx] = updates.name;
+            itemsArray[idx] = updates.name;
             modified = true;
           }
         }
