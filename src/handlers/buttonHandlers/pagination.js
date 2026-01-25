@@ -632,3 +632,188 @@ export async function handleGenericPageJumpModal(interaction) {
     }
   }
 }
+
+
+/**
+ * 범용 페이지 점프 버튼 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleGenericPageJump(interaction) {
+  try {
+    const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = await import('discord.js');
+    
+    // customId 형식: page_quantity_jump_inventory_해양_2_10 (현재페이지_총페이지)
+    const parts = interaction.customId.split('_');
+    const totalPages = parseInt(parts[parts.length - 1]);
+    const currentPage = parseInt(parts[parts.length - 2]);
+    
+    // jump 이전까지가 baseId, jump 이후 마지막 2개 제외가 suffix
+    const jumpIndex = parts.indexOf('jump');
+    const baseId = parts.slice(0, jumpIndex).join('_'); // 'page_quantity'
+    const suffix = parts.slice(jumpIndex + 1, -2).join('_'); // 'inventory_해양'
+    
+    // 모달 customId에 baseId와 suffix를 모두 포함
+    const modal = new ModalBuilder()
+      .setCustomId(`generic_page_jump_modal_${baseId}_${suffix}_${totalPages}`)
+      .setTitle('페이지 이동');
+    
+    const pageInput = new TextInputBuilder()
+      .setCustomId('page_number')
+      .setLabel(`이동할 페이지 (1-${totalPages})`)
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder(`현재: ${currentPage + 1}페이지`)
+      .setRequired(true)
+      .setMinLength(1)
+      .setMaxLength(String(totalPages).length);
+    
+    const row = new ActionRowBuilder().addComponents(pageInput);
+    modal.addComponents(row);
+    
+    await interaction.showModal(modal);
+  } catch (error) {
+    console.error('❌ 범용 페이지 점프 모달 에러:', error);
+    await interaction.reply({ content: '페이지 이동 모달을 표시하는 중 오류가 발생했습니다.', flags: 64 }).catch(() => {});
+  }
+}
+
+/**
+ * 범용 페이지 점프 모달 제출 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleGenericPageJumpModal(interaction) {
+  try {
+    const { StringSelectMenuBuilder, ActionRowBuilder } = await import('discord.js');
+    const { paginateItems, createPaginationButtons, getPaginationInfo } = await import('../../paginationUtils.js');
+    const { getItemIcon, getTimeoutSettings } = await import('../../utils.js');
+    
+    // customId 형식: generic_page_jump_modal_page_quantity_inventory_해양_10
+    const parts = interaction.customId.split('_');
+    const totalPages = parseInt(parts[parts.length - 1]);
+    
+    // 'generic_page_jump_modal_' 제거 (4개 요소)
+    const remainingParts = parts.slice(4);
+    
+    // 마지막(totalPages) 제외
+    const dataParts = remainingParts.slice(0, -1);
+    
+    // baseId는 처음 2개: 'page_quantity'
+    const baseId = dataParts.slice(0, 2).join('_');
+    
+    // suffix는 나머지: 'inventory_해양'
+    const suffix = dataParts.slice(2).join('_');
+    
+    const pageInput = interaction.fields.getTextInputValue('page_number').trim();
+    const targetPage = parseInt(pageInput);
+    
+    const inventory = await loadInventory();
+    const { infoTimeout } = getTimeoutSettings(inventory);
+    
+    // 페이지 번호 검증
+    if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
+      return await interaction.reply({
+        content: `❌ 잘못된 페이지 번호입니다. 1부터 ${totalPages}까지 입력해주세요.\n\n_이 메시지는 ${infoTimeout / 1000}초 후 자동 삭제됩니다_`,
+        flags: 64
+      }).then(() => {
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, infoTimeout);
+      });
+    }
+    
+    const newPage = targetPage - 1; // 0-based index
+    
+    console.log(`🔢 범용 페이지 점프:
+  - baseId: ${baseId}
+  - suffix: ${suffix}
+  - targetPage: ${targetPage} (0-based: ${newPage})`);
+    
+    // 각 페이지네이션 타입별로 직접 처리
+    if (baseId === 'page_quantity') {
+      // page_quantity_inventory_해양 형식
+      const typeParts = suffix.split('_');
+      const type = typeParts[0]; // 'inventory' or 'crafting'
+      const category = typeParts.slice(1).join('_'); // '해양'
+      
+      // 수량 관리 페이지 점프 처리
+      function validateEmoji(emoji) {
+        if (!emoji) return '📦';
+        if (emoji.startsWith('<') || emoji.length > 10) return '📦';
+        return emoji;
+      }
+      
+      const targetData = type === 'inventory' ? inventory : inventory.crafting;
+      const items = Object.keys(targetData?.categories?.[category] || {});
+      
+      if (items.length === 0) {
+        return await interaction.update({
+          content: `❌ "${category}" 카테고리에 아이템이 없습니다.`,
+          components: []
+        });
+      }
+      
+      const itemOptions = items.map(item => {
+        const itemData = targetData?.categories?.[category]?.[item];
+        if (!itemData) return null;
+        
+        const customEmoji = itemData?.emoji;
+        let description = `현재: ${itemData.quantity}개 / 목표: ${itemData.required}개`;
+        if (description.length > 100) {
+          description = description.substring(0, 97) + '...';
+        }
+        
+        const emoji = validateEmoji(customEmoji || getItemIcon(item, inventory));
+        
+        return {
+          label: item,
+          value: item,
+          emoji: emoji,
+          description: description
+        };
+      }).filter(item => item !== null);
+      
+      const { pagedItems, totalPages: calcTotalPages, startIndex, endIndex } = paginateItems(itemOptions, newPage);
+      
+      if (pagedItems.length === 0) {
+        return await interaction.update({
+          content: `❌ 해당 페이지에 아이템이 없습니다.`,
+          components: []
+        });
+      }
+      
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId(`select_quantity_${type}_${category}`)
+        .setPlaceholder('수량을 관리할 아이템을 선택하세요')
+        .addOptions(pagedItems);
+      
+      const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+      
+      if (calcTotalPages > 1) {
+        const paginationRow = createPaginationButtons(`page_quantity_${type}_${category}`, newPage, calcTotalPages);
+        rows.push(paginationRow);
+      }
+      
+      const paginationInfo = getPaginationInfo(newPage, calcTotalPages, itemOptions.length, startIndex, endIndex);
+      const { selectTimeout } = getTimeoutSettings(inventory);
+      
+      await interaction.update({
+        content: `📊 **${category}** 카테고리 수량 관리\n${paginationInfo}\n\n수량을 관리할 아이템을 선택하세요:\n\n_이 메시지는 ${selectTimeout / 1000}초 후 자동 삭제됩니다_`,
+        components: rows
+      });
+      
+      console.log(`✅ 수량 관리 페이지 점프 완료: ${targetPage}페이지로 이동`);
+    } else {
+      // 다른 타입들은 아직 미구현
+      await interaction.update({
+        content: '⚠️ 이 페이지네이션 타입의 페이지 점프는 아직 지원되지 않습니다. 이전/다음 버튼을 사용해주세요.',
+        components: []
+      });
+    }
+  } catch (error) {
+    console.error('❌ 범용 페이지 점프 모달 제출 에러:', error);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', flags: 64 }).catch(() => {});
+    }
+  }
+}
