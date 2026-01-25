@@ -23,7 +23,8 @@ import {
   handleChangeTagColor,
   handleItemTypeSelect,
   handleTypeChangeSelect,
-  handleConfirmTypeChange
+  handleConfirmTypeChange,
+  handlePointsItemSelect
 } from './selectHandlers/index.js';
 
 /**
@@ -146,5 +147,11 @@ export async function handleSelectInteraction(interaction) {
   // 유형 변경 확인
   else if (interaction.customId.startsWith('confirm_type_change_')) {
     return await handleConfirmTypeChange(interaction);
+  }
+  
+  // 배점 관리 - 아이템 선택
+  else if (interaction.customId.startsWith('select_points_item_')) {
+    const parts = interaction.customId.split('_');
+    return await handlePointsItemSelect(interaction, parts);
   }
 }

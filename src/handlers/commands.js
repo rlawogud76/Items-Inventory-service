@@ -7,7 +7,7 @@ import {
   handleEmojiCommand,
   handleHistoryCommand,
   handleContributionResetCommand,
-  handleStatsCommand,
+  handleContributionCommand,
   handleRepairCommand
 } from './commandHandlers/index.js';
 
@@ -36,8 +36,8 @@ export async function handleCommandInteraction(interaction, activeMessages) {
     else if (commandName === '도움말') {
       return await handleHelpCommand(interaction);
     }
-    else if (commandName === '통계') {
-      return await handleStatsCommand(interaction);
+    else if (commandName === '기여도') {
+      return await handleContributionCommand(interaction);
     }
     else if (commandName === '이모지설정') {
       return await handleEmojiCommand(interaction);

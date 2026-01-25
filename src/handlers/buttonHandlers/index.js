@@ -88,3 +88,11 @@ export {
   handleConfirmContributionReset, 
   handleCancelContributionReset 
 } from './contribution.js';
+
+// 배점 관리
+export {
+  handlePointsManageButton,
+  handlePointsTypeButton,
+  handlePointsCategoryButton,
+  handlePointsResetButton
+} from './points.js';

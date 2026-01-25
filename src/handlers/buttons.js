@@ -70,7 +70,11 @@ import {
   handleConfirmContributionReset,
   handleCancelContributionReset,
   handleRecipeMaterialPagination,
-  handleRecipeEditPagination
+  handleRecipeEditPagination,
+  handlePointsManageButton,
+  handlePointsTypeButton,
+  handlePointsCategoryButton,
+  handlePointsResetButton
 } from './buttonHandlers/index.js';
 
 // 버튼 인터랙션 처리 함수
@@ -342,5 +346,26 @@ export async function handleButtonInteraction(interaction) {
     
     else if (interaction.customId === 'cancel_contribution_reset') {
       return await handleCancelContributionReset(interaction);
+    }
+    
+    // ============================================
+    // 13. 배점 관리 핸들러 (분리됨)
+    // ============================================
+    else if (interaction.customId === 'points_manage') {
+      return await handlePointsManageButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('points_type_')) {
+      const parts = interaction.customId.split('_');
+      return await handlePointsTypeButton(interaction, parts);
+    }
+    
+    else if (interaction.customId.startsWith('points_category_')) {
+      const parts = interaction.customId.split('_');
+      return await handlePointsCategoryButton(interaction, parts);
+    }
+    
+    else if (interaction.customId === 'points_reset') {
+      return await handlePointsResetButton(interaction);
     }
 }

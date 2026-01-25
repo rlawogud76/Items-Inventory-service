@@ -11,7 +11,8 @@ import {
   handleTagNameInputModal,
   handleTagNameModal,
   handleBarSizeModal,
-  handleTimeoutSettingsModal
+  handleTimeoutSettingsModal,
+  handlePointsModal
 } from './modalHandlers/index.js';
 
 import { handlePageJumpModal, handleGenericPageJumpModal } from './buttonHandlers/pagination.js';
@@ -99,6 +100,13 @@ export async function handleModalInteraction(interaction) {
   // 타이머 설정
   else if (interaction.customId.startsWith('timeout_settings_modal_')) {
     await handleTimeoutSettingsModal(interaction);
+    return true;
+  }
+  
+  // 배점 설정
+  else if (interaction.customId.startsWith('modal_points_')) {
+    const parts = interaction.customId.split('_');
+    await handlePointsModal(interaction, parts);
     return true;
   }
   

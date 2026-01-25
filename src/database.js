@@ -861,3 +861,108 @@ export async function updateItemsOrder(type, category, items) {
     throw error;
   }
 }
+
+/**
+ * 아이템 배점 초기화 (첫 실행 시)
+ */
+export async function initializeItemPoints() {
+  try {
+    const setting = await Setting.findById('global');
+    
+    if (!setting?.itemPoints) {
+      await Setting.findByIdAndUpdate(
+        'global',
+        { 
+          $set: { 
+            itemPoints: { 
+              inventory: {}, 
+              crafting: {} 
+            } 
+          } 
+        },
+        { upsert: true }
+      );
+      console.log('✅ 아이템 배점 초기화 완료 (기본값: 1점)');
+    }
+  } catch (error) {
+    console.error('❌ 아이템 배점 초기화 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * 아이템 배점 조회
+ * @returns {object} { inventory: {}, crafting: {} }
+ */
+export async function getItemPoints() {
+  try {
+    const setting = await Setting.findById('global').lean();
+    return setting?.itemPoints || { inventory: {}, crafting: {} };
+  } catch (error) {
+    console.error('❌ 아이템 배점 조회 실패:', error);
+    return { inventory: {}, crafting: {} };
+  }
+}
+
+/**
+ * 아이템 배점 업데이트
+ * @param {string} type - 'inventory' 또는 'crafting'
+ * @param {string} category - 카테고리
+ * @param {string} itemName - 아이템 이름
+ * @param {number} points - 배점 (1-100)
+ */
+export async function updateItemPoints(type, category, itemName, points) {
+  try {
+    const path = `itemPoints.${type}.${category}.${itemName}`;
+    await Setting.findByIdAndUpdate(
+      'global',
+      { $set: { [path]: points } },
+      { upsert: true }
+    );
+    console.log(`✅ 배점 업데이트: ${type}/${category}/${itemName} = ${points}점`);
+    return true;
+  } catch (error) {
+    console.error('❌ 아이템 배점 업데이트 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * 모든 아이템 배점 초기화 (1점으로)
+ */
+export async function resetAllItemPoints() {
+  try {
+    await Setting.findByIdAndUpdate(
+      'global',
+      { $set: { itemPoints: { inventory: {}, crafting: {} } } },
+      { upsert: true }
+    );
+    console.log('✅ 모든 아이템 배점 초기화 완료 (1점)');
+    return true;
+  } catch (error) {
+    console.error('❌ 아이템 배점 초기화 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * 배점과 함께 아이템 목록 조회
+ * @param {string} type - 'inventory' 또는 'crafting'
+ * @returns {Array} 아이템 배열 (배점 포함)
+ */
+export async function getItemsWithPoints(type) {
+  try {
+    const [items, itemPoints] = await Promise.all([
+      Item.find({ type }).sort({ category: 1, order: 1 }).lean(),
+      getItemPoints()
+    ]);
+    
+    return items.map(item => ({
+      ...item,
+      points: itemPoints?.[type]?.[item.category]?.[item.name] || 1
+    }));
+  } catch (error) {
+    console.error('❌ 배점 포함 아이템 조회 실패:', error);
+    throw error;
+  }
+}

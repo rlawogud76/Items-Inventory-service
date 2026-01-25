@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits } from 'discord.js';
 import dotenv from 'dotenv';
-import { connectDatabase, loadInventory, watchInventoryChanges, addChangeListener, migrateFromDataFile } from './src/database.js';
+import { connectDatabase, loadInventory, watchInventoryChanges, addChangeListener, migrateFromDataFile, initializeItemPoints } from './src/database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from './src/embeds.js';
 import { handleButtonInteraction } from './src/handlers/buttons.js';
 import { handleSelectInteraction } from './src/handlers/selects.js';
@@ -64,10 +64,13 @@ client.on('ready', async () => {
     console.log('ℹ️ data.js 파일이 없습니다. (정상 - MongoDB만 사용)');
   }
   
+  // 아이템 배점 초기화
+  await initializeItemPoints();
+  
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('📦 재고 관리: /재고');
   console.log('🔨 제작 관리: /제작 (레시피는 제작 화면 버튼으로 관리)');
-  console.log('🔧 기타: /도움말, /수정내역, /통계, /이모지설정, /기여도초기화');
+  console.log('🔧 기타: /도움말, /수정내역, /기여도, /이모지설정, /기여도초기화');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   
   // 변경 감지 시작
@@ -161,8 +164,8 @@ client.on('ready', async () => {
         .setName('도움말')
         .setDescription('재고 관리 봇 사용법을 확인합니다'),
       new SlashCommandBuilder()
-        .setName('통계')
-        .setDescription('마을 재고 및 제작 통계를 확인합니다'),
+        .setName('기여도')
+        .setDescription('재고 및 제작 기여도 순위를 확인합니다'),
       new SlashCommandBuilder()
         .setName('이모지설정')
         .setDescription('아이템의 이모지를 설정합니다')

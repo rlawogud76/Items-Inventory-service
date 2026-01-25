@@ -14,8 +14,8 @@ export {
   handleContributionResetCommand
 } from './misc.js';
 
-// 통계
-export { handleStatsCommand } from './stats.js';
+// 기여도
+export { handleContributionCommand } from './contribution.js';
 
 // 복구
 export { handleRepairCommand } from './repair.js';

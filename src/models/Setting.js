@@ -20,6 +20,13 @@ const settingSchema = new mongoose.Schema({
     crafting: { type: mongoose.Schema.Types.Mixed, default: {} }
   },
   
+  // 아이템 배점 시스템 (기여도 계산용)
+  // 구조: { inventory: { category: { itemName: points } }, crafting: { ... } }
+  itemPoints: {
+    inventory: { type: mongoose.Schema.Types.Mixed, default: {} },
+    crafting: { type: mongoose.Schema.Types.Mixed, default: {} }
+  },
+  
   // 마이그레이션 상태
   isMigrated: { type: Boolean, default: false },
   migrationDate: { type: Date }
