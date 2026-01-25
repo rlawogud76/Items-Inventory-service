@@ -379,15 +379,3 @@ export async function handlePointsResetButton(interaction) {
     }).catch(() => {});
   }
 }
-      } catch (error) {}
-    }, timeouts.info * 1000);
-    
-  } catch (error) {
-    console.error('❌ 배점 초기화 실패:', error);
-    await interaction.update({
-      content: '❌ 배점 초기화 중 오류가 발생했습니다.',
-      components: [],
-      embeds: []
-    }).catch(() => {});
-  }
-}
