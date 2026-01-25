@@ -638,17 +638,227 @@ export async function handleGenericPageJumpModal(interaction) {
       });
       
       console.log(`✅ 수량 관리 페이지 점프 완료: ${targetPage}페이지로 이동`);
-    } else {
-      // 다른 타입들은 아직 미구현
+    } 
+    // 초기화 (reset) 페이지네이션
+    else if (baseId === 'page_reset') {
+      const typeParts = suffix.split('_');
+      const type = typeParts[0];
+      const category = typeParts.slice(1).join('_');
+      
+      const targetData = type === 'inventory' ? inventory : inventory.crafting;
+      const items = Object.keys(targetData?.categories?.[category] || {});
+      
+      if (items.length === 0) {
+        return await interaction.reply({
+          content: `❌ "${category}" 카테고리에 아이템이 없습니다.`,
+          ephemeral: true
+        });
+      }
+      
+      const itemOptions = items.map(item => {
+        const itemData = targetData?.categories?.[category]?.[item];
+        if (!itemData) return null;
+        
+        const customEmoji = itemData?.emoji;
+        const fallbackEmoji = getItemIcon(item, inventory);
+        const validEmoji = customEmoji && !customEmoji.startsWith('<') && customEmoji.length <= 10 ? customEmoji : (fallbackEmoji && !fallbackEmoji.startsWith('<') && fallbackEmoji.length <= 10 ? fallbackEmoji : '📦');
+        
+        return {
+          label: item,
+          value: item,
+          emoji: validEmoji,
+          description: `현재: ${itemData.quantity}개`
+        };
+      }).filter(item => item !== null);
+      
+      const { pagedItems, totalPages: calcTotalPages, startIndex, endIndex } = paginateItems(itemOptions, newPage);
+      
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId(`select_reset_${type}_${category}`)
+        .setPlaceholder('초기화할 항목을 선택하세요')
+        .addOptions(pagedItems);
+      
+      const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+      
+      if (calcTotalPages > 1) {
+        const paginationRow = createPaginationButtons(`page_reset_${type}_${category}`, newPage, calcTotalPages);
+        rows.push(paginationRow);
+      }
+      
+      const paginationInfo = getPaginationInfo(newPage, calcTotalPages, itemOptions.length, startIndex, endIndex);
+      
       await interaction.update({
-        content: '⚠️ 이 페이지네이션 타입의 페이지 점프는 아직 지원되지 않습니다. 이전/다음 버튼을 사용해주세요.',
-        components: []
+        content: `🔄 **${category}** 카테고리에서 초기화할 ${type === 'inventory' ? '아이템' : '제작품'}을 선택하세요:\n${paginationInfo}`,
+        components: rows
       });
+      
+      console.log(`✅ 초기화 페이지 점프 완료: ${targetPage}페이지로 이동`);
+    }
+    // 삭제 (remove) 페이지네이션
+    else if (baseId === 'page_remove') {
+      const typeParts = suffix.split('_');
+      const type = typeParts[0];
+      const category = typeParts.slice(1).join('_');
+      
+      const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+      const items = Object.keys(targetData?.[category] || {});
+      
+      if (items.length === 0) {
+        return await interaction.reply({
+          content: `❌ "${category}" 카테고리에 아이템이 없습니다.`,
+          ephemeral: true
+        });
+      }
+      
+      const { formatQuantity } = await import('../../utils.js');
+      
+      const itemOptions = items.map(item => {
+        const formatted = formatQuantity(targetData[category][item].quantity);
+        return {
+          label: item,
+          value: item,
+          description: `현재: ${formatted.items}개/${formatted.sets}세트/${formatted.boxes}상자`
+        };
+      });
+      
+      const { pagedItems, totalPages: calcTotalPages, startIndex, endIndex } = paginateItems(itemOptions, newPage);
+      
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId(`select_remove_${type}_${category}`)
+        .setPlaceholder('삭제할 항목을 선택하세요')
+        .addOptions(pagedItems);
+      
+      const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+      
+      if (calcTotalPages > 1) {
+        const paginationRow = createPaginationButtons(`page_remove_${type}_${category}`, newPage, calcTotalPages);
+        rows.push(paginationRow);
+      }
+      
+      const paginationInfo = getPaginationInfo(newPage, calcTotalPages, itemOptions.length, startIndex, endIndex);
+      
+      await interaction.update({
+        content: `🗑️ **${category}** 카테고리에서 삭제할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:\n${paginationInfo}`,
+        components: rows
+      });
+      
+      console.log(`✅ 삭제 페이지 점프 완료: ${targetPage}페이지로 이동`);
+    }
+    // 수정 (edit) 페이지네이션
+    else if (baseId === 'page_edit') {
+      const typeParts = suffix.split('_');
+      const type = typeParts[0];
+      const category = typeParts.slice(1).join('_');
+      
+      const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+      const items = Object.keys(targetData?.[category] || {});
+      
+      if (items.length === 0) {
+        return await interaction.reply({
+          content: `❌ "${category}" 카테고리에 아이템이 없습니다.`,
+          ephemeral: true
+        });
+      }
+      
+      const { formatQuantity } = await import('../../utils.js');
+      
+      const itemOptions = items.map(item => {
+        const formatted = formatQuantity(targetData[category][item].quantity);
+        return {
+          label: item,
+          value: item,
+          description: `현재: ${formatted.items}개/${formatted.sets}세트/${formatted.boxes}상자`
+        };
+      });
+      
+      const { pagedItems, totalPages: calcTotalPages, startIndex, endIndex } = paginateItems(itemOptions, newPage);
+      
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId(`select_edit_${type}_${category}`)
+        .setPlaceholder('이름을 수정할 항목을 선택하세요')
+        .addOptions(pagedItems);
+      
+      const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+      
+      if (calcTotalPages > 1) {
+        const paginationRow = createPaginationButtons(`page_edit_${type}_${category}`, newPage, calcTotalPages);
+        rows.push(paginationRow);
+      }
+      
+      const paginationInfo = getPaginationInfo(newPage, calcTotalPages, itemOptions.length, startIndex, endIndex);
+      
+      await interaction.update({
+        content: `✏️ **${category}** 카테고리에서 이름을 수정할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:\n${paginationInfo}`,
+        components: rows
+      });
+      
+      console.log(`✅ 수정 페이지 점프 완료: ${targetPage}페이지로 이동`);
+    }
+    // 유형 변경 (type) 페이지네이션
+    else if (baseId === 'page_type') {
+      const typeParts = suffix.split('_');
+      const type = typeParts[0];
+      const category = typeParts.slice(1).join('_');
+      
+      const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+      const items = Object.keys(targetData?.[category] || {});
+      
+      if (items.length === 0) {
+        return await interaction.reply({
+          content: `❌ "${category}" 카테고리에 아이템이 없습니다.`,
+          ephemeral: true
+        });
+      }
+      
+      const itemOptions = items.map(item => {
+        const itemData = targetData[category][item];
+        const currentType = itemData.itemType || (type === 'inventory' ? 'material' : 'final');
+        const typeEmoji = { 'material': '📦', 'intermediate': '🔄', 'final': '⭐' }[currentType] || '❓';
+        const typeName = { 'material': '재료', 'intermediate': '중간제작품', 'final': '최종제작품' }[currentType] || '미설정';
+        
+        return {
+          label: item,
+          value: item,
+          description: `현재: ${typeName}`,
+          emoji: typeEmoji
+        };
+      });
+      
+      const { pagedItems, totalPages: calcTotalPages, startIndex, endIndex } = paginateItems(itemOptions, newPage);
+      
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId(`select_type_change_${type}_${category}`)
+        .setPlaceholder('유형을 변경할 항목을 선택하세요')
+        .addOptions(pagedItems);
+      
+      const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+      
+      if (calcTotalPages > 1) {
+        const paginationRow = createPaginationButtons(`page_type_${type}_${category}`, newPage, calcTotalPages);
+        rows.push(paginationRow);
+      }
+      
+      const paginationInfo = getPaginationInfo(newPage, calcTotalPages, itemOptions.length, startIndex, endIndex);
+      
+      await interaction.update({
+        content: `🔄 **${category}** 카테고리에서 유형을 변경할 ${type === 'inventory' ? '물품' : '품목'}을 선택하세요:\n📦 재료 | 🔄 중간제작품 | ⭐ 최종제작품\n${paginationInfo}`,
+        components: rows
+      });
+      
+      console.log(`✅ 유형 변경 페이지 점프 완료: ${targetPage}페이지로 이동`);
+    }
+    else {
+      // 다른 타입들은 아직 미구현 - 버튼 유지하며 에러 메시지만 표시
+      await interaction.reply({
+        content: `⚠️ 이 페이지네이션 타입(${baseId})의 페이지 점프는 아직 지원되지 않습니다.\n이전/다음 버튼을 사용해주세요.`,
+        ephemeral: true
+      });
+      console.log(`⚠️ 미지원 페이지 점프 타입: ${baseId}`);
     }
   } catch (error) {
     console.error('❌ 범용 페이지 점프 모달 제출 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', flags: 64 }).catch(() => {});
+      await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
     }
   }
 }
