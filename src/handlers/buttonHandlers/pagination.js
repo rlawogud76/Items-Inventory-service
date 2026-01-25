@@ -483,11 +483,12 @@ export async function handleGenericPageJump(interaction) {
     const totalPages = parseInt(parts[parts.length - 1]);
     const currentPage = parseInt(parts[parts.length - 2]);
     
-    // baseId 추출 (jump 이전까지)
+    // jump 이전까지가 baseId, jump 이후 마지막 2개 제외가 suffix
     const jumpIndex = parts.indexOf('jump');
-    const baseId = parts.slice(0, jumpIndex).join('_');
-    const suffix = parts.slice(jumpIndex + 1, -2).join('_');
+    const baseId = parts.slice(0, jumpIndex).join('_'); // 'page_quantity'
+    const suffix = parts.slice(jumpIndex + 1, -2).join('_'); // 'inventory_해양'
     
+    // 모달 customId에 baseId와 suffix를 모두 포함
     const modal = new ModalBuilder()
       .setCustomId(`generic_page_jump_modal_${baseId}_${suffix}_${totalPages}`)
       .setTitle('페이지 이동');
@@ -518,17 +519,22 @@ export async function handleGenericPageJump(interaction) {
 export async function handleGenericPageJumpModal(interaction) {
   try {
     // customId 형식: generic_page_jump_modal_page_quantity_inventory_해양_10
+    // parts: ['generic', 'page', 'jump', 'modal', 'page', 'quantity', 'inventory', '해양', '10']
     const parts = interaction.customId.split('_');
     const totalPages = parseInt(parts[parts.length - 1]);
     
-    // baseId 추출: 'modal' 다음부터 마지막 1개 제외
-    // generic_page_jump_modal_page_quantity_inventory_해양_10
-    // -> page_quantity_inventory_해양
-    const modalIndex = parts.indexOf('modal');
-    const baseIdParts = parts.slice(modalIndex + 1, -1);
-    const baseId = baseIdParts[0]; // 'page'
-    const paginationType = baseIdParts[1]; // 'quantity', 'prev', 'next' 등
-    const suffix = baseIdParts.slice(2).join('_'); // 'inventory_해양' 등
+    // 'generic_page_jump_modal_' 제거 (4개 요소)
+    // 남은 것: ['page', 'quantity', 'inventory', '해양', '10']
+    const remainingParts = parts.slice(4);
+    
+    // 마지막(totalPages) 제외: ['page', 'quantity', 'inventory', '해양']
+    const dataParts = remainingParts.slice(0, -1);
+    
+    // baseId는 처음 2개: 'page_quantity'
+    const baseId = dataParts.slice(0, 2).join('_');
+    
+    // suffix는 나머지: 'inventory_해양'
+    const suffix = dataParts.slice(2).join('_');
     
     const pageInput = interaction.fields.getTextInputValue('page_number').trim();
     const targetPage = parseInt(pageInput);
@@ -554,7 +560,13 @@ export async function handleGenericPageJumpModal(interaction) {
     
     // 원래 핸들러로 리다이렉트 (페이지 번호만 변경)
     // 예: page_quantity_inventory_해양 -> page_quantity_next_inventory_해양_newPage
-    const redirectCustomId = `${baseId}_${paginationType}_next_${suffix}_${newPage}`;
+    const redirectCustomId = `${baseId}_next_${suffix}_${newPage}`;
+    
+    console.log(`🔢 범용 페이지 점프 디버그:
+  - original customId: ${interaction.customId}
+  - baseId: ${baseId}
+  - suffix: ${suffix}
+  - redirectCustomId: ${redirectCustomId}`);
     
     // customId 변경하여 원래 핸들러 호출
     const modifiedInteraction = {
@@ -564,13 +576,13 @@ export async function handleGenericPageJumpModal(interaction) {
       deferred: false
     };
     
-    // 적절한 핸들러 호출
-    if (paginationType === 'quantity') {
+    // baseId로 핸들러 결정
+    if (baseId === 'page_quantity') {
       const { handleQuantityPageButton } = await import('./quantity.js');
       await handleQuantityPageButton(modifiedInteraction);
-    } else if (paginationType === 'prev' || paginationType === 'next') {
-      // page_prev_remove_, page_next_edit_ 등
-      const actionType = suffix.split('_')[0]; // 'remove', 'edit', 'type', 'reorder' 등
+    } else if (baseId === 'page_prev' || baseId === 'page_next') {
+      // suffix의 첫 부분으로 액션 타입 결정
+      const actionType = suffix.split('_')[0];
       
       if (actionType === 'remove') {
         const { handleManageRemovePageButton } = await import('./manage.js');
@@ -612,7 +624,7 @@ export async function handleGenericPageJumpModal(interaction) {
       }
     }
     
-    console.log(`🔢 범용 페이지 점프: ${targetPage}페이지로 이동 (${paginationType})`);
+    console.log(`🔢 범용 페이지 점프: ${targetPage}페이지로 이동`);
   } catch (error) {
     console.error('❌ 범용 페이지 점프 모달 제출 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
