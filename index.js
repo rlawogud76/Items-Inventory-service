@@ -9,6 +9,7 @@ import { handleCommandInteraction } from './src/handlers/commands.js';
 import { handleQuantityModal } from './src/handlers/modalHandlers/quantityModal.js';
 import apiServer from './api-server.js';
 import { updateBotInfo, addEvent } from './src/statusLogger.js';
+import { INTERACTION_CONFIG } from './src/constants.js';
 
 // .env 파일 로드
 dotenv.config();
@@ -222,7 +223,22 @@ client.on('ready', async () => {
 
 // 중복 인터랙션 방지용 Map (customId별 마지막 처리 시간 추적)
 const lastProcessedTime = new Map();
-const DEBOUNCE_MS = 1000; // 1초 내 중복 무시
+const { DEBOUNCE_MS, DEBOUNCE_CLEANUP_INTERVAL, DEBOUNCE_MAX_AGE } = INTERACTION_CONFIG;
+
+// 주기적으로 오래된 debounce 항목 정리 (메모리 누수 방지)
+setInterval(() => {
+  const now = Date.now();
+  let cleanedCount = 0;
+  for (const [key, time] of lastProcessedTime.entries()) {
+    if (now - time > DEBOUNCE_MAX_AGE) {
+      lastProcessedTime.delete(key);
+      cleanedCount++;
+    }
+  }
+  if (cleanedCount > 0) {
+    console.log(`🧹 Debounce Map 정리: ${cleanedCount}개 항목 제거 (현재 ${lastProcessedTime.size}개)`);
+  }
+}, DEBOUNCE_CLEANUP_INTERVAL);
 
 // 슬래시 커맨드 처리
 client.on('interactionCreate', async (interaction) => {
@@ -241,11 +257,6 @@ client.on('interactionCreate', async (interaction) => {
   // 마지막 처리 시간 업데이트
   lastProcessedTime.set(customId, now);
   console.log('✅ 인터랙션 처리 시작:', customId);
-  
-  // 5초 후 Map에서 제거 (메모리 관리)
-  setTimeout(() => {
-    lastProcessedTime.delete(customId);
-  }, 5000);
   
   // 이벤트 로깅
   addEvent('interaction', {

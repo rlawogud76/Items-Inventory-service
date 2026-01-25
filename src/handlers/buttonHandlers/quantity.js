@@ -1,22 +1,8 @@
 // 수량 관리 핸들러
 import { ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 import { loadInventory } from '../../database.js';
-import { formatQuantity, getItemIcon, getTimeoutSettings } from '../../utils.js';
+import { formatQuantity, getItemIcon, getTimeoutSettings, validateEmoji, safeErrorReply, safeDeleteReply } from '../../utils.js';
 import { paginateItems, createPaginationButtons, getPaginationInfo } from '../../paginationUtils.js';
-
-/**
- * 이모지 검증 (유효한 유니코드 이모지만 허용)
- * @param {string} emoji - 검증할 이모지
- * @returns {string} - 유효한 이모지 또는 기본 이모지
- */
-function validateEmoji(emoji) {
-  if (!emoji) return '📦';
-  // 커스텀 Discord 이모지 형식(<:name:id> 또는 <a:name:id>)이거나 잘못된 형식이면 기본 이모지 사용
-  if (emoji.startsWith('<') || emoji.length > 10) {
-    return '📦';
-  }
-  return emoji;
-}
 
 /**
  * 수량 관리 버튼 핸들러
@@ -110,19 +96,11 @@ export async function handleQuantityButton(interaction) {
     });
     
     // 설정된 시간 후 자동 삭제
-    setTimeout(async () => {
-      try {
-        await interaction.deleteReply();
-      } catch (error) {
-        // 이미 삭제되었거나 삭제할 수 없는 경우 무시
-      }
-    }, selectTimeout);
+    setTimeout(() => safeDeleteReply(interaction), selectTimeout);
     
   } catch (error) {
     console.error('❌ 버튼 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
-      console.error('❌ 수량관리 버튼 에러 응답 실패:', err);
-    });
+    await safeErrorReply(interaction, '오류가 발생했습니다: ' + error.message);
   }
 }
 
@@ -217,8 +195,6 @@ export async function handleQuantityPageButton(interaction) {
   } catch (error) {
     console.error('❌ 수량관리 페이지 이동 에러:', error);
     console.error('❌ 에러 스택:', error.stack);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
-      console.error('❌ 수량관리 페이지 이동 에러 응답 실패:', err);
-    });
+    await safeErrorReply(interaction, '페이지 이동 중 오류가 발생했습니다: ' + error.message);
   }
 }

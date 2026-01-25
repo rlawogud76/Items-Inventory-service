@@ -192,11 +192,6 @@ export async function clearHistory() {
   }
 }
 
-// 캐시 설정
-const CACHE_TTL = 5000; // 5초
-let inventoryCache = null;
-let cacheTimestamp = null;
-
 // 마지막 업데이트 시간 추적
 let lastUpdateTime = null;
 
@@ -503,10 +498,6 @@ export async function updateItemQuantity(type, category, itemName, delta, userNa
     );
     
     if (result) {
-      // 캐시 무효화 (필요하다면)
-      inventoryCache = null;
-      cacheTimestamp = null;
-      
       // 히스토리 추가
       if (action && details) {
         await addHistoryEntry({
@@ -571,9 +562,6 @@ export async function updateMultipleItems(updates, historyEntries) {
       const result = await Item.bulkWrite(bulkOps);
       
       if (result.modifiedCount > 0) {
-        inventoryCache = null;
-        cacheTimestamp = null;
-        
         // 히스토리 일괄 추가
         if (historyEntries && historyEntries.length > 0) {
           for (const h of historyEntries) {
@@ -610,7 +598,6 @@ export async function addItem(itemData) {
     
     await newItem.save();
     
-    inventoryCache = null;
     notifyChangeListeners();
     return true;
   } catch (error) {
@@ -634,7 +621,6 @@ export async function removeItem(type, category, name) {
     }
     
     if (result.deletedCount > 0) {
-      inventoryCache = null;
       notifyChangeListeners();
       return true;
     }
@@ -690,7 +676,6 @@ export async function updateItemDetails(type, category, oldName, updates) {
     const result = await Item.findOneAndUpdate(filter, update, { new: true });
     
     if (result) {
-      inventoryCache = null;
       notifyChangeListeners();
       return true;
     }
@@ -720,7 +705,6 @@ export async function saveRecipe(category, resultName, materials) {
       { upsert: true, new: true }
     );
     
-    inventoryCache = null;
     notifyChangeListeners();
     return true;
   } catch (error) {
@@ -736,7 +720,6 @@ export async function removeRecipe(category, resultName) {
   try {
     const result = await Recipe.deleteOne({ category, resultName });
     if (result.deletedCount > 0) {
-      inventoryCache = null;
       notifyChangeListeners();
       return true;
     }
@@ -769,7 +752,6 @@ export async function updateItemWorker(type, category, itemName, workerData) {
     );
     
     if (result) {
-      inventoryCache = null;
       notifyChangeListeners();
       return true;
     }
@@ -793,7 +775,6 @@ export async function updateSettings(updates) {
       { new: true, upsert: true }
     );
     
-    inventoryCache = null; // 캐시 무효화
     notifyChangeListeners();
     return result;
   } catch (error) {

@@ -3,6 +3,58 @@ import { addHistoryEntry } from './database.js';
 import { STACK, LIMITS, UI, EMOJIS } from './constants.js';
 
 /**
+ * 이모지 검증 함수 - Select Menu는 유니코드 이모지만 허용
+ * 커스텀 Discord 이모지나 잘못된 형식은 기본 이모지로 대체
+ * @param {string} emoji - 검증할 이모지
+ * @param {string} fallback - 기본 이모지 (기본값: '📦')
+ * @returns {string} - 유효한 이모지 또는 기본 이모지
+ */
+export function validateEmoji(emoji, fallback = '📦') {
+  if (!emoji) return fallback;
+  // 커스텀 Discord 이모지 형식(<:name:id> 또는 <a:name:id>)이거나 잘못된 형식이면 기본 이모지 사용
+  if (emoji.startsWith('<') || emoji.length > 10) {
+    return fallback;
+  }
+  return emoji;
+}
+
+/**
+ * 인터랙션 에러 응답을 위한 안전한 핸들러
+ * 이미 응답된 인터랙션이나 만료된 인터랙션에서도 안전하게 동작
+ * @param {Interaction} interaction - Discord 인터랙션
+ * @param {string} errorMessage - 에러 메시지
+ * @param {boolean} ephemeral - ephemeral 여부 (기본값: true)
+ */
+export async function safeErrorReply(interaction, errorMessage, ephemeral = true) {
+  try {
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp({ content: errorMessage, ephemeral });
+    } else {
+      await interaction.reply({ content: errorMessage, ephemeral });
+    }
+  } catch (replyError) {
+    // 인터랙션이 만료되었거나 다른 이유로 응답 실패
+    console.error('❌ 에러 응답 실패:', replyError.message);
+  }
+}
+
+/**
+ * 안전한 메시지 삭제 함수
+ * 이미 삭제되었거나 권한이 없는 경우에도 안전하게 동작
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function safeDeleteReply(interaction) {
+  try {
+    await interaction.deleteReply();
+  } catch (error) {
+    // 이미 삭제되었거나 삭제할 수 없는 경우 - 무시하되 로깅
+    if (error.code !== 10008) { // 10008 = Unknown Message (이미 삭제됨)
+      console.warn('⚠️ 메시지 삭제 실패:', error.message);
+    }
+  }
+}
+
+/**
  * 사용자 입력 sanitization
  * Discord markdown과 특수문자를 이스케이프하여 안전하게 만듦
  * @param {string} input - 사용자 입력 문자열
@@ -419,4 +471,44 @@ export async function getTimeoutSettingsAsync() {
     console.error('❌ 타이머 설정 로드 실패, 기본값 사용:', error);
     return { selectTimeout: 30000, infoTimeout: 15000 };
   }
+}
+
+/**
+ * customId 파싱 유틸리티 - 안전하게 customId를 파싱
+ * @param {string} customId - Discord 인터랙션 customId
+ * @param {number} expectedMinParts - 최소 필요한 파트 수
+ * @returns {object|null} - 파싱된 결과 또는 null (유효하지 않은 경우)
+ */
+export function parseCustomId(customId, expectedMinParts = 2) {
+  if (!customId || typeof customId !== 'string') {
+    return null;
+  }
+  
+  const parts = customId.split('_');
+  
+  if (parts.length < expectedMinParts) {
+    console.warn(`⚠️ 유효하지 않은 customId: ${customId} (최소 ${expectedMinParts}개 파트 필요, ${parts.length}개 발견)`);
+    return null;
+  }
+  
+  return { parts, customId };
+}
+
+/**
+ * 타입(inventory/crafting) 파라미터 검증
+ * @param {string} type - 타입 문자열
+ * @returns {boolean} - 유효 여부
+ */
+export function isValidType(type) {
+  return type === 'inventory' || type === 'crafting';
+}
+
+/**
+ * 액션 파라미터 검증
+ * @param {string} action - 액션 문자열
+ * @param {string[]} validActions - 유효한 액션 목록
+ * @returns {boolean} - 유효 여부
+ */
+export function isValidAction(action, validActions = ['add', 'edit', 'subtract', 'remove', 'reset']) {
+  return validActions.includes(action);
 }

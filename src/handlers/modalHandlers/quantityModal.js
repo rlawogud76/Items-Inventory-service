@@ -1,6 +1,6 @@
 // 수량 관리 modal 핸들러
 import { loadInventory, updateMultipleItems } from '../../database.js';
-import { sanitizeNumber, getTimeoutSettings } from '../../utils.js';
+import { sanitizeNumber, getTimeoutSettings, safeErrorReply, safeDeleteReply } from '../../utils.js';
 import { consumeRecipeMaterials, returnRecipeMaterials, adjustRecipeMaterials } from '../../recipeService.js';
 import { STACK, LIMITS } from '../../constants.js';
 
@@ -198,26 +198,21 @@ export async function handleQuantityModal(interaction) {
     
     const syncText = (itemData.linkedItem && action !== 'edit_required') ? '\n🔗 연동된 아이템도 자동 업데이트되었습니다!' : '';
     
+    // 설정된 시간 후 자동 삭제
+    const { infoTimeout } = getTimeoutSettings(inventory);
+    
     await interaction.reply({ 
-      content: `✅ ${itemName}\n수량이 업데이트되었습니다!\n${actionText}${syncText}\n\n_이 메시지는 15초 후 자동 삭제됩니다_`, 
+      content: `✅ ${itemName}\n수량이 업데이트되었습니다!\n${actionText}${syncText}\n\n_이 메시지는 ${Math.round(infoTimeout / 1000)}초 후 자동 삭제됩니다_`, 
       ephemeral: true 
     });
     
-    // 설정된 시간 후 자동 삭제
-    const { infoTimeout } = getTimeoutSettings(inventory);
-    setTimeout(async () => {
-      try {
-        await interaction.deleteReply();
-      } catch (error) {}
-    }, infoTimeout);
+    setTimeout(() => safeDeleteReply(interaction), infoTimeout);
     
     console.log('✅ 수량 업데이트 완료 (Atomic)');
     
   } catch (error) {
     console.error('❌ 모달 제출 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
-      console.error('❌ 모달 제출 응답 실패:', err);
-    });
+    await safeErrorReply(interaction, '오류가 발생했습니다: ' + error.message);
   }
 }
 

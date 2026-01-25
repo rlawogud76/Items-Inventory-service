@@ -18,15 +18,31 @@ export const LIMITS = {
   MAX_ITEMS: 63,                  // 1세트 미만
   NAME_MAX_LENGTH: 50,
   HISTORY_MAX_ENTRIES: 1000,
+  MAX_EMOJI_LENGTH: 10,           // 이모지 최대 길이
+  DISCORD_SELECT_MAX_OPTIONS: 25, // Discord Select Menu 최대 옵션 수
+  DISCORD_FIELD_MAX_LENGTH: 1024, // Discord Embed Field 최대 길이
+  DISCORD_DESCRIPTION_MAX_LENGTH: 100, // Discord Select Option Description 최대 길이
 };
 
 /**
  * 데이터베이스 및 캐시 설정
  */
 export const DB_CONFIG = {
-  CACHE_TTL: 5000,                // 5초
   POLLING_INTERVAL: 3000,         // 3초
   CONNECT_TIMEOUT: 30000,         // 30초
+  SOCKET_TIMEOUT: 45000,          // 45초
+};
+
+/**
+ * 인터랙션 디바운스 및 타임아웃 설정
+ */
+export const INTERACTION_CONFIG = {
+  DEBOUNCE_MS: 1000,              // 1초 내 중복 인터랙션 무시
+  DEBOUNCE_CLEANUP_INTERVAL: 60000, // 1분마다 만료된 debounce 항목 정리
+  DEBOUNCE_MAX_AGE: 10000,        // 10초 이상 된 항목 정리
+  ACTIVE_MESSAGE_TIMEOUT: 600000, // 10분 후 활성 메시지 만료
+  DEFAULT_SELECT_TIMEOUT: 30000,  // 기본 선택 메시지 타임아웃 (30초)
+  DEFAULT_INFO_TIMEOUT: 15000,    // 기본 정보 메시지 타임아웃 (15초)
 };
 
 /**
@@ -36,6 +52,7 @@ export const UI = {
   DEFAULT_BAR_LENGTH: 15,
   PROGRESS_BAR_FILLED: '█',
   PROGRESS_BAR_EMPTY: '░',
+  DEFAULT_UI_MODE: 'normal',
 };
 
 /**
@@ -47,6 +64,7 @@ export const EMOJIS = {
   ITEM: '🔹',
   INTERMEDIATE: '🔄',
   FINAL: '⭐',
+  DEFAULT: '📦',
   COLORS: {
     RED: '🔴',
     GREEN: '🟢',

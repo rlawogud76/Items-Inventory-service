@@ -1,21 +1,7 @@
 // 수집/제작 작업 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { loadInventory, updateItemWorker } from '../../database.js';
-import { getItemIcon, formatQuantity, getAllTags, getItemsByTag, getItemTag, getTimeoutSettings } from '../../utils.js';
-
-/**
- * 이모지 검증 함수 - Select Menu는 유니코드 이모지만 허용
- * @param {string} emoji - 검증할 이모지
- * @returns {string} - 유효한 이모지 또는 기본 이모지
- */
-function validateEmoji(emoji) {
-  if (!emoji) return '📦';
-  // 커스텀 Discord 이모지 형식(<:name:id> 또는 <a:name:id>)이거나 잘못된 형식이면 기본 이모지 사용
-  if (emoji.startsWith('<') || emoji.length > 10) {
-    return '📦';
-  }
-  return emoji;
-}
+import { getItemIcon, formatQuantity, getAllTags, getItemsByTag, getItemTag, getTimeoutSettings, validateEmoji, safeDeleteReply, safeErrorReply } from '../../utils.js';
 
 /**
  * 수집/제작 시작 버튼 핸들러
@@ -244,9 +230,7 @@ export async function handleWorkButton(interaction) {
     
   } catch (error) {
     console.error('❌ 버튼 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch((err) => {
-      console.error('❌ 작업 버튼 에러 응답 실패:', err);
-    });
+    await safeErrorReply(interaction, '오류가 발생했습니다: ' + error.message);
   }
 }
 
@@ -372,9 +356,7 @@ export async function handleWorkPageButton(interaction) {
     
   } catch (error) {
     console.error('❌ 페이지 이동 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
-      console.error('❌ 작업 페이지 이동 에러 응답 실패:', err);
-    });
+    await safeErrorReply(interaction, '페이지 이동 중 오류가 발생했습니다: ' + error.message);
   }
 }
 
@@ -407,11 +389,7 @@ export async function handleStopWorkButton(interaction) {
         });
         console.log(`✅ ${itemName} 제작 중단 완료`);
         
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, infoTimeout);
+        setTimeout(() => safeDeleteReply(interaction), infoTimeout);
       } else {
         await interaction.update({
           content: `⚠️ ${itemName}\n제작 정보를 찾을 수 없습니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
@@ -419,11 +397,7 @@ export async function handleStopWorkButton(interaction) {
         });
         console.log(`⚠️ ${itemName} 제작 정보 없음`);
         
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, infoTimeout);
+        setTimeout(() => safeDeleteReply(interaction), infoTimeout);
       }
     } else {
       if (inventory.collecting?.[category]?.[itemName]) {
@@ -435,11 +409,7 @@ export async function handleStopWorkButton(interaction) {
         });
         console.log(`✅ ${itemName} 수집 중단 완료`);
         
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, infoTimeout);
+        setTimeout(() => safeDeleteReply(interaction), infoTimeout);
       } else {
         await interaction.update({
           content: `⚠️ ${itemName}\n수집 정보를 찾을 수 없습니다.\n\n_이 메시지는 15초 후 자동 삭제됩니다_`,
@@ -447,20 +417,11 @@ export async function handleStopWorkButton(interaction) {
         });
         console.log(`⚠️ ${itemName} 수집 정보 없음`);
         
-        setTimeout(async () => {
-          try {
-            await interaction.deleteReply();
-          } catch (error) {}
-        }, infoTimeout);
+        setTimeout(() => safeDeleteReply(interaction), infoTimeout);
       }
     }
   } catch (error) {
     console.error('❌ 중단 에러:', error);
-    await interaction.reply({ 
-      content: `❌ 오류가 발생했습니다: ${error.message}`, 
-      ephemeral: true 
-    }).catch((err) => {
-      console.error('❌ 작업 확인 에러 응답 실패:', err);
-    });
+    await safeErrorReply(interaction, `❌ 오류가 발생했습니다: ${error.message}`);
   }
 }

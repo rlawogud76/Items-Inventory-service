@@ -1,7 +1,7 @@
 // 물품/품목 관리 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { loadInventory, updateItemsOrder } from '../../database.js';
-import { formatQuantity, getItemIcon, getTimeoutSettings, addHistory } from '../../utils.js';
+import { formatQuantity, getItemIcon, getTimeoutSettings, addHistory, safeDeleteReply, safeErrorReply } from '../../utils.js';
 
 /**
  * 관리 메인 버튼 핸들러

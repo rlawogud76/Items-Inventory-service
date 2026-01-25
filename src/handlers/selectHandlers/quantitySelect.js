@@ -1,7 +1,7 @@
 // 수량 관리 select 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory } from '../../database.js';
-import { formatQuantity, getItemIcon, getTimeoutSettings } from '../../utils.js';
+import { formatQuantity, getItemIcon, getTimeoutSettings, safeDeleteReply, safeErrorReply } from '../../utils.js';
 
 /**
  * 수량 관리 항목 선택 핸들러
@@ -42,10 +42,7 @@ export async function handleQuantitySelect(interaction) {
     
     // 안전한 데이터 접근
     if (!targetData?.categories?.[category]?.[selectedItem]) {
-      return await interaction.reply({ 
-        content: `❌ "${selectedItem}" 아이템을 찾을 수 없습니다.`, 
-        ephemeral: true 
-      }).catch(() => {});
+      return await safeErrorReply(interaction, `❌ "${selectedItem}" 아이템을 찾을 수 없습니다.`);
     }
     
     const itemData = targetData.categories[category][selectedItem];
@@ -59,16 +56,10 @@ export async function handleQuantitySelect(interaction) {
     
     // 설정된 시간 후 자동 삭제
     const { selectTimeout } = getTimeoutSettings(inventory);
-    setTimeout(async () => {
-      try {
-        await interaction.deleteReply();
-      } catch (error) {}
-    }, selectTimeout);
+    setTimeout(() => safeDeleteReply(interaction), selectTimeout);
     
   } catch (error) {
     console.error('❌ 수량관리 선택 에러:', error);
-    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch((err) => {
-      console.error('❌ 수량관리 선택 에러 응답 실패:', err);
-    });
+    await safeErrorReply(interaction, '오류가 발생했습니다: ' + error.message);
   }
 }

@@ -1,21 +1,7 @@
 // 초기화 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { loadInventory, updateMultipleItems } from '../../database.js';
-import { getItemIcon, sendTemporaryReply, getTimeoutSettings } from '../../utils.js';
-
-/**
- * 이모지 검증 함수 - Select Menu는 유니코드 이모지만 허용
- * @param {string} emoji - 검증할 이모지
- * @returns {string} - 유효한 이모지 또는 기본 이모지
- */
-function validateEmoji(emoji) {
-  if (!emoji) return '📦';
-  // 커스텀 Discord 이모지 형식(<:name:id> 또는 <a:name:id>)이거나 잘못된 형식이면 기본 이모지 사용
-  if (emoji.startsWith('<') || emoji.length > 10) {
-    return '📦';
-  }
-  return emoji;
-}
+import { getItemIcon, sendTemporaryReply, getTimeoutSettings, validateEmoji, safeDeleteReply, safeErrorReply } from '../../utils.js';
 
 /**
  * 초기화 버튼 핸들러
