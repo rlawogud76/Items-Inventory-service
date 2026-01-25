@@ -478,15 +478,28 @@ export async function handleGenericPageJump(interaction) {
   try {
     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = await import('discord.js');
     
-    // customId 형식: page_quantity_jump_inventory_해양_2_10 (현재페이지_총페이지)
+    // customId 형식: page_quantity_inventory_해양_jump_0_4
+    // parts: ['page', 'quantity', 'inventory', '해양', 'jump', '0', '4']
     const parts = interaction.customId.split('_');
     const totalPages = parseInt(parts[parts.length - 1]);
     const currentPage = parseInt(parts[parts.length - 2]);
     
-    // jump 이전까지가 baseId, jump 이후 마지막 2개 제외가 suffix
+    // jump의 실제 위치 찾기
     const jumpIndex = parts.indexOf('jump');
-    const baseId = parts.slice(0, jumpIndex).join('_'); // 'page_quantity'
-    const suffix = parts.slice(jumpIndex + 1, -2).join('_'); // 'inventory_해양'
+    
+    // baseId는 처음 2개: 'page_quantity'
+    const baseId = parts.slice(0, 2).join('_');
+    
+    // suffix는 jump 이전의 나머지: 'inventory_해양'
+    const suffix = parts.slice(2, jumpIndex).join('_');
+    
+    console.log(`🔢 페이지 점프 버튼 클릭:
+  - customId: ${interaction.customId}
+  - parts: ${parts.join(', ')}
+  - jumpIndex: ${jumpIndex}
+  - baseId: ${baseId}
+  - suffix: ${suffix}
+  - currentPage: ${currentPage}, totalPages: ${totalPages}`);
     
     // 모달 customId에 baseId와 suffix를 모두 포함
     const modal = new ModalBuilder()
@@ -508,7 +521,7 @@ export async function handleGenericPageJump(interaction) {
     await interaction.showModal(modal);
   } catch (error) {
     console.error('❌ 범용 페이지 점프 모달 에러:', error);
-    await interaction.reply({ content: '페이지 이동 모달을 표시하는 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    await interaction.reply({ content: '페이지 이동 모달을 표시하는 중 오류가 발생했습니다.', flags: 64 }).catch(() => {});
   }
 }
 
