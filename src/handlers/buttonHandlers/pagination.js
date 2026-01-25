@@ -468,3 +468,155 @@ export async function handlePageJumpModal(interaction) {
     await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
   }
 }
+
+
+/**
+ * 범용 페이지 점프 버튼 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleGenericPageJump(interaction) {
+  try {
+    const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = await import('discord.js');
+    
+    // customId 형식: page_quantity_jump_inventory_해양_2_10 (현재페이지_총페이지)
+    const parts = interaction.customId.split('_');
+    const totalPages = parseInt(parts[parts.length - 1]);
+    const currentPage = parseInt(parts[parts.length - 2]);
+    
+    // baseId 추출 (jump 이전까지)
+    const jumpIndex = parts.indexOf('jump');
+    const baseId = parts.slice(0, jumpIndex).join('_');
+    const suffix = parts.slice(jumpIndex + 1, -2).join('_');
+    
+    const modal = new ModalBuilder()
+      .setCustomId(`generic_page_jump_modal_${baseId}_${suffix}_${totalPages}`)
+      .setTitle('페이지 이동');
+    
+    const pageInput = new TextInputBuilder()
+      .setCustomId('page_number')
+      .setLabel(`이동할 페이지 (1-${totalPages})`)
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder(`현재: ${currentPage + 1}페이지`)
+      .setRequired(true)
+      .setMinLength(1)
+      .setMaxLength(String(totalPages).length);
+    
+    const row = new ActionRowBuilder().addComponents(pageInput);
+    modal.addComponents(row);
+    
+    await interaction.showModal(modal);
+  } catch (error) {
+    console.error('❌ 범용 페이지 점프 모달 에러:', error);
+    await interaction.reply({ content: '페이지 이동 모달을 표시하는 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 범용 페이지 점프 모달 제출 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleGenericPageJumpModal(interaction) {
+  try {
+    // customId 형식: generic_page_jump_modal_page_quantity_inventory_해양_10
+    const parts = interaction.customId.split('_');
+    const totalPages = parseInt(parts[parts.length - 1]);
+    
+    // baseId 추출: 'modal' 다음부터 마지막 1개 제외
+    // generic_page_jump_modal_page_quantity_inventory_해양_10
+    // -> page_quantity_inventory_해양
+    const modalIndex = parts.indexOf('modal');
+    const baseIdParts = parts.slice(modalIndex + 1, -1);
+    const baseId = baseIdParts[0]; // 'page'
+    const paginationType = baseIdParts[1]; // 'quantity', 'prev', 'next' 등
+    const suffix = baseIdParts.slice(2).join('_'); // 'inventory_해양' 등
+    
+    const pageInput = interaction.fields.getTextInputValue('page_number').trim();
+    const targetPage = parseInt(pageInput);
+    
+    const inventory = await loadInventory();
+    const { infoTimeout } = getTimeoutSettings(inventory);
+    
+    // 페이지 번호 검증
+    if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
+      return await interaction.reply({
+        content: `❌ 잘못된 페이지 번호입니다. 1부터 ${totalPages}까지 입력해주세요.\n\n_이 메시지는 ${infoTimeout / 1000}초 후 자동 삭제됩니다_`,
+        ephemeral: true
+      }).then(() => {
+        setTimeout(async () => {
+          try {
+            await interaction.deleteReply();
+          } catch (error) {}
+        }, infoTimeout);
+      });
+    }
+    
+    const newPage = targetPage - 1; // 0-based index
+    
+    // 원래 핸들러로 리다이렉트 (페이지 번호만 변경)
+    // 예: page_quantity_inventory_해양 -> page_quantity_next_inventory_해양_newPage
+    const redirectCustomId = `${baseId}_${paginationType}_next_${suffix}_${newPage}`;
+    
+    // customId 변경하여 원래 핸들러 호출
+    const modifiedInteraction = {
+      ...interaction,
+      customId: redirectCustomId,
+      replied: false,
+      deferred: false
+    };
+    
+    // 적절한 핸들러 호출
+    if (paginationType === 'quantity') {
+      const { handleQuantityPageButton } = await import('./quantity.js');
+      await handleQuantityPageButton(modifiedInteraction);
+    } else if (paginationType === 'prev' || paginationType === 'next') {
+      // page_prev_remove_, page_next_edit_ 등
+      const actionType = suffix.split('_')[0]; // 'remove', 'edit', 'type', 'reorder' 등
+      
+      if (actionType === 'remove') {
+        const { handleManageRemovePageButton } = await import('./manage.js');
+        await handleManageRemovePageButton(modifiedInteraction);
+      } else if (actionType === 'edit') {
+        const { handleManageEditPageButton } = await import('./manage.js');
+        await handleManageEditPageButton(modifiedInteraction);
+      } else if (actionType === 'type') {
+        const { handleManageTypePageButton } = await import('./manage.js');
+        await handleManageTypePageButton(modifiedInteraction);
+      } else if (actionType === 'reorder') {
+        if (suffix.includes('_second_')) {
+          const { handleManageReorderSecondPageButton } = await import('./manage.js');
+          await handleManageReorderSecondPageButton(modifiedInteraction);
+        } else {
+          const { handleManageReorderPageButton } = await import('./manage.js');
+          await handleManageReorderPageButton(modifiedInteraction);
+        }
+      } else if (actionType === 'reset') {
+        const { handleResetPageButton } = await import('./reset.js');
+        await handleResetPageButton(modifiedInteraction);
+      } else if (actionType === 'collecting' || actionType === 'crafting') {
+        const { handleWorkPageButton } = await import('./work.js');
+        await handleWorkPageButton(modifiedInteraction);
+      } else if (actionType === 'recipe') {
+        // recipe_material, recipe_add, recipe_edit 등
+        if (suffix.includes('_material_')) {
+          if (suffix.includes('_standalone_')) {
+            await handleRecipeMaterialStandalonePageNavigation(modifiedInteraction);
+          } else {
+            await handleRecipeMaterialPageNavigation(modifiedInteraction);
+          }
+        } else if (suffix.includes('_add_')) {
+          await handleRecipeAddPageNavigation(modifiedInteraction);
+        } else if (suffix.includes('_edit_')) {
+          const { handleRecipeEditPagination } = await import('./recipe.js');
+          await handleRecipeEditPagination(modifiedInteraction);
+        }
+      }
+    }
+    
+    console.log(`🔢 범용 페이지 점프: ${targetPage}페이지로 이동 (${paginationType})`);
+  } catch (error) {
+    console.error('❌ 범용 페이지 점프 모달 제출 에러:', error);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    }
+  }
+}

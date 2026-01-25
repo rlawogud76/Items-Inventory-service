@@ -26,13 +26,14 @@ export function paginateItems(items, page = 0, itemsPerPage = 25) {
 
 /**
  * 페이지네이션 버튼 생성
- * @param {string} baseId - 버튼 ID 베이스 (예: 'page_prev_quantity')
+ * @param {string} baseId - 버튼 ID 베이스 (예: 'page_quantity')
  * @param {number} page - 현재 페이지
  * @param {number} totalPages - 전체 페이지 수
  * @param {string} suffix - 추가 suffix (선택)
+ * @param {boolean} enableJump - 페이지 점프 활성화 (기본 true)
  * @returns {ActionRowBuilder} 페이지네이션 버튼 row
  */
-export function createPaginationButtons(baseId, page, totalPages, suffix = '') {
+export function createPaginationButtons(baseId, page, totalPages, suffix = '', enableJump = true) {
   const suffixStr = suffix ? `_${suffix}` : '';
   
   const prevButton = new ButtonBuilder()
@@ -42,10 +43,10 @@ export function createPaginationButtons(baseId, page, totalPages, suffix = '') {
     .setDisabled(page === 0);
   
   const infoButton = new ButtonBuilder()
-    .setCustomId(`${baseId}_info${suffixStr}_${page}`)
-    .setLabel(`페이지 ${page + 1}/${totalPages}`)
-    .setStyle(ButtonStyle.Secondary)
-    .setDisabled(true);
+    .setCustomId(`${baseId}_jump${suffixStr}_${page}_${totalPages}`)
+    .setLabel(`📄 ${page + 1}/${totalPages}`)
+    .setStyle(ButtonStyle.Primary)
+    .setDisabled(!enableJump || totalPages <= 1);
   
   const nextButton = new ButtonBuilder()
     .setCustomId(`${baseId}_next${suffixStr}_${page}`)
