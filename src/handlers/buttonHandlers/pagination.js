@@ -518,16 +518,18 @@ export async function handleGenericPageJump(interaction) {
  */
 export async function handleGenericPageJumpModal(interaction) {
   try {
+    const { StringSelectMenuBuilder, ActionRowBuilder } = await import('discord.js');
+    const { paginateItems, createPaginationButtons, getPaginationInfo } = await import('../../paginationUtils.js');
+    const { getItemIcon, getTimeoutSettings } = await import('../../utils.js');
+    
     // customId 형식: generic_page_jump_modal_page_quantity_inventory_해양_10
-    // parts: ['generic', 'page', 'jump', 'modal', 'page', 'quantity', 'inventory', '해양', '10']
     const parts = interaction.customId.split('_');
     const totalPages = parseInt(parts[parts.length - 1]);
     
     // 'generic_page_jump_modal_' 제거 (4개 요소)
-    // 남은 것: ['page', 'quantity', 'inventory', '해양', '10']
     const remainingParts = parts.slice(4);
     
-    // 마지막(totalPages) 제외: ['page', 'quantity', 'inventory', '해양']
+    // 마지막(totalPages) 제외
     const dataParts = remainingParts.slice(0, -1);
     
     // baseId는 처음 2개: 'page_quantity'
@@ -546,7 +548,7 @@ export async function handleGenericPageJumpModal(interaction) {
     if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
       return await interaction.reply({
         content: `❌ 잘못된 페이지 번호입니다. 1부터 ${totalPages}까지 입력해주세요.\n\n_이 메시지는 ${infoTimeout / 1000}초 후 자동 삭제됩니다_`,
-        ephemeral: true
+        flags: 64
       }).then(() => {
         setTimeout(async () => {
           try {
@@ -558,77 +560,96 @@ export async function handleGenericPageJumpModal(interaction) {
     
     const newPage = targetPage - 1; // 0-based index
     
-    // 원래 핸들러로 리다이렉트 (페이지 번호만 변경)
-    // 예: page_quantity_inventory_해양 -> page_quantity_next_inventory_해양_newPage
-    const redirectCustomId = `${baseId}_next_${suffix}_${newPage}`;
-    
-    console.log(`🔢 범용 페이지 점프 디버그:
-  - original customId: ${interaction.customId}
+    console.log(`🔢 범용 페이지 점프:
   - baseId: ${baseId}
   - suffix: ${suffix}
-  - redirectCustomId: ${redirectCustomId}`);
+  - targetPage: ${targetPage} (0-based: ${newPage})`);
     
-    // customId 변경하여 원래 핸들러 호출
-    const modifiedInteraction = {
-      ...interaction,
-      customId: redirectCustomId,
-      replied: false,
-      deferred: false
-    };
-    
-    // baseId로 핸들러 결정
+    // 각 페이지네이션 타입별로 직접 처리
     if (baseId === 'page_quantity') {
-      const { handleQuantityPageButton } = await import('./quantity.js');
-      await handleQuantityPageButton(modifiedInteraction);
-    } else if (baseId === 'page_prev' || baseId === 'page_next') {
-      // suffix의 첫 부분으로 액션 타입 결정
-      const actionType = suffix.split('_')[0];
+      // page_quantity_inventory_해양 형식
+      const typeParts = suffix.split('_');
+      const type = typeParts[0]; // 'inventory' or 'crafting'
+      const category = typeParts.slice(1).join('_'); // '해양'
       
-      if (actionType === 'remove') {
-        const { handleManageRemovePageButton } = await import('./manage.js');
-        await handleManageRemovePageButton(modifiedInteraction);
-      } else if (actionType === 'edit') {
-        const { handleManageEditPageButton } = await import('./manage.js');
-        await handleManageEditPageButton(modifiedInteraction);
-      } else if (actionType === 'type') {
-        const { handleManageTypePageButton } = await import('./manage.js');
-        await handleManageTypePageButton(modifiedInteraction);
-      } else if (actionType === 'reorder') {
-        if (suffix.includes('_second_')) {
-          const { handleManageReorderSecondPageButton } = await import('./manage.js');
-          await handleManageReorderSecondPageButton(modifiedInteraction);
-        } else {
-          const { handleManageReorderPageButton } = await import('./manage.js');
-          await handleManageReorderPageButton(modifiedInteraction);
-        }
-      } else if (actionType === 'reset') {
-        const { handleResetPageButton } = await import('./reset.js');
-        await handleResetPageButton(modifiedInteraction);
-      } else if (actionType === 'collecting' || actionType === 'crafting') {
-        const { handleWorkPageButton } = await import('./work.js');
-        await handleWorkPageButton(modifiedInteraction);
-      } else if (actionType === 'recipe') {
-        // recipe_material, recipe_add, recipe_edit 등
-        if (suffix.includes('_material_')) {
-          if (suffix.includes('_standalone_')) {
-            await handleRecipeMaterialStandalonePageNavigation(modifiedInteraction);
-          } else {
-            await handleRecipeMaterialPageNavigation(modifiedInteraction);
-          }
-        } else if (suffix.includes('_add_')) {
-          await handleRecipeAddPageNavigation(modifiedInteraction);
-        } else if (suffix.includes('_edit_')) {
-          const { handleRecipeEditPagination } = await import('./recipe.js');
-          await handleRecipeEditPagination(modifiedInteraction);
-        }
+      // 수량 관리 페이지 점프 처리
+      function validateEmoji(emoji) {
+        if (!emoji) return '📦';
+        if (emoji.startsWith('<') || emoji.length > 10) return '📦';
+        return emoji;
       }
+      
+      const targetData = type === 'inventory' ? inventory : inventory.crafting;
+      const items = Object.keys(targetData?.categories?.[category] || {});
+      
+      if (items.length === 0) {
+        return await interaction.update({
+          content: `❌ "${category}" 카테고리에 아이템이 없습니다.`,
+          components: []
+        });
+      }
+      
+      const itemOptions = items.map(item => {
+        const itemData = targetData?.categories?.[category]?.[item];
+        if (!itemData) return null;
+        
+        const customEmoji = itemData?.emoji;
+        let description = `현재: ${itemData.quantity}개 / 목표: ${itemData.required}개`;
+        if (description.length > 100) {
+          description = description.substring(0, 97) + '...';
+        }
+        
+        const emoji = validateEmoji(customEmoji || getItemIcon(item, inventory));
+        
+        return {
+          label: item,
+          value: item,
+          emoji: emoji,
+          description: description
+        };
+      }).filter(item => item !== null);
+      
+      const { pagedItems, totalPages: calcTotalPages, startIndex, endIndex } = paginateItems(itemOptions, newPage);
+      
+      if (pagedItems.length === 0) {
+        return await interaction.update({
+          content: `❌ 해당 페이지에 아이템이 없습니다.`,
+          components: []
+        });
+      }
+      
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId(`select_quantity_${type}_${category}`)
+        .setPlaceholder('수량을 관리할 아이템을 선택하세요')
+        .addOptions(pagedItems);
+      
+      const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+      
+      if (calcTotalPages > 1) {
+        const paginationRow = createPaginationButtons(`page_quantity_${type}_${category}`, newPage, calcTotalPages);
+        rows.push(paginationRow);
+      }
+      
+      const paginationInfo = getPaginationInfo(newPage, calcTotalPages, itemOptions.length, startIndex, endIndex);
+      const { selectTimeout } = getTimeoutSettings(inventory);
+      
+      await interaction.update({
+        content: `📊 **${category}** 카테고리 수량 관리\n${paginationInfo}\n\n수량을 관리할 아이템을 선택하세요:\n\n_이 메시지는 ${selectTimeout / 1000}초 후 자동 삭제됩니다_`,
+        components: rows
+      });
+      
+      console.log(`✅ 수량 관리 페이지 점프 완료: ${targetPage}페이지로 이동`);
+    } else {
+      // 다른 타입들은 아직 미구현
+      await interaction.update({
+        content: '⚠️ 이 페이지네이션 타입의 페이지 점프는 아직 지원되지 않습니다. 이전/다음 버튼을 사용해주세요.',
+        components: []
+      });
     }
-    
-    console.log(`🔢 범용 페이지 점프: ${targetPage}페이지로 이동`);
   } catch (error) {
     console.error('❌ 범용 페이지 점프 모달 제출 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+      await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', flags: 64 }).catch(() => {});
     }
   }
-}
+}
