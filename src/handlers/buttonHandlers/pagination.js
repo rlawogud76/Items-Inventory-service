@@ -3,6 +3,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder }
 import { loadInventory } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 import { getItemIcon, getTimeoutSettings, validateEmoji } from '../../utils.js';
+import { updateAutoRefreshPage } from './settings.js';
 
 export async function handlePageNavigation(interaction) {
   try {
@@ -48,6 +49,9 @@ export async function handlePageNavigation(interaction) {
     } else {
       console.log(`📄 임베드 페이지 이동: ${currentPage + 1} → ${newPage + 1}`);
     }
+    
+    // 자동 새로고침 페이지도 업데이트
+    updateAutoRefreshPage(messageId, newPage);
   } catch (error) {
     console.error('❌ 페이지 이동 에러:', error);
     if (!interaction.replied && !interaction.deferred) {
@@ -449,6 +453,9 @@ export async function handlePageJumpModal(interaction) {
     } else {
       console.log(`🔢 페이지 점프: ${targetPage}페이지로 이동`);
     }
+    
+    // 자동 새로고침 페이지도 업데이트
+    updateAutoRefreshPage(messageId, newPage);
   } catch (error) {
     console.error('❌ 페이지 점프 모달 제출 에러:', error);
     await interaction.reply({ content: '페이지 이동 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});

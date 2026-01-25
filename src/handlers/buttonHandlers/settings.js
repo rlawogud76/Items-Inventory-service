@@ -3,8 +3,16 @@ import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from
 import { loadInventory, updateSettings } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 
-// 자동 새로고침 타이머 저장소 (messageId -> setInterval). settings.js에서 단일 관리.
+// 자동 새로고침 타이머 저장소 (messageId -> { timer, type, category, page, errorCount, lastRefresh })
 const autoRefreshTimers = new Map();
+
+// 자동 새로고침 설정
+const AUTO_REFRESH_CONFIG = {
+  INTERVAL: 5000,           // 5초마다 새로고침
+  MAX_ERRORS: 3,            // 연속 에러 최대 횟수 (초과 시 중지)
+  MAX_DURATION: 600000,     // 최대 10분 동안 실행
+  MIN_INTERVAL: 2000,       // 최소 간격 (rate limit 방지)
+};
 
 /**
  * autoRefreshTimers 조회 (modal 등 다른 핸들러에서 사용)
@@ -184,94 +192,155 @@ export async function handleAutoRefreshButton(interaction) {
     const category = parts.length > 3 ? parts.slice(3).join('_') : null;
     const messageId = interaction.message.id;
     
+    // 현재 페이지 추출 (버튼에서)
+    let currentPage = 0;
+    try {
+      const pageButtons = interaction.message.components?.find(row => 
+        row.components?.some(c => c.customId?.startsWith('page_prev_embed_') || c.customId?.startsWith('page_next_embed_'))
+      );
+      if (pageButtons) {
+        const pageButton = pageButtons.components.find(c => c.customId?.startsWith('page_prev_embed_') || c.customId?.startsWith('page_next_embed_'));
+        if (pageButton) {
+          const btnParts = pageButton.customId.split('_');
+          currentPage = parseInt(btnParts[btnParts.length - 2]) || 0;
+        }
+      }
+    } catch (e) {
+      currentPage = 0;
+    }
+    
     // 자동 새로고침 토글
     if (autoRefreshTimers.has(messageId)) {
       // 중지
-      clearInterval(autoRefreshTimers.get(messageId));
+      const timerData = autoRefreshTimers.get(messageId);
+      clearInterval(timerData.timer);
+      if (timerData.stopTimeout) clearTimeout(timerData.stopTimeout);
       autoRefreshTimers.delete(messageId);
       console.log('⏸️ 자동 새로고침 중지:', messageId);
       
       const inventory = await loadInventory();
-      let embed;
-      
-      if (type === 'crafting') {
-        const crafting = inventory.crafting || { categories: {}, crafting: {} };
-        embed = createCraftingEmbed(crafting, category, 'normal', 15, 0, inventory);
-      } else {
-        embed = createInventoryEmbed(inventory, category);
-      }
-      
       const uiMode = inventory.settings?.uiMode || 'normal';
       const barLength = inventory.settings?.barLength || 15;
-      const buttons = createButtons(category, false, type || 'inventory', uiMode, barLength);
+      const page = timerData.page || 0;
+      
+      let embed, items, totalPages;
+      if (type === 'crafting') {
+        const crafting = inventory.crafting || { categories: {}, crafting: {} };
+        items = Object.entries(crafting.categories?.[category] || {});
+        totalPages = Math.ceil(items.length / 25) || 1;
+        embed = createCraftingEmbed(crafting, category, uiMode, barLength, page, inventory);
+      } else {
+        items = Object.entries(inventory.categories?.[category] || {});
+        totalPages = Math.ceil(items.length / 25) || 1;
+        embed = createInventoryEmbed(inventory, category, uiMode, barLength, page);
+      }
+      
+      const buttons = createButtons(category, false, type || 'inventory', uiMode, barLength, inventory, interaction.user.id, page, totalPages);
       
       await interaction.update({ embeds: [embed], components: buttons });
     } else {
       // 시작
-      console.log('▶️ 자동 새로고침 시작:', messageId, '/ 타입:', type, '/ 카테고리:', category || '전체');
+      console.log('▶️ 자동 새로고침 시작:', messageId, '/ 타입:', type, '/ 카테고리:', category || '전체', '/ 페이지:', currentPage);
       
       const inventory = await loadInventory();
-      let embed;
-      
-      if (type === 'crafting') {
-        const crafting = inventory.crafting || { categories: {}, crafting: {} };
-        embed = createCraftingEmbed(crafting, category, 'normal', 15, 0, inventory);
-      } else {
-        embed = createInventoryEmbed(inventory, category);
-      }
-      
       const uiMode = inventory.settings?.uiMode || 'normal';
       const barLength = inventory.settings?.barLength || 15;
-      const buttons = createButtons(category, true, type || 'inventory', uiMode, barLength);
+      
+      let embed, items, totalPages;
+      if (type === 'crafting') {
+        const crafting = inventory.crafting || { categories: {}, crafting: {} };
+        items = Object.entries(crafting.categories?.[category] || {});
+        totalPages = Math.ceil(items.length / 25) || 1;
+        embed = createCraftingEmbed(crafting, category, uiMode, barLength, currentPage, inventory);
+      } else {
+        items = Object.entries(inventory.categories?.[category] || {});
+        totalPages = Math.ceil(items.length / 25) || 1;
+        embed = createInventoryEmbed(inventory, category, uiMode, barLength, currentPage);
+      }
+      
+      const buttons = createButtons(category, true, type || 'inventory', uiMode, barLength, inventory, interaction.user.id, currentPage, totalPages);
       
       await interaction.update({ embeds: [embed], components: buttons });
       
-      // 5초마다 자동 새로고침
-      const timer = setInterval(async () => {
+      // 타이머 데이터 초기화
+      const timerData = {
+        timer: null,
+        stopTimeout: null,
+        type,
+        category,
+        page: currentPage,
+        errorCount: 0,
+        startTime: Date.now(),
+        channelId: interaction.channelId,
+        client: interaction.client
+      };
+      
+      // 자동 새로고침 타이머
+      timerData.timer = setInterval(async () => {
         try {
+          const now = Date.now();
+          
+          // Rate limit 방지: 최소 간격 체크
+          if (timerData.lastRefresh && (now - timerData.lastRefresh) < AUTO_REFRESH_CONFIG.MIN_INTERVAL) {
+            return;
+          }
+          timerData.lastRefresh = now;
+          
           // 메시지가 여전히 존재하는지 확인
-          const message = await interaction.message.fetch().catch(() => null);
-          if (!message) {
+          let message;
+          try {
+            message = await interaction.message.fetch();
+          } catch (fetchError) {
+            // 메시지를 찾을 수 없음 (삭제됨)
             console.log('⚠️ 메시지가 삭제됨. 자동 새로고침 중지:', messageId);
-            clearInterval(timer);
-            autoRefreshTimers.delete(messageId);
+            stopAutoRefresh(messageId, '메시지 삭제됨');
             return;
           }
           
           const inv = await loadInventory();
-          let emb;
-          
-          if (type === 'crafting') {
-            const crafting = inv.crafting || { categories: {}, crafting: {} };
-            emb = createCraftingEmbed(crafting, category, 'normal', 15, 0, inv);
-          } else {
-            emb = createInventoryEmbed(inv, category);
-          }
-          
           const uiMode = inv.settings?.uiMode || 'normal';
           const barLength = inv.settings?.barLength || 15;
-          const btns = createButtons(category, true, type || 'inventory', uiMode, barLength);
+          const page = timerData.page;
           
-          await interaction.message.edit({ embeds: [emb], components: btns });
-          console.log('🔄 자동 새로고침 실행:', new Date().toLocaleTimeString());
+          let emb, items, totalPages;
+          if (type === 'crafting') {
+            const crafting = inv.crafting || { categories: {}, crafting: {} };
+            items = Object.entries(crafting.categories?.[category] || {});
+            totalPages = Math.ceil(items.length / 25) || 1;
+            emb = createCraftingEmbed(crafting, category, uiMode, barLength, page, inv);
+          } else {
+            items = Object.entries(inv.categories?.[category] || {});
+            totalPages = Math.ceil(items.length / 25) || 1;
+            emb = createInventoryEmbed(inv, category, uiMode, barLength, page);
+          }
+          
+          const btns = createButtons(category, true, type || 'inventory', uiMode, barLength, inv, null, page, totalPages);
+          
+          await message.edit({ embeds: [emb], components: btns });
+          
+          // 성공 시 에러 카운트 리셋
+          timerData.errorCount = 0;
+          console.log('🔄 자동 새로고침 실행:', new Date().toLocaleTimeString(), `(페이지: ${page + 1}/${totalPages})`);
+          
         } catch (error) {
-          console.error('❌ 자동 새로고침 에러:', error);
-          // 에러 발생 시 타이머 중지
-          clearInterval(timer);
-          autoRefreshTimers.delete(messageId);
+          timerData.errorCount++;
+          console.error(`❌ 자동 새로고침 에러 (${timerData.errorCount}/${AUTO_REFRESH_CONFIG.MAX_ERRORS}):`, error.message);
+          
+          // 연속 에러가 최대치를 초과하면 중지
+          if (timerData.errorCount >= AUTO_REFRESH_CONFIG.MAX_ERRORS) {
+            stopAutoRefresh(messageId, `연속 ${AUTO_REFRESH_CONFIG.MAX_ERRORS}회 에러 발생`, timerData);
+          }
         }
-      }, 5000); // 5초
+      }, AUTO_REFRESH_CONFIG.INTERVAL);
       
-      autoRefreshTimers.set(messageId, timer);
-      
-      // 10분 후 자동 중지 (안전장치)
-      setTimeout(() => {
+      // 최대 시간 후 자동 중지 (안전장치)
+      timerData.stopTimeout = setTimeout(() => {
         if (autoRefreshTimers.has(messageId)) {
-          console.log('⏰ 10분 경과. 자동 새로고침 자동 중지:', messageId);
-          clearInterval(timer);
-          autoRefreshTimers.delete(messageId);
+          stopAutoRefresh(messageId, '10분 경과로 자동 중지', timerData);
         }
-      }, 600000); // 10분
+      }, AUTO_REFRESH_CONFIG.MAX_DURATION);
+      
+      autoRefreshTimers.set(messageId, timerData);
     }
   } catch (error) {
     console.error('❌ 자동 새로고침 토글 에러:', error);
@@ -280,6 +349,71 @@ export async function handleAutoRefreshButton(interaction) {
         console.error('❌ 자동 새로고침 토글 에러 응답 실패:', err);
       });
     }
+  }
+}
+
+/**
+ * 자동 새로고침 중지 헬퍼 함수
+ * @param {string} messageId - 메시지 ID
+ * @param {string} reason - 중지 사유
+ * @param {object} timerData - 타이머 데이터 (선택)
+ */
+async function stopAutoRefresh(messageId, reason, timerData = null) {
+  const data = timerData || autoRefreshTimers.get(messageId);
+  if (!data) return;
+  
+  clearInterval(data.timer);
+  if (data.stopTimeout) clearTimeout(data.stopTimeout);
+  autoRefreshTimers.delete(messageId);
+  
+  console.log(`⏹️ 자동 새로고침 중지: ${messageId} (사유: ${reason})`);
+  
+  // 메시지 업데이트 시도 (버튼 상태 변경)
+  try {
+    if (data.client && data.channelId) {
+      const channel = await data.client.channels.fetch(data.channelId);
+      const message = await channel.messages.fetch(messageId);
+      
+      const inventory = await loadInventory();
+      const uiMode = inventory.settings?.uiMode || 'normal';
+      const barLength = inventory.settings?.barLength || 15;
+      const page = data.page || 0;
+      
+      let embed, items, totalPages;
+      if (data.type === 'crafting') {
+        const crafting = inventory.crafting || { categories: {}, crafting: {} };
+        items = Object.entries(crafting.categories?.[data.category] || {});
+        totalPages = Math.ceil(items.length / 25) || 1;
+        embed = createCraftingEmbed(crafting, data.category, uiMode, barLength, page, inventory);
+      } else {
+        items = Object.entries(inventory.categories?.[data.category] || {});
+        totalPages = Math.ceil(items.length / 25) || 1;
+        embed = createInventoryEmbed(inventory, data.category, uiMode, barLength, page);
+      }
+      
+      const buttons = createButtons(data.category, false, data.type || 'inventory', uiMode, barLength, inventory, null, page, totalPages);
+      
+      await message.edit({ 
+        embeds: [embed], 
+        components: buttons 
+      });
+      console.log(`✅ 자동 새로고침 중지 후 버튼 상태 업데이트 완료`);
+    }
+  } catch (updateError) {
+    console.error('⚠️ 자동 새로고침 중지 후 메시지 업데이트 실패:', updateError.message);
+  }
+}
+
+/**
+ * 외부에서 자동 새로고침 페이지 업데이트 (페이지 이동 시 호출)
+ * @param {string} messageId - 메시지 ID
+ * @param {number} newPage - 새 페이지 번호
+ */
+export function updateAutoRefreshPage(messageId, newPage) {
+  if (autoRefreshTimers.has(messageId)) {
+    const timerData = autoRefreshTimers.get(messageId);
+    timerData.page = newPage;
+    console.log(`📄 자동 새로고침 페이지 업데이트: ${messageId} -> ${newPage + 1}페이지`);
   }
 }
 
