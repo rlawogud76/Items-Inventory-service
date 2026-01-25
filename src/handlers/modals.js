@@ -23,7 +23,8 @@ import { handlePageJumpModal, handleGenericPageJumpModal } from './buttonHandler
  * @returns {boolean} - 처리 여부 (true면 처리됨, false면 index.js에서 처리)
  */
 export async function handleModalInteraction(interaction) {
-  console.log('Modal 제출 감지! customId:', interaction.customId);
+  try {
+    console.log('Modal 제출 감지! customId:', interaction.customId);
   
   // 페이지 점프 모달 (임베드용)
   if (interaction.customId.startsWith('page_jump_modal_')) {
@@ -112,4 +113,17 @@ export async function handleModalInteraction(interaction) {
   
   // 나머지는 index.js에서 처리 (수량 등)
   return false;
+  } catch (error) {
+    console.error('모달 처리 에러:', error);
+    try {
+      if (interaction.deferred) {
+        await interaction.followUp({ content: `오류가 발생했습니다: ${error?.message || '알 수 없는 오류'}`, ephemeral: true });
+      } else if (!interaction.replied) {
+        await interaction.reply({ content: `오류가 발생했습니다: ${error?.message || '알 수 없는 오류'}`, ephemeral: true });
+      }
+    } catch (replyError) {
+      console.error('에러 응답 실패:', replyError.message);
+    }
+    return true;
+  }
 }

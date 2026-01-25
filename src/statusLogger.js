@@ -34,16 +34,18 @@ function saveStatus() {
 
 // 봇 정보 업데이트
 export function updateBotInfo(client) {
+  if (!client) return;
+  
   statusData.botInfo = {
     username: client.user?.tag,
     id: client.user?.id,
-    status: client.isReady() ? 'online' : 'offline',
-    guilds: client.guilds.cache.map(g => ({
+    status: client?.isReady?.() ? 'online' : 'offline',
+    guilds: client.guilds?.cache?.map(g => ({
       id: g.id,
       name: g.name,
       memberCount: g.memberCount
-    })),
-    ping: client.ws.ping,
+    })) || [],
+    ping: client.ws?.ping,
     uptime: process.uptime(),
     lastUpdate: new Date().toISOString()
   };

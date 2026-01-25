@@ -138,40 +138,58 @@ const History = mongoose.models.InventoryHistory || mongoose.model('InventoryHis
 
 // 히스토리 추가 (최대 1000개 유지)
 export async function addHistoryEntry(entry) {
-  await History.create(entry);
-  const count = await History.countDocuments();
-  if (count > 1000) {
-    const old = await History.find().sort({ timestamp: 1 }).limit(count - 1000).select('_id').lean();
-    await History.deleteMany({ _id: { $in: old.map((o) => o._id) } });
+  try {
+    await History.create(entry);
+    const count = await History.countDocuments();
+    if (count > 1000) {
+      const old = await History.find().sort({ timestamp: 1 }).limit(count - 1000).select('_id').lean();
+      await History.deleteMany({ _id: { $in: old.map((o) => o._id) } });
+    }
+  } catch (error) {
+    console.error('❌ 히스토리 추가 실패:', error.message);
   }
 }
 
 // 히스토리 조회
 export async function getHistory(limit = 10, skip = 0, filters = {}) {
-  const q = {};
-  if (filters.type) q.type = filters.type;
-  if (filters.category) q.category = filters.category;
-  if (filters.userName) q.userName = filters.userName;
-  const list = await History.find(q).sort({ timestamp: -1 }).skip(skip).limit(limit).lean();
-  return list.map((h) => ({
-    timestamp: h.timestamp,
-    type: h.type,
-    category: h.category,
-    itemName: h.itemName,
-    action: h.action,
-    details: h.details,
-    userName: h.userName
-  }));
+  try {
+    const q = {};
+    if (filters.type) q.type = filters.type;
+    if (filters.category) q.category = filters.category;
+    if (filters.userName) q.userName = filters.userName;
+    const list = await History.find(q).sort({ timestamp: -1 }).skip(skip).limit(limit).lean();
+    return list.map((h) => ({
+      timestamp: h.timestamp,
+      type: h.type,
+      category: h.category,
+      itemName: h.itemName,
+      action: h.action,
+      details: h.details,
+      userName: h.userName
+    }));
+  } catch (error) {
+    console.error('❌ 히스토리 조회 실패:', error.message);
+    return [];
+  }
 }
 
 // 히스토리 개수
 export async function getHistoryCount() {
-  return History.countDocuments();
+  try {
+    return await History.countDocuments();
+  } catch (error) {
+    console.error('❌ 히스토리 개수 조회 실패:', error.message);
+    return 0;
+  }
 }
 
 // 히스토리 전체 삭제
 export async function clearHistory() {
-  await History.deleteMany({});
+  try {
+    await History.deleteMany({});
+  } catch (error) {
+    console.error('❌ 히스토리 삭제 실패:', error.message);
+  }
 }
 
 // 캐시 설정

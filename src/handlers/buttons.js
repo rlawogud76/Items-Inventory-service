@@ -79,6 +79,7 @@ import {
 
 // 버튼 인터랙션 처리 함수
 export async function handleButtonInteraction(interaction) {
+  try {
     console.log('버튼 클릭 감지! customId:', interaction.customId);
     
     // ============================================
@@ -372,4 +373,16 @@ export async function handleButtonInteraction(interaction) {
     else if (interaction.customId === 'points_reset') {
       return await handlePointsResetButton(interaction);
     }
+  } catch (error) {
+    console.error('버튼 처리 에러:', error);
+    try {
+      if (interaction.deferred) {
+        await interaction.followUp({ content: `오류가 발생했습니다: ${error?.message || '알 수 없는 오류'}`, ephemeral: true });
+      } else if (!interaction.replied) {
+        await interaction.reply({ content: `오류가 발생했습니다: ${error?.message || '알 수 없는 오류'}`, ephemeral: true });
+      }
+    } catch (replyError) {
+      console.error('에러 응답 실패:', replyError.message);
+    }
+  }
 }

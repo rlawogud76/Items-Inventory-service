@@ -49,7 +49,7 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       const status = getStatusEmoji(data.quantity, data.required);
       const icon = getItemIcon(itemName, fullInventory);
       const progressBar = createProgressBar(data.quantity, data.required, barLength);
-      const percentage = Math.round((data.quantity / data.required) * 100);
+      const percentage = data.required > 0 ? Math.round((data.quantity / data.required) * 100) : 0;
       
       // 상자/세트/개 계산
       const current = formatQuantity(data.quantity);
@@ -133,7 +133,7 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       itemEntries.forEach(([itemName, data], index) => {
         const status = getStatusEmoji(data.quantity, data.required);
         const icon = getItemIcon(itemName, fullInventory);
-        const percentage = Math.round((data.quantity / data.required) * 100);
+        const percentage = data.required > 0 ? Math.round((data.quantity / data.required) * 100) : 0;
         
         // 제작 중인 사람 확인
         const craftingInfo = crafting.crafting?.[catName]?.[itemName];
@@ -206,7 +206,7 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
       const status = getStatusEmoji(data.quantity, data.required);
       const icon = getItemIcon(itemName, inventory);
       const progressBar = createProgressBar(data.quantity, data.required, barLength);
-      const percentage = Math.round((data.quantity / data.required) * 100);
+      const percentage = data.required > 0 ? Math.round((data.quantity / data.required) * 100) : 0;
       
       // 상자/세트/개 계산
       const current = formatQuantity(data.quantity);
@@ -286,7 +286,7 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
       itemEntries.forEach(([itemName, data], index) => {
         const status = getStatusEmoji(data.quantity, data.required);
         const icon = getItemIcon(itemName, inventory);
-        const percentage = Math.round((data.quantity / data.required) * 100);
+        const percentage = data.required > 0 ? Math.round((data.quantity / data.required) * 100) : 0;
         
         // 수집 중인 사람 확인
         const collectingInfo = inventory.collecting?.[catName]?.[itemName];

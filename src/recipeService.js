@@ -18,7 +18,7 @@ export function consumeRecipeMaterials(inventory, category, itemName, quantity, 
 
   const materialCheck = [];
   for (const material of recipe) {
-    const materialData = inventory.categories[material.category]?.[material.name];
+    const materialData = inventory?.categories?.[material.category]?.[material.name];
     const requiredQty = material.quantity * quantity;
     const currentQty = materialData?.quantity || 0;
     materialCheck.push({
@@ -90,8 +90,7 @@ export function returnRecipeMaterials(inventory, category, itemName, quantity, u
   for (const material of recipe) {
     const returnQty = material.quantity * quantity;
     
-    // 재료가 존재하는 경우에만 반환
-    if (inventory.categories[material.category]?.[material.name]) {
+    if (inventory?.categories?.[material.category]?.[material.name]) {
       updates.push({
         type: 'inventory',
         category: material.category,

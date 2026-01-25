@@ -54,6 +54,14 @@ export async function handleCommandInteraction(interaction, activeMessages) {
     
   } catch (error) {
     console.error('커맨드 실행 에러:', error);
-    await interaction.reply({ content: '❌ 에러가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+    try {
+      if (interaction.deferred) {
+        await interaction.followUp({ content: '오류가 발생했습니다: ' + (error?.message || '알 수 없는 오류'), ephemeral: true });
+      } else if (!interaction.replied) {
+        await interaction.reply({ content: '오류가 발생했습니다: ' + (error?.message || '알 수 없는 오류'), ephemeral: true });
+      }
+    } catch (replyError) {
+      console.error('에러 응답 실패:', replyError.message);
+    }
   }
 }

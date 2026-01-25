@@ -211,6 +211,7 @@ export async function handleRecipeEditButton(interaction) {
   try {
     const category = interaction.customId.replace('recipe_edit_', '');
     const inventory = await loadInventory();
+    const { selectTimeout } = getTimeoutSettings(inventory);
     
     if (!inventory.crafting?.categories?.[category] || Object.keys(inventory.crafting.categories[category]).length === 0) {
       return await interaction.update({
@@ -277,8 +278,6 @@ export async function handleRecipeEditButton(interaction) {
       components: rows
     });
     
-    const { selectTimeout } = getTimeoutSettings(inventory);
-    
     // 설정된 시간 후 자동 삭제
     setTimeout(async () => {
       try {
@@ -302,6 +301,7 @@ export async function handleRecipeAddButton(interaction) {
   try {
     const category = interaction.customId.replace('recipe_add_', '');
     const inventory = await loadInventory();
+    const { selectTimeout } = getTimeoutSettings(inventory);
     
     if (!inventory.crafting?.categories?.[category] || Object.keys(inventory.crafting.categories[category]).length === 0) {
       return await interaction.update({
@@ -362,8 +362,6 @@ export async function handleRecipeAddButton(interaction) {
       
       rows.push(new ActionRowBuilder().addComponents(pageButtons));
     }
-    
-    const { selectTimeout } = getTimeoutSettings(inventory);
     
     await interaction.update({
       content: `➕ **${category}** 카테고리에서 레시피를 추가할 제작품을 선택하세요${totalPages > 1 ? ` (${items.length}개 중 ${startIndex + 1}-${endIndex}번째)` : ''}:\n\n_이 메시지는 ${selectTimeout / 1000}초 후 자동 삭제됩니다_`,

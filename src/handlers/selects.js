@@ -32,7 +32,8 @@ import {
  * @param {Interaction} interaction - Discord 인터랙션
  */
 export async function handleSelectInteraction(interaction) {
-  console.log('Select 메뉴 감지! customId:', interaction.customId);
+  try {
+    console.log('Select 메뉴 감지! customId:', interaction.customId);
   
   // 수량 관리
   if (interaction.customId.startsWith('select_quantity_')) {
@@ -153,5 +154,17 @@ export async function handleSelectInteraction(interaction) {
   else if (interaction.customId.startsWith('select_points_item_')) {
     const parts = interaction.customId.split('_');
     return await handlePointsItemSelect(interaction, parts);
+  }
+  } catch (error) {
+    console.error('셀렉트 처리 에러:', error);
+    try {
+      if (interaction.deferred) {
+        await interaction.followUp({ content: `오류가 발생했습니다: ${error?.message || '알 수 없는 오류'}`, ephemeral: true });
+      } else if (!interaction.replied) {
+        await interaction.reply({ content: `오류가 발생했습니다: ${error?.message || '알 수 없는 오류'}`, ephemeral: true });
+      }
+    } catch (replyError) {
+      console.error('에러 응답 실패:', replyError.message);
+    }
   }
 }
