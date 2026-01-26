@@ -144,10 +144,11 @@ export async function handleContributionCommand(interaction) {
     const { embed, hasData } = await createContributionEmbed();
     const buttons = createContributionButtons();
     
-    // 메시지 전송 (버튼 포함, 채널에 표시)
+    // 메시지 전송 (버튼 포함, 프라이빗 메시지)
     await interaction.reply({ 
       embeds: [embed], 
-      components: buttons
+      components: buttons,
+      ephemeral: true
     });
     
   } catch (error) {
