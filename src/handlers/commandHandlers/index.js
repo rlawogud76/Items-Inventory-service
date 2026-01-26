@@ -23,4 +23,4 @@ export { handleContributionCommand } from './contribution.js';
 export { handleRepairCommand } from './repair.js';
 
 // 권한 설정
-export { handlePermissionsCommand } from './permissions.js';
+export { handlePermissionsCommand, handlePermissionStatusCommand } from './permissions.js';

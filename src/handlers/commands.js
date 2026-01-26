@@ -10,6 +10,7 @@ import {
   handleContributionCommand,
   handleRepairCommand,
   handlePermissionsCommand,
+  handlePermissionStatusCommand,
   handleEmbedCompareCommand,
   handleCloseAllMessagesCommand
 } from './commandHandlers/index.js';
@@ -61,6 +62,9 @@ export async function handleCommandInteraction(interaction, activeMessages) {
     }
     else if (commandName === '권한설정') {
       return await handlePermissionsCommand(interaction);
+    }
+    else if (commandName === '권한조회') {
+      return await handlePermissionStatusCommand(interaction);
     }
     else if (commandName === '임베드비교') {
       return await handleEmbedCompareCommand(interaction);
