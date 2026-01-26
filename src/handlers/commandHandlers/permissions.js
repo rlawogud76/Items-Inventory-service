@@ -102,10 +102,6 @@ export async function refreshPermissionMessage(interaction) {
  */
 export async function handlePermissionStatusCommand(interaction) {
   try {
-    if (!(await isAdmin(interaction))) {
-      return await replyNoPermission(interaction, '서버장 또는 관리자만 권한 조회가 가능합니다');
-    }
-
     if (!interaction.guild) {
       return await interaction.reply({ content: '서버에서만 사용할 수 있는 명령어입니다.', ephemeral: true });
     }
