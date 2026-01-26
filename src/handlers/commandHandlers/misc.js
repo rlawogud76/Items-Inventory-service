@@ -2,7 +2,7 @@
 
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, updateItemDetails, getHistory, getHistoryCount } from '../../database.js';
-import { getItemIcon, sendTemporaryReply } from '../../utils.js';
+import { getItemIcon, sendTemporaryReply, getTimeoutSettingsAsync } from '../../utils.js';
 import { STACK, EMOJIS, UI } from '../../constants.js';
 
 /**
@@ -275,9 +275,10 @@ export async function handleEmbedCompareCommand(interaction) {
  */
 export async function handleCloseAllMessagesCommand(interaction, activeMessages) {
   const messageMap = activeMessages || global.activeMessages;
+  const { infoTimeout } = await getTimeoutSettingsAsync();
 
   if (!messageMap || messageMap.size === 0) {
-    return await interaction.reply({ content: '닫을 활성 메시지가 없습니다.', ephemeral: true });
+    return await sendTemporaryReply(interaction, '닫을 활성 메시지가 없습니다.', infoTimeout);
   }
 
   await interaction.deferReply({ ephemeral: true });
@@ -309,4 +310,12 @@ export async function handleCloseAllMessagesCommand(interaction, activeMessages)
       `- 실패: ${failed}개`
     ].join('\n')
   });
+
+  setTimeout(async () => {
+    try {
+      await interaction.deleteReply();
+    } catch (error) {
+      // ignore
+    }
+  }, infoTimeout);
 }

@@ -3,7 +3,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { getSettings } from '../../database.js';
 import { PERMISSION_FEATURE_KEYS } from '../../constants.js';
-import { isAdmin, isServerOwner, replyNoPermission } from '../../utils.js';
+import { isAdmin, isServerOwner, replyNoPermission, sendTemporaryReply, getTimeoutSettingsAsync } from '../../utils.js';
 
 function formatFeatureKeys(keys = []) {
   if (!keys || keys.length === 0) return '없음';
@@ -166,7 +166,8 @@ export async function handlePermissionStatusCommand(interaction) {
       )
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    const { infoTimeout } = await getTimeoutSettingsAsync();
+    await sendTemporaryReply(interaction, { embeds: [embed] }, infoTimeout);
   } catch (error) {
     console.error('❌ 권한조회 처리 실패:', error);
     await interaction.reply({ content: '❌ 권한 조회 중 오류가 발생했습니다.', ephemeral: true }).catch(() => {});
