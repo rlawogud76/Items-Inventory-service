@@ -26,7 +26,8 @@ import {
   handleConfirmTypeChange,
   handlePointsItemSelect,
   handleContributionPointsItemSelect,
-  handlePermissionMemberSelect
+  handlePermissionMemberSelect,
+  handlePermissionAdminSelect
 } from './selectHandlers/index.js';
 import { requireFeature, resolveFeatureKeyFromCustomId } from '../utils.js';
 
@@ -171,6 +172,10 @@ export async function handleSelectInteraction(interaction) {
   // 권한 설정 - 멤버 권한 범위 선택
   else if (interaction.customId === 'perm_member_features_select') {
     return await handlePermissionMemberSelect(interaction);
+  }
+  // 권한 설정 - 관리자 권한 범위 선택
+  else if (interaction.customId === 'perm_admin_features_select') {
+    return await handlePermissionAdminSelect(interaction);
   }
   } catch (error) {
     console.error('셀렉트 처리 에러:', error);

@@ -30,6 +30,7 @@ const settingSchema = new mongoose.Schema({
   // 권한 설정
   adminUserIds: { type: [String], default: [] },
   // '*' 포함 시 모든 기능 허용
+  adminAllowedFeatureKeys: { type: [String], default: ['*'] },
   memberAllowedFeatureKeys: { type: [String], default: ['*'] },
   
   // 마이그레이션 상태

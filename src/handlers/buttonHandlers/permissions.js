@@ -30,6 +30,23 @@ function buildMemberFeatureSelect(selectedKeys = []) {
     .addOptions(options);
 }
 
+function buildAdminFeatureSelect(selectedKeys = []) {
+  const options = PERMISSION_FEATURE_KEYS.map((item) =>
+    new StringSelectMenuOptionBuilder()
+      .setLabel(item.label)
+      .setValue(item.key)
+      .setDescription(item.description)
+      .setDefault(selectedKeys.includes(item.key) || (item.key === '*' && selectedKeys.includes('*')))
+  );
+
+  return new StringSelectMenuBuilder()
+    .setCustomId('perm_admin_features_select')
+    .setPlaceholder('관리자 권한 범위를 선택하세요')
+    .setMinValues(0)
+    .setMaxValues(Math.min(options.length, 25))
+    .addOptions(options);
+}
+
 export async function handlePermissionRefresh(interaction) {
   await refreshPermissionMessage(interaction);
 }
@@ -76,6 +93,24 @@ export async function handlePermissionAdminRemove(interaction) {
   modal.addComponents(row);
 
   await interaction.showModal(modal);
+}
+
+export async function handlePermissionAdminFeatures(interaction) {
+  if (!(await isServerOwner(interaction))) {
+    return await replyNoPermission(interaction, '서버장만 관리자 권한 범위를 설정할 수 있습니다');
+  }
+
+  const setting = await getSettings();
+  const selectedKeys = setting?.adminAllowedFeatureKeys || ['*'];
+
+  const select = buildAdminFeatureSelect(selectedKeys);
+  const row = new ActionRowBuilder().addComponents(select);
+
+  await interaction.reply({
+    content: '관리자 권한 범위를 선택하세요.\n_변경 즉시 저장됩니다._',
+    components: [row],
+    ephemeral: true
+  });
 }
 
 export async function handlePermissionMemberEdit(interaction) {

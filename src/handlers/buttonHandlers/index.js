@@ -115,5 +115,6 @@ export {
   handlePermissionRefresh,
   handlePermissionAdminAdd,
   handlePermissionAdminRemove,
+  handlePermissionAdminFeatures,
   handlePermissionMemberEdit
 } from './permissions.js';

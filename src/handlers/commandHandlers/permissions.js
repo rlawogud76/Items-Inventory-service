@@ -28,6 +28,10 @@ function createPermissionButtons() {
 
   const row2 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
+      .setCustomId('perm_admin_features')
+      .setLabel('관리자 권한 범위 설정')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
       .setCustomId('perm_member_edit')
       .setLabel('멤버 권한 범위 설정')
       .setStyle(ButtonStyle.Primary),
@@ -43,6 +47,7 @@ function createPermissionButtons() {
 async function buildPermissionEmbed() {
   const setting = await getSettings();
   const adminUserIds = setting?.adminUserIds || [];
+  const adminAllowedFeatureKeys = setting?.adminAllowedFeatureKeys || ['*'];
   const memberAllowedFeatureKeys = setting?.memberAllowedFeatureKeys || ['*'];
 
   const adminMentions = adminUserIds.length
@@ -54,6 +59,7 @@ async function buildPermissionEmbed() {
     .setColor(0x5865F2)
     .addFields(
       { name: '관리자', value: adminMentions, inline: false },
+      { name: '관리자 권한 범위', value: formatFeatureKeys(adminAllowedFeatureKeys), inline: false },
       { name: '마을원 권한 범위', value: formatFeatureKeys(memberAllowedFeatureKeys), inline: false }
     )
     .setFooter({ text: '권한 설정은 서버장/관리자만 가능합니다.' })

@@ -89,6 +89,7 @@ import {
   handlePermissionRefresh,
   handlePermissionAdminAdd,
   handlePermissionAdminRemove,
+  handlePermissionAdminFeatures,
   handlePermissionMemberEdit
 } from './buttonHandlers/index.js';
 import { requireFeature, resolveFeatureKeyFromCustomId } from '../utils.js';
@@ -474,6 +475,9 @@ export async function handleButtonInteraction(interaction) {
     }
     else if (interaction.customId === 'perm_admin_remove') {
       return await handlePermissionAdminRemove(interaction);
+    }
+    else if (interaction.customId === 'perm_admin_features') {
+      return await handlePermissionAdminFeatures(interaction);
     }
     else if (interaction.customId === 'perm_member_edit') {
       return await handlePermissionMemberEdit(interaction);

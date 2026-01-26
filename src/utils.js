@@ -169,6 +169,7 @@ export async function getPermissionSettings() {
   const setting = await getSettings();
   return {
     adminUserIds: setting?.adminUserIds || [],
+    adminAllowedFeatureKeys: setting?.adminAllowedFeatureKeys || ['*'],
     memberAllowedFeatureKeys: setting?.memberAllowedFeatureKeys || ['*']
   };
 }
@@ -205,9 +206,13 @@ export async function isAdmin(interaction) {
 export async function canUseFeature(interaction, featureKey) {
   if (!featureKey) return true;
   if (featureKey === 'refresh' || featureKey === 'pagination') return true;
-  if (featureKey === 'permissions') return await isAdmin(interaction);
-  if (await isAdmin(interaction)) return true;
-  const { memberAllowedFeatureKeys } = await getPermissionSettings();
+  if (await isServerOwner(interaction)) return true;
+  const isAdminUser = await isAdmin(interaction);
+  const { adminAllowedFeatureKeys, memberAllowedFeatureKeys } = await getPermissionSettings();
+  if (isAdminUser) {
+    if (adminAllowedFeatureKeys.includes('*')) return true;
+    return adminAllowedFeatureKeys.includes(featureKey);
+  }
   if (memberAllowedFeatureKeys.includes('*')) return true;
   return memberAllowedFeatureKeys.includes(featureKey);
 }
