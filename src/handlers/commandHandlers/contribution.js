@@ -88,8 +88,7 @@ export async function createContributionEmbed() {
     inventoryRankings.forEach(ranking => {
       const medal = medals[ranking.rank - 1];
       const scoreFormatted = ranking.score.toLocaleString('ko-KR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        maximumFractionDigits: 0
       });
       inventoryText.push(`${medal} **${ranking.userName}** - ${scoreFormatted}점 (${ranking.count}회)`);
     });
@@ -120,8 +119,7 @@ export async function createContributionEmbed() {
     craftingRankings.forEach(ranking => {
       const medal = medals[ranking.rank - 1];
       const scoreFormatted = ranking.score.toLocaleString('ko-KR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        maximumFractionDigits: 0
       });
       craftingText.push(`${medal} **${ranking.userName}** - ${scoreFormatted}점 (${ranking.count}회)`);
     });
