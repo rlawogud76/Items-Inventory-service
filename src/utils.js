@@ -442,7 +442,7 @@ export function createProgressBar(current, required, length = UI.DEFAULT_BAR_LEN
   return filledChar.repeat(filled) + emptyChar.repeat(empty);
 }
 
-// 수정 내역 추가 (History 컬렉션에 저장, 최대 1000개 유지)
+// 수정 내역 추가 (History 컬렉션에 저장, 최대 100개 유지)
 export async function addHistory(type, category, itemName, action, details, userName) {
   await addHistoryEntry({
     timestamp: new Date().toISOString(),

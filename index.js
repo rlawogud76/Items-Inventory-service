@@ -187,7 +187,14 @@ client.on('ready', async () => {
         .setDescription('재고 및 제작 수정 내역을 확인합니다')
         .addIntegerOption(option =>
           option.setName('개수')
-            .setDescription('확인할 내역 개수 (기본: 10개)')
+            .setDescription('확인할 내역 개수 (기본: 10개, 최대: 25개)')
+            .setMinValue(1)
+            .setMaxValue(25)
+            .setRequired(false))
+        .addIntegerOption(option =>
+          option.setName('페이지')
+            .setDescription('확인할 페이지 번호 (기본: 1)')
+            .setMinValue(1)
             .setRequired(false)),
       new SlashCommandBuilder()
         .setName('메시지닫기')

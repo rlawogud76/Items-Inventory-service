@@ -75,9 +75,9 @@ export async function handleUsageCommand(interaction) {
           '아이템의 커스텀 이모지를 설정합니다.',
           '> 예: `/이모지설정 타입:재고 카테고리:해양 아이템:나무 이모지:🪵`',
           '',
-          '**`/수정내역 [개수]`**',
-          '최근 수정 내역을 확인합니다 (최대 25개).',
-          '> 예: `/수정내역 개수:20`',
+          '**`/수정내역 [개수] [페이지]`**',
+          '최근 수정 내역을 확인합니다 (페이지당 최대 25개).',
+          '> 예: `/수정내역 개수:20 페이지:2`',
           '',
           '**`/메시지닫기`**',
           '프라이빗 포함 모든 활성 메시지를 닫습니다.',
@@ -149,12 +149,23 @@ export async function handleEmojiCommand(interaction) {
  * /수정내역 커맨드 처리
  */
 export async function handleHistoryCommand(interaction) {
-  const count = interaction.options.getInteger('개수') || 10;
-  const limit = Math.min(count, 25);
-  const histories = await getHistory(limit);
+  const requestedCount = interaction.options.getInteger('개수') || 10;
+  const requestedPage = interaction.options.getInteger('페이지') || 1;
+  const limit = Math.min(Math.max(requestedCount, 1), 25);
+  const page = Math.max(requestedPage, 1);
+  const skip = (page - 1) * limit;
+
+  const [histories, total] = await Promise.all([
+    getHistory(limit, skip),
+    getHistoryCount()
+  ]);
 
   if (histories.length === 0) {
-    return sendTemporaryReply(interaction, '📋 수정 내역이 없습니다.');
+    if (total === 0) {
+      return sendTemporaryReply(interaction, '📋 수정 내역이 없습니다.');
+    }
+    const lastPage = Math.max(Math.ceil(total / limit), 1);
+    return sendTemporaryReply(interaction, `📋 해당 페이지에 수정 내역이 없습니다. (마지막 페이지: ${lastPage})`);
   }
 
   const inventory = await loadInventory();
@@ -192,11 +203,12 @@ export async function handleHistoryCommand(interaction) {
       inline: false
     });
   }
-  
-  const total = await getHistoryCount();
-  if (total > limit) {
-    embed.setFooter({ text: `총 ${total}개 중 ${limit}개 표시` });
-  }
+
+  const shownStart = skip + 1;
+  const shownEnd = skip + histories.length;
+  const totalPages = Math.max(Math.ceil(total / limit), 1);
+  const limitNotice = requestedCount > 25 ? ' · 최대 25개 제한' : '';
+  embed.setFooter({ text: `총 ${total}개 중 ${shownStart}-${shownEnd} 표시 · 페이지 ${page}/${totalPages}${limitNotice}` });
   
   // 수정 내역 메시지는 사용자가 직접 닫을 때까지 유지 (자동 삭제 안함)
   await interaction.reply({ embeds: [embed], ephemeral: true });

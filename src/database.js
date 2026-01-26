@@ -167,13 +167,13 @@ historySchema.index({ timestamp: -1 });
 
 const History = mongoose.models.InventoryHistory || mongoose.model('InventoryHistory', historySchema, 'inventory_histories');
 
-// 히스토리 추가 (최대 1000개 유지)
+// 히스토리 추가 (최대 100개 유지)
 export async function addHistoryEntry(entry) {
   try {
     await History.create(entry);
     const count = await History.countDocuments();
-    if (count > 1000) {
-      const old = await History.find().sort({ timestamp: 1 }).limit(count - 1000).select('_id').lean();
+    if (count > 100) {
+      const old = await History.find().sort({ timestamp: 1 }).limit(count - 100).select('_id').lean();
       await History.deleteMany({ _id: { $in: old.map((o) => o._id) } });
     }
   } catch (error) {

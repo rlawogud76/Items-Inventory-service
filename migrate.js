@@ -234,9 +234,9 @@ async function migrate() {
         console.log(`✅ 태그 ${totalTags}개 마이그레이션 완료`);
       }
       
-      // 4. 히스토리 마이그레이션 (최근 1000개만)
+      // 4. 히스토리 마이그레이션 (최근 100개만)
       console.log('📜 히스토리 마이그레이션 중...');
-      const history = (oldData.history || []).slice(-1000);
+      const history = (oldData.history || []).slice(-100);
       
       if (history.length > 0) {
         await NewHistory.insertMany(history, { session });
