@@ -590,7 +590,7 @@ export async function handleAddItemTypeButton(interaction) {
     const parts = interaction.customId.split('_');
     const type = parts[4]; // 'inventory' or 'crafting'
     const initialTotal = parseInt(parts[parts.length - 1]); // 마지막 부분이 초기 수량
-    const itemName = parts[parts.length - 2]; // 마지막에서 두번째가 아이템명
+    const itemName = decodeCustomIdPart(parts[parts.length - 2]); // 마지막에서 두번째가 아이템명 (인코딩 해제)
     const category = parts.slice(5, -2).join('_'); // 중간 부분이 카테고리
     
     // 물품 유형 선택 메뉴 생성
