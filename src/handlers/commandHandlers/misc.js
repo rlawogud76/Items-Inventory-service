@@ -25,6 +25,11 @@ export async function handleUsageCommand(interaction) {
         ].join('\n'),
         inline: false
       },
+      {
+        name: '──────────',
+        value: '\u200B',
+        inline: false
+      },
       { 
         name: `${EMOJIS.BOX} 재고 화면`, 
         value: [
@@ -37,6 +42,11 @@ export async function handleUsageCommand(interaction) {
         ].join('\n'),
         inline: false
       },
+      {
+        name: '──────────',
+        value: '\u200B',
+        inline: false
+      },
       { 
         name: '🔨 제작 화면', 
         value: [
@@ -47,6 +57,11 @@ export async function handleUsageCommand(interaction) {
           '• 📋 레시피: 조회/추가/수정/삭제',
           '• ♻️ 초기화, 📏 UI/바 크기'
         ].join('\n'),
+        inline: false
+      },
+      {
+        name: '──────────',
+        value: '\u200B',
         inline: false
       },
       { 
@@ -71,6 +86,11 @@ export async function handleUsageCommand(interaction) {
           '**`/복구`**',
           '중간 제작품 연동을 복구합니다.'
         ].join('\n'),
+        inline: false
+      },
+      {
+        name: '──────────',
+        value: '\u200B',
         inline: false
       },
       { 
