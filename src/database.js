@@ -4,6 +4,37 @@ import { Recipe } from './models/Recipe.js';
 import { Setting } from './models/Setting.js';
 import { DB_CONFIG } from './constants.js';
 
+// 변경 감지 인터벌 ID를 보관하여 중지할 수 있도록 함
+let watchIntervalId = null;
+let changeStream = null;
+
+export function stopWatching() {
+  if (watchIntervalId) {
+    clearInterval(watchIntervalId);
+    watchIntervalId = null;
+    console.log('🔴 변경 감지 중지');
+  }
+  if (changeStream) {
+    try {
+      changeStream.close();
+      changeStream = null;
+      console.log('🔴 Change Stream 종료');
+    } catch (err) {
+      console.warn('Change Stream 종료 실패:', err?.message || err);
+    }
+  }
+}
+
+export async function disconnectDatabase() {
+  try {
+    stopWatching();
+    await mongoose.disconnect();
+    console.log('✅ MongoDB 연결 종료 완료');
+  } catch (err) {
+    console.error('❌ MongoDB 연결 종료 실패:', err);
+  }
+}
+
 // MongoDB 연결
 export async function connectDatabase() {
   try {
@@ -197,50 +228,87 @@ let lastUpdateTime = null;
 
 // 변경 감지 (폴링 방식)
 export function watchInventoryChanges() {
-  console.log('👁️ 재고 변경 감지 시작 (폴링 방식)');
-  
-  // 3초마다 체크
-  setInterval(async () => {
-    try {
-      // MongoDB 연결 상태 확인
-      if (mongoose.connection.readyState !== 1) {
-        console.log('⚠️ MongoDB 연결 끊김 - 재연결 대기 중...');
-        return;
-      }
-      
-      const inventory = await Inventory.findOne().select('updatedAt').lean();
-      if (!inventory) return;
-      
-      const currentUpdateTime = inventory.updatedAt?.getTime();
-      
-      // 처음 실행이거나 변경이 있으면
-      if (lastUpdateTime === null) {
-        lastUpdateTime = currentUpdateTime;
-        return;
-      }
-      
-      if (currentUpdateTime > lastUpdateTime) {
-        console.log('🔔 재고 데이터 변경 감지!');
-        lastUpdateTime = currentUpdateTime;
-        
-        // 모든 리스너에게 알림
-        changeListeners.forEach(listener => {
-          try {
-            listener({ operationType: 'update' });
-          } catch (error) {
-            console.error('리스너 실행 에러:', error);
-          }
-        });
-      }
-    } catch (error) {
-      // 연결 에러는 조용히 처리 (너무 많은 로그 방지)
-      if (error.message.includes('timed out') || error.message.includes('interrupted')) {
-        // 타임아웃은 무시 (다음 폴링에서 재시도)
-        return;
-      }
-      console.error('❌ 변경 감지 에러:', error.message);
+  console.log('👁️ 재고 변경 감지 시작 (Change Stream 우선)');
+
+  const collectionsToWatch = ['items', 'recipes', 'settings', 'inventory_histories', 'inventories'];
+
+  // 우선 가능하면 Change Stream 사용 (복제셋 필요). 불가 시 폴링으로 폴백.
+  try {
+    if (mongoose.connection?.watch) {
+      changeStream = mongoose.connection.watch([
+        { $match: { 'ns.coll': { $in: collectionsToWatch } } }
+      ], { fullDocument: 'updateLookup' });
+
+      changeStream.on('change', (change) => {
+        try {
+          console.log('🔔 Change Stream 이벤트 감지:', change.operationType, change?.ns?.coll || 'unknown');
+          changeListeners.forEach(listener => {
+            try { listener({ operationType: change.operationType, change }); } catch (err) { console.error('리스너 실행 에러:', err); }
+          });
+        } catch (err) {
+          console.error('Change Stream 처리 실패:', err);
+        }
+      });
+
+      changeStream.on('error', (err) => {
+        console.warn('Change Stream 에러 발생, 폴링으로 폴백합니다:', err?.message || err);
+        try { changeStream.close(); } catch (e) {}
+        changeStream = null;
+        startPolling();
+      });
+
+      console.log('✅ Change Stream으로 변경 감지 시작');
+      return;
     }
-  }, 3000); // 3초
+  } catch (err) {
+    console.warn('Change Stream 초기화 실패, 폴링으로 폴백:', err?.message || err);
+  }
+
+  // Change Stream을 사용할 수 없을 경우 폴링 시작
+  startPolling();
+
+  function startPolling() {
+    watchIntervalId = setInterval(async () => {
+      try {
+        if (mongoose.connection.readyState !== 1) {
+          console.log('⚠️ MongoDB 연결 끊김 - 재연결 대기 중...');
+          return;
+        }
+
+        const [latestItem, latestRecipe, latestSetting] = await Promise.all([
+          Item.findOne().sort({ updatedAt: -1 }).select('updatedAt').lean(),
+          Recipe.findOne().sort({ updatedAt: -1 }).select('updatedAt').lean(),
+          Setting.findOne().sort({ updatedAt: -1 }).select('updatedAt').lean()
+        ]);
+
+        const times = [latestItem?.updatedAt, latestRecipe?.updatedAt, latestSetting?.updatedAt]
+          .filter(Boolean)
+          .map((d) => d.getTime());
+
+        if (times.length === 0) return;
+
+        const currentUpdateTime = Math.max(...times);
+
+        if (lastUpdateTime === null) {
+          lastUpdateTime = currentUpdateTime;
+          return;
+        }
+
+        if (currentUpdateTime > lastUpdateTime) {
+          console.log('🔔 재고 데이터 변경 감지 (폴링)!');
+          lastUpdateTime = currentUpdateTime;
+          changeListeners.forEach(listener => {
+            try { listener({ operationType: 'update' }); } catch (error) { console.error('리스너 실행 에러:', error); }
+          });
+        }
+      } catch (error) {
+        if (error.message && (error.message.includes('timed out') || error.message.includes('interrupted'))) {
+          return;
+        }
+        console.error('❌ 변경 감지 에러:', error.message || error);
+      }
+    }, 3000);
+  }
 }
 
 // 변경 감지 리스너들
@@ -477,8 +545,35 @@ export function notifyChangeListeners() {
 // 재고 데이터 저장 - DEPRECATED (하위 호환성 및 마이그레이션 과도기용)
 // 더 이상 이 함수를 사용하여 데이터를 저장하면 안 됩니다.
 export async function saveInventory(data, retryCount = 0) {
-  console.warn('⚠️ saveInventory is DEPRECATED. Use specific update functions instead.');
-  return true; // 호출자에게 성공한 척 반환
+  console.warn('⚠️ saveInventory is DEPRECATED but performing a best-effort save to Inventory document.');
+  try {
+    const inventory = await Inventory.getInstance();
+
+    inventory.categories = data.categories || {};
+    inventory.collecting = data.collecting || {};
+    inventory.crafting = data.crafting || {
+      categories: {},
+      crafting: {},
+      recipes: {}
+    };
+    inventory.settings = data.settings || { uiMode: 'normal', barLength: 15 };
+    inventory.history = data.history || [];
+
+    inventory.markModified('categories');
+    inventory.markModified('collecting');
+    inventory.markModified('crafting');
+    inventory.markModified('history');
+
+    await inventory.save();
+    notifyChangeListeners();
+    return true;
+  } catch (error) {
+    console.error('❌ saveInventory 실패:', error);
+    if (retryCount < 3) {
+      return saveInventory(data, retryCount + 1);
+    }
+    throw error;
+  }
 }
 
 /**

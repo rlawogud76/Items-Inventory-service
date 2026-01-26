@@ -1,5 +1,5 @@
 // 유틸리티 함수들
-import { addHistoryEntry } from './database.js';
+import { addHistoryEntry, updateItemQuantity } from './database.js';
 import { STACK, LIMITS, UI, EMOJIS } from './constants.js';
 
 /**
@@ -250,6 +250,7 @@ export function getAllTags(category, type, inventory) {
 
 // 재고 상태 이모지 반환
 export function getStatusEmoji(quantity, required) {
+  if (!required || required <= 0) return '⚪';
   const percentage = (quantity / required) * 100;
   if (percentage <= 25) return '🔴'; // 25% 이하
   if (percentage < 90) return '🟡'; // 25% 초과 ~ 90% 미만
@@ -287,6 +288,9 @@ export function getItemIcon(itemName, inventory = null) {
 
 // 프로그레스 바 생성
 export function createProgressBar(current, required, length = UI.DEFAULT_BAR_LENGTH) {
+  if (!required || required <= 0) {
+    return UI.PROGRESS_BAR_EMPTY.repeat(length);
+  }
   const percentage = Math.min(current / required, 1);
   const filled = Math.round(percentage * length);
   const empty = length - filled;
@@ -373,26 +377,41 @@ export function getLinkedItem(linkedItemPath, inventory) {
  * @param {object} inventory - 재고 데이터
  * @returns {boolean} - 동기화 성공 여부
  */
-export function syncLinkedItemQuantity(type, category, itemName, newQuantity, inventory) {
-  const sourceItem = type === 'inventory' 
+export async function syncLinkedItemQuantity(type, category, itemName, newQuantity, inventory) {
+  const sourceItem = type === 'inventory'
     ? inventory.categories?.[category]?.[itemName]
     : inventory.crafting?.categories?.[category]?.[itemName];
-  
+
   if (!sourceItem || !sourceItem.linkedItem) {
     return false; // 연동 정보 없음
   }
-  
+
   const linkedItem = getLinkedItem(sourceItem.linkedItem, inventory);
   if (!linkedItem) {
     return false; // 연동된 아이템 없음
   }
-  
-  // 수량 동기화
-  linkedItem.quantity = newQuantity;
-  
-  console.log(`🔄 연동 동기화: ${type}/${category}/${itemName} → ${sourceItem.linkedItem} (${newQuantity}개)`);
-  
-  return true;
+
+  const oldQty = Number(linkedItem.quantity || 0);
+  const requestedQty = Number(newQuantity || 0);
+
+  // 메모리 객체 업데이트
+  linkedItem.quantity = requestedQty;
+
+  console.log(`🔄 연동 동기화: ${type}/${category}/${itemName} → ${sourceItem.linkedItem} (${requestedQty}개)`);
+
+  // DB 동기화 (delta 방식으로 기존 DB API 사용)
+  const delta = requestedQty - oldQty;
+  if (delta === 0) return true;
+
+  try {
+    // updateItemQuantity(type, category, itemName, delta, userName, action, details)
+    const [linkedType, linkedCategory, linkedName] = sourceItem.linkedItem.split('/');
+    await updateItemQuantity(linkedType, linkedCategory, linkedName, delta, 'system', 'sync', `Linked sync from ${type}/${category}/${itemName}`);
+    return true;
+  } catch (err) {
+    console.error('❌ 연동 동기화(DB) 실패:', err);
+    return false;
+  }
 }
 
 /**

@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits } from 'discord.js';
 import dotenv from 'dotenv';
-import { connectDatabase, loadInventory, watchInventoryChanges, addChangeListener, migrateFromDataFile, initializeItemPoints } from './src/database.js';
+import { connectDatabase, loadInventory, watchInventoryChanges, addChangeListener, migrateFromDataFile, initializeItemPoints, disconnectDatabase } from './src/database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from './src/embeds.js';
 import { handleButtonInteraction } from './src/handlers/buttons.js';
 import { handleSelectInteraction } from './src/handlers/selects.js';
@@ -24,18 +24,46 @@ const activeMessages = new Map(); // messageId -> { interaction, category, type,
 // 전역으로 activeMessages 노출 (다른 모듈에서 접근 가능하도록)
 global.activeMessages = activeMessages;
 
-// 봇 종료 시 정리
-process.on('SIGINT', () => {
-  console.log('봇 종료 중...');
-  activeMessages.clear();
-  process.exit(0);
-});
+// 그레이스풀 셧다운
+async function gracefulShutdown(signal) {
+  console.log(`봇 종료 중... (${signal || 'manual'})`);
+  try {
+    // 활성 메시지 정리
+    activeMessages.clear();
 
-process.on('SIGTERM', () => {
-  console.log('봇 종료 중...');
-  activeMessages.clear();
-  process.exit(0);
-});
+    // Discord 클라이언트 종료
+    try {
+      await client.destroy();
+    } catch (err) {
+      console.warn('Discord client destroy 실패:', err?.message || err);
+    }
+
+    // DB 연결 종료
+    try {
+      await disconnectDatabase();
+    } catch (err) {
+      console.warn('DB disconnect 실패:', err?.message || err);
+    }
+
+    // API 서버 종료 (존재하면)
+    try {
+      if (apiServer && typeof apiServer.close === 'function') {
+        await new Promise((resolve) => apiServer.close(resolve));
+      }
+    } catch (err) {
+      console.warn('API 서버 종료 실패:', err?.message || err);
+    }
+
+    console.log('종료 완료.');
+    process.exit(0);
+  } catch (err) {
+    console.error('종료 중 오류:', err);
+    process.exit(1);
+  }
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 
 client.on('ready', async () => {
@@ -242,7 +270,7 @@ setInterval(() => {
 
 // 슬래시 커맨드 처리
 client.on('interactionCreate', async (interaction) => {
-  const customId = interaction.customId || `command_${interaction.commandName}`;
+  const customId = interaction.customId || (interaction.commandName ? `command_${interaction.commandName}` : 'unknown');
   const now = Date.now();
   
   console.log('인터랙션 수신:', interaction.type, '/ customId:', interaction.customId || 'N/A', '/ ID:', interaction.id);
@@ -287,10 +315,11 @@ client.on('interactionCreate', async (interaction) => {
     
     // 처리되지 않은 경우 (수량 관리 등)
     if (!handled) {
-      if (interaction.customId.startsWith('modal_add_') ||
-          interaction.customId.startsWith('modal_edit_') ||
-          interaction.customId.startsWith('modal_subtract_') ||
-          interaction.customId.startsWith('modal_edit_required_')) {
+      const modalId = interaction.customId || '';
+      if (modalId.startsWith('modal_add_') ||
+          modalId.startsWith('modal_edit_') ||
+          modalId.startsWith('modal_subtract_') ||
+          modalId.startsWith('modal_edit_required_')) {
         return await handleQuantityModal(interaction);
       }
     }

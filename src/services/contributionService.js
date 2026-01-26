@@ -189,7 +189,7 @@ export function calculateContributions(historyEntries, itemPoints, options = {})
   
   // 100으로 나누고 소수점 2자리 반올림
   for (const userName in userScores) {
-    userScores[userName].score = Math.round(userScores[userName].score) / 100;
+    userScores[userName].score = Math.round(userScores[userName].score);
     // 음수 방지
     if (userScores[userName].score < 0) {
       userScores[userName].score = 0;
