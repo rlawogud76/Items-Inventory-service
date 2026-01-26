@@ -2,6 +2,7 @@
 
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
 import { getItemPoints } from '../../database.js';
+import { encodeCustomIdPart } from '../../utils.js';
 
 /**
  * 아이템 선택 - 배점 입력 모달 표시 (재고/제작 설정용)
@@ -18,7 +19,7 @@ export async function handlePointsItemSelect(interaction, parts) {
   
   // 모달 생성
   const modal = new ModalBuilder()
-    .setCustomId(`modal_points_${type}_${category}_${selectedItem}`)
+    .setCustomId(`modal_points_${type}_${category}_${encodeCustomIdPart(selectedItem)}`)
     .setTitle('배점 설정');
   
   const pointsInput = new TextInputBuilder()
@@ -54,7 +55,7 @@ export async function handleContributionPointsItemSelect(interaction) {
   
   // 모달 생성 - contribution 전용 모달
   const modal = new ModalBuilder()
-    .setCustomId(`contribution_modal_points_${type}_${category}_${selectedItem}`)
+    .setCustomId(`contribution_modal_points_${type}_${category}_${encodeCustomIdPart(selectedItem)}`)
     .setTitle('배점 설정');
   
   const pointsInput = new TextInputBuilder()

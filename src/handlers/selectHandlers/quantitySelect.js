@@ -1,7 +1,7 @@
 // 수량 관리 select 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory } from '../../database.js';
-import { formatQuantity, getItemIcon, getTimeoutSettings, safeDeleteReply, safeErrorReply } from '../../utils.js';
+import { formatQuantity, getItemIcon, getTimeoutSettings, safeDeleteReply, safeErrorReply, encodeCustomIdPart } from '../../utils.js';
 
 /**
  * 수량 관리 항목 선택 핸들러
@@ -16,22 +16,22 @@ export async function handleQuantitySelect(interaction) {
     
     // 추가/수정/차감 선택 버튼 생성
     const addButton = new ButtonBuilder()
-      .setCustomId(`quantity_add_${type}_${category}_${selectedItem}`)
+      .setCustomId(`quantity_add_${type}_${category}_${encodeCustomIdPart(selectedItem)}`)
       .setLabel('➕ 추가')
       .setStyle(ButtonStyle.Success);
     
     const editButton = new ButtonBuilder()
-      .setCustomId(`quantity_edit_${type}_${category}_${selectedItem}`)
+      .setCustomId(`quantity_edit_${type}_${category}_${encodeCustomIdPart(selectedItem)}`)
       .setLabel('✏️ 수정')
       .setStyle(ButtonStyle.Primary);
     
     const subtractButton = new ButtonBuilder()
-      .setCustomId(`quantity_subtract_${type}_${category}_${selectedItem}`)
+      .setCustomId(`quantity_subtract_${type}_${category}_${encodeCustomIdPart(selectedItem)}`)
       .setLabel('➖ 차감')
       .setStyle(ButtonStyle.Danger);
     
     const editRequiredButton = new ButtonBuilder()
-      .setCustomId(`quantity_edit_required_${type}_${category}_${selectedItem}`)
+      .setCustomId(`quantity_edit_required_${type}_${category}_${encodeCustomIdPart(selectedItem)}`)
       .setLabel('🎯 목표 수정')
       .setStyle(ButtonStyle.Secondary);
     

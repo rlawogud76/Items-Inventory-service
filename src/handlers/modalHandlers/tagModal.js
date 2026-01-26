@@ -1,7 +1,7 @@
 // 태그 modal 핸들러
 import { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 import { loadInventory, updateSettings } from '../../database.js';
-import { getItemIcon, getItemTag, getTimeoutSettings } from '../../utils.js';
+import { getItemIcon, getItemTag, getTimeoutSettings, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
 
 // 색상 옵션 정의
 const COLOR_OPTIONS = {
@@ -60,7 +60,7 @@ export async function handleTagNameInputModal(interaction) {
     const limitedOptions = itemOptions.slice(0, 25);
     
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`select_tag_items_${type}_${category}_${tagName}`)
+      .setCustomId(`select_tag_items_${type}_${category}_${encodeCustomIdPart(tagName)}`)
       .setPlaceholder(`"${tagName}" 태그에 추가할 항목을 선택하세요 (여러 개 가능)`)
       .setMinValues(1)
       .setMaxValues(Math.min(limitedOptions.length, 25))
@@ -77,7 +77,7 @@ export async function handleTagNameInputModal(interaction) {
     }));
     
     const colorSelectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`select_tag_color_${type}_${category}_${tagName}`)
+      .setCustomId(`select_tag_color_${type}_${category}_${encodeCustomIdPart(tagName)}`)
       .setPlaceholder('태그 색상을 선택하세요')
       .addOptions(colorOptions);
     
@@ -115,7 +115,7 @@ export async function handleTagNameModal(interaction) {
     const parts = interaction.customId.replace('tag_name_modal_', '').split('_');
     const type = parts[0];
     const category = parts[1];
-    const itemName = parts.slice(2).join('_');
+    const itemName = decodeCustomIdPart(parts.slice(2).join('_'));
     
     const tagName = interaction.fields.getTextInputValue('tag_name').trim();
     

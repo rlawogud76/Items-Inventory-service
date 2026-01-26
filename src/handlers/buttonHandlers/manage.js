@@ -1,7 +1,7 @@
 // 물품/품목 관리 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { loadInventory, updateItemsOrder } from '../../database.js';
-import { formatQuantity, getItemIcon, getTimeoutSettings, addHistory, safeDeleteReply, safeErrorReply } from '../../utils.js';
+import { formatQuantity, getItemIcon, getTimeoutSettings, addHistory, safeDeleteReply, safeErrorReply, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
 
 /**
  * 관리 메인 버튼 핸들러
@@ -456,13 +456,13 @@ export async function handleAddItemStep2Button(interaction) {
     const parts = interaction.customId.split('_');
     const itemType = parts[parts.length - 1]; // 마지막이 물품 유형 (material/intermediate/final)
     const initialTotal = parts[parts.length - 2]; // 마지막에서 두번째가 초기 수량
-    const itemName = parts[parts.length - 3]; // 마지막에서 세번째가 아이템명
+    const itemName = decodeCustomIdPart(parts[parts.length - 3]); // 마지막에서 세번째가 아이템명
     const type = parts[4]; // 'inventory' or 'crafting'
     const category = parts.slice(5, -3).join('_'); // 중간이 카테고리
     
     // Step 2 모달 표시
     const modal = new ModalBuilder()
-      .setCustomId(`add_item_modal_step2_${type}_${category}_${itemName}_${initialTotal}_${itemType}`)
+      .setCustomId(`add_item_modal_step2_${type}_${category}_${encodeCustomIdPart(itemName)}_${initialTotal}_${itemType}`)
       .setTitle(`➕ ${type === 'inventory' ? '물품' : '품목'} 추가 (2/2) - ${category}`);
     
     const requiredBoxesInput = new TextInputBuilder()
@@ -596,7 +596,7 @@ export async function handleAddItemTypeButton(interaction) {
     // 물품 유형 선택 메뉴 생성
     const { StringSelectMenuBuilder } = await import('discord.js');
     const itemTypeSelect = new StringSelectMenuBuilder()
-      .setCustomId(`select_item_type_${type}_${category}_${itemName}_${initialTotal}`)
+      .setCustomId(`select_item_type_${type}_${category}_${encodeCustomIdPart(itemName)}_${initialTotal}`)
       .setPlaceholder('물품 유형을 선택하세요')
       .addOptions([
         {

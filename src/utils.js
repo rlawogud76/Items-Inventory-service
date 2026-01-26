@@ -531,3 +531,25 @@ export function isValidType(type) {
 export function isValidAction(action, validActions = ['add', 'edit', 'subtract', 'remove', 'reset']) {
   return validActions.includes(action);
 }
+
+/**
+ * customId용 안전 인코딩 ("_"를 포함하지 않도록 base64 사용)
+ * @param {string} value
+ * @returns {string}
+ */
+export function encodeCustomIdPart(value) {
+  return Buffer.from(String(value), 'utf8').toString('base64');
+}
+
+/**
+ * customId용 안전 디코딩
+ * @param {string} value
+ * @returns {string}
+ */
+export function decodeCustomIdPart(value) {
+  try {
+    return Buffer.from(String(value), 'base64').toString('utf8');
+  } catch (error) {
+    return String(value);
+  }
+}

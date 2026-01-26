@@ -1,6 +1,6 @@
 // 수량 관리 modal 핸들러
 import { loadInventory, updateMultipleItems } from '../../database.js';
-import { sanitizeNumber, getTimeoutSettings, safeErrorReply, safeDeleteReply } from '../../utils.js';
+import { sanitizeNumber, getTimeoutSettings, safeErrorReply, safeDeleteReply, decodeCustomIdPart } from '../../utils.js';
 import { consumeRecipeMaterials, returnRecipeMaterials, adjustRecipeMaterials } from '../../recipeService.js';
 import { STACK, LIMITS } from '../../constants.js';
 
@@ -13,7 +13,7 @@ export async function handleQuantityModal(interaction) {
     // modal_add_inventory_해양_산호 형식 파싱
     // 마지막 _를 기준으로 아이템명 분리
     const lastUnderscoreIndex = interaction.customId.lastIndexOf('_');
-    const itemName = interaction.customId.substring(lastUnderscoreIndex + 1);
+    const itemName = decodeCustomIdPart(interaction.customId.substring(lastUnderscoreIndex + 1));
     const prefix = interaction.customId.substring(0, lastUnderscoreIndex);
     const parts = prefix.split('_');
     

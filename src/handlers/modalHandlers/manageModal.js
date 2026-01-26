@@ -1,7 +1,7 @@
 // 관리(추가/수정) modal 핸들러
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, addItem, updateItemDetails } from '../../database.js';
-import { formatQuantity, getItemIcon, addHistory, sanitizeInput, sanitizeNumber, isValidName, getTimeoutSettings } from '../../utils.js';
+import { formatQuantity, getItemIcon, addHistory, sanitizeInput, sanitizeNumber, isValidName, getTimeoutSettings, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
 import { STACK, LIMITS } from '../../constants.js';
 
 /**
@@ -70,7 +70,7 @@ export async function handleAddItemModalStep1(interaction) {
     const initialFormatted = formatQuantity(initialTotal);
     
     const continueButton = new ButtonBuilder()
-      .setCustomId(`add_item_type_btn_${type}_${category}_${itemName}_${initialTotal}`)
+      .setCustomId(`add_item_type_btn_${type}_${category}_${encodeCustomIdPart(itemName)}_${initialTotal}`)
       .setLabel('➡️ 다음: 물품 유형 선택')
       .setStyle(ButtonStyle.Primary);
     
@@ -110,7 +110,7 @@ export async function handleAddItemModalStep2(interaction) {
     const type = parts[4]; // 'inventory' or 'crafting'
     const itemType = parts[parts.length - 1]; // 'material', 'intermediate', 'final'
     const initialTotal = parseInt(parts[parts.length - 2]); // 마지막에서 두번째가 초기 수량
-    const itemName = parts[parts.length - 3]; // 마지막에서 세번째가 아이템명
+    const itemName = decodeCustomIdPart(parts[parts.length - 3]); // 마지막에서 세번째가 아이템명
     const category = parts.slice(5, -3).join('_'); // 중간 부분이 카테고리
     
     // 목표 수량 파싱
@@ -283,7 +283,7 @@ export async function handleEditNameModal(interaction) {
     const parts = interaction.customId.replace('edit_name_modal_', '').split('_');
     const type = parts[0];
     const category = parts[1];
-    const oldName = parts.slice(2).join('_');
+    const oldName = decodeCustomIdPart(parts.slice(2).join('_'));
     
     // 입력값 sanitization
     const newNameRaw = interaction.fields.getTextInputValue('new_name').trim();
@@ -361,13 +361,13 @@ export async function handleAddItemTypeButton(interaction) {
     const parts = interaction.customId.split('_');
     const type = parts[4]; // 'inventory' or 'crafting'
     const initialTotal = parseInt(parts[parts.length - 1]); // 마지막 부분이 초기 수량
-    const itemName = parts[parts.length - 2]; // 마지막에서 두번째가 아이템명
+    const itemName = decodeCustomIdPart(parts[parts.length - 2]); // 마지막에서 두번째가 아이템명
     const category = parts.slice(5, -2).join('_'); // 중간 부분이 카테고리
     
     // 물품 유형 선택 메뉴 생성
     const { StringSelectMenuBuilder } = await import('discord.js');
     const itemTypeSelect = new StringSelectMenuBuilder()
-      .setCustomId(`select_item_type_${type}_${category}_${itemName}_${initialTotal}`)
+      .setCustomId(`select_item_type_${type}_${category}_${encodeCustomIdPart(itemName)}_${initialTotal}`)
       .setPlaceholder('물품 유형을 선택하세요')
       .addOptions([
         {

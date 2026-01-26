@@ -1,7 +1,7 @@
 // 수량 액션 핸들러 (추가/수정/차감)
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
 import { loadInventory } from '../../database.js';
-import { formatQuantity } from '../../utils.js';
+import { formatQuantity, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
 
 /**
  * 수량 추가/수정/차감/목표수정 버튼 핸들러
@@ -15,7 +15,7 @@ export async function handleQuantityActionButton(interaction) {
     // quantity_add_inventory_해양_산호 형식 파싱
     // 마지막 _를 기준으로 아이템명 분리
     const lastUnderscoreIndex = interaction.customId.lastIndexOf('_');
-    const selectedItem = interaction.customId.substring(lastUnderscoreIndex + 1);
+    const selectedItem = decodeCustomIdPart(interaction.customId.substring(lastUnderscoreIndex + 1));
     const prefix = interaction.customId.substring(0, lastUnderscoreIndex);
     const parts = prefix.split('_');
     
@@ -114,7 +114,7 @@ export async function handleQuantityActionButton(interaction) {
     }
     
     const modal = new ModalBuilder()
-      .setCustomId(`modal_${action}_${type}_${category}_${selectedItem}`)
+      .setCustomId(`modal_${action}_${type}_${category}_${encodeCustomIdPart(selectedItem)}`)
       .setTitle(modalTitle);
     
     const boxesInput = new TextInputBuilder()

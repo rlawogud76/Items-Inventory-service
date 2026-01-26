@@ -1,7 +1,7 @@
 // 태그 select 핸들러
 import { EmbedBuilder, ActionRowBuilder } from 'discord.js';
 import { loadInventory, updateSettings, updateItemDetails, addItem } from '../../database.js';
-import { getItemIcon, getItemTag, getLinkedItem, getTimeoutSettings } from '../../utils.js';
+import { getItemIcon, getItemTag, getLinkedItem, getTimeoutSettings, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
 
 /**
  * 태그 항목 선택 핸들러 (태그에 추가할 항목들)
@@ -13,7 +13,7 @@ export async function handleTagItemsSelect(interaction) {
     await interaction.deferUpdate();
     
     const parts = interaction.customId.replace('select_tag_items_', '').split('_');
-    const tagName = parts[parts.length - 1];
+    const tagName = decodeCustomIdPart(parts[parts.length - 1]);
     const type = parts[0];
     const category = parts.slice(1, -1).join('_');
     
@@ -203,7 +203,7 @@ export async function handleTagItemSelect(interaction) {
     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = await import('discord.js');
     
     const modal = new ModalBuilder()
-      .setCustomId(`tag_name_modal_${type}_${category}_${selectedItem}`)
+      .setCustomId(`tag_name_modal_${type}_${category}_${encodeCustomIdPart(selectedItem)}`)
       .setTitle(`🏷️ 태그 설정: ${selectedItem}`);
     
     const inventory = await loadInventory();
@@ -239,7 +239,7 @@ export async function handleTagColorSelect(interaction) {
     await interaction.deferUpdate();
     
     const parts = interaction.customId.replace('select_tag_color_', '').split('_');
-    const tagName = parts[parts.length - 1];
+    const tagName = decodeCustomIdPart(parts[parts.length - 1]);
     const type = parts[0];
     const category = parts.slice(1, -1).join('_');
     
@@ -309,7 +309,7 @@ export async function handleTagForColorSelect(interaction) {
     
     const { StringSelectMenuBuilder } = await import('discord.js');
     const colorSelectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`change_tag_color_${type}_${category}_${selectedTag}`)
+      .setCustomId(`change_tag_color_${type}_${category}_${encodeCustomIdPart(selectedTag)}`)
       .setPlaceholder('새로운 색상을 선택하세요')
       .addOptions(colorOptions);
     
@@ -335,7 +335,7 @@ export async function handleChangeTagColor(interaction) {
     await interaction.deferUpdate();
     
     const parts = interaction.customId.replace('change_tag_color_', '').split('_');
-    const tagName = parts[parts.length - 1];
+    const tagName = decodeCustomIdPart(parts[parts.length - 1]);
     const type = parts[0];
     const category = parts.slice(1, -1).join('_');
     const newColor = interaction.values[0];
@@ -406,7 +406,7 @@ export async function handleItemTypeSelect(interaction) {
     const parts = interaction.customId.replace('select_item_type_', '').split('_');
     const type = parts[0]; // 'inventory' or 'crafting'
     const initialTotal = parseInt(parts[parts.length - 1]); // 마지막 부분이 초기 수량
-    const itemName = parts[parts.length - 2]; // 마지막에서 두번째가 아이템명
+    const itemName = decodeCustomIdPart(parts[parts.length - 2]); // 마지막에서 두번째가 아이템명
     const category = parts.slice(1, -2).join('_'); // 중간 부분이 카테고리
     
     const selectedItemType = interaction.values[0]; // 'material', 'intermediate', 'final'
@@ -429,7 +429,7 @@ export async function handleItemTypeSelect(interaction) {
     // Step 2로 넘어가는 버튼 생성
     const { ButtonBuilder, ButtonStyle, ActionRowBuilder, EmbedBuilder } = await import('discord.js');
     const continueButton = new ButtonBuilder()
-      .setCustomId(`add_item_step2_btn_${targetType}_${category}_${itemName}_${initialTotal}_${selectedItemType}`)
+      .setCustomId(`add_item_step2_btn_${targetType}_${category}_${encodeCustomIdPart(itemName)}_${initialTotal}_${selectedItemType}`)
       .setLabel('➡️ 다음: 목표 수량 입력')
       .setStyle(ButtonStyle.Primary);
     
@@ -509,7 +509,7 @@ export async function handleTypeChangeSelect(interaction) {
     ];
     
     const typeSelectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`confirm_type_change_${type}_${category}_${selectedItem}`)
+      .setCustomId(`confirm_type_change_${type}_${category}_${encodeCustomIdPart(selectedItem)}`)
       .setPlaceholder('새로운 유형을 선택하세요')
       .addOptions(typeOptions);
     
@@ -553,7 +553,7 @@ export async function handleConfirmTypeChange(interaction) {
     await interaction.deferUpdate();
     
     const parts = interaction.customId.replace('confirm_type_change_', '').split('_');
-    const itemName = parts[parts.length - 1];
+    const itemName = decodeCustomIdPart(parts[parts.length - 1]);
     const type = parts[0];
     const category = parts.slice(1, -1).join('_');
     const newType = interaction.values[0];

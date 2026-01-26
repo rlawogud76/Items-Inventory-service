@@ -2,7 +2,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
 import { loadInventory } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
-import { getItemIcon, getTimeoutSettings, validateEmoji } from '../../utils.js';
+import { getItemIcon, getTimeoutSettings, validateEmoji, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
 import { updateAutoRefreshPage } from './settings.js';
 
 export async function handlePageNavigation(interaction) {
@@ -121,13 +121,13 @@ export async function handleRecipeMaterialPageNavigation(interaction) {
       category = parts[5];
       currentPage = parseInt(parts[parts.length - 1]);
       step = parseInt(parts[parts.length - 2]);
-      itemName = parts.slice(6, -2).join('_');
+      itemName = decodeCustomIdPart(parts.slice(6, -2).join('_'));
     } else {
       // page_prev_recipe_material_category_itemName_step_page
       category = parts[4];
       currentPage = parseInt(parts[parts.length - 1]);
       step = parseInt(parts[parts.length - 2]);
-      itemName = parts.slice(5, -2).join('_');
+      itemName = decodeCustomIdPart(parts.slice(5, -2).join('_'));
     }
     
     const newPage = direction === 'prev' ? currentPage - 1 : currentPage + 1;
@@ -156,7 +156,7 @@ export async function handleRecipeMaterialPageNavigation(interaction) {
     }));
     
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`select_recipe_material${isEdit ? '_edit' : ''}_${category}_${itemName}_${step}`)
+      .setCustomId(`select_recipe_material${isEdit ? '_edit' : ''}_${category}_${encodeCustomIdPart(itemName)}_${step}`)
       .setPlaceholder(`재료 ${step}을 선택하세요`)
       .addOptions(materialOptions);
     
@@ -167,7 +167,7 @@ export async function handleRecipeMaterialPageNavigation(interaction) {
     
     pageButtons.push(
       new ButtonBuilder()
-        .setCustomId(`page_prev_recipe_material${isEdit ? '_edit' : ''}_${category}_${itemName}_${step}_${newPage}`)
+        .setCustomId(`page_prev_recipe_material${isEdit ? '_edit' : ''}_${category}_${encodeCustomIdPart(itemName)}_${step}_${newPage}`)
         .setLabel('◀ 이전')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(newPage === 0)
@@ -175,7 +175,7 @@ export async function handleRecipeMaterialPageNavigation(interaction) {
     
     pageButtons.push(
       new ButtonBuilder()
-        .setCustomId(`page_info_recipe_material${isEdit ? '_edit' : ''}_${category}_${itemName}_${step}_${newPage}`)
+        .setCustomId(`page_info_recipe_material${isEdit ? '_edit' : ''}_${category}_${encodeCustomIdPart(itemName)}_${step}_${newPage}`)
         .setLabel(`페이지 ${newPage + 1}/${totalPages}`)
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(true)
@@ -183,7 +183,7 @@ export async function handleRecipeMaterialPageNavigation(interaction) {
     
     pageButtons.push(
       new ButtonBuilder()
-        .setCustomId(`page_next_recipe_material${isEdit ? '_edit' : ''}_${category}_${itemName}_${step}_${newPage}`)
+        .setCustomId(`page_next_recipe_material${isEdit ? '_edit' : ''}_${category}_${encodeCustomIdPart(itemName)}_${step}_${newPage}`)
         .setLabel('다음 ▶')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(newPage >= totalPages - 1)
@@ -227,7 +227,7 @@ export async function handleRecipeMaterialStandalonePageNavigation(interaction) 
     const category = parts[5];
     const currentPage = parseInt(parts[parts.length - 1]);
     const step = parseInt(parts[parts.length - 2]);
-    const itemName = parts.slice(6, -2).join('_');
+    const itemName = decodeCustomIdPart(parts.slice(6, -2).join('_'));
     
     const newPage = direction === 'prev' ? currentPage - 1 : currentPage + 1;
     
@@ -255,7 +255,7 @@ export async function handleRecipeMaterialStandalonePageNavigation(interaction) 
     }));
     
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`select_recipe_material_standalone_${category}_${itemName}_${step}`)
+      .setCustomId(`select_recipe_material_standalone_${category}_${encodeCustomIdPart(itemName)}_${step}`)
       .setPlaceholder(`재료 ${step}을 선택하세요`)
       .addOptions(materialOptions);
     
@@ -266,7 +266,7 @@ export async function handleRecipeMaterialStandalonePageNavigation(interaction) 
     
     pageButtons.push(
       new ButtonBuilder()
-        .setCustomId(`page_prev_recipe_material_standalone_${category}_${itemName}_${step}_${newPage}`)
+        .setCustomId(`page_prev_recipe_material_standalone_${category}_${encodeCustomIdPart(itemName)}_${step}_${newPage}`)
         .setLabel('◀ 이전')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(newPage === 0)
@@ -274,7 +274,7 @@ export async function handleRecipeMaterialStandalonePageNavigation(interaction) 
     
     pageButtons.push(
       new ButtonBuilder()
-        .setCustomId(`page_info_recipe_material_standalone_${category}_${itemName}_${step}_${newPage}`)
+        .setCustomId(`page_info_recipe_material_standalone_${category}_${encodeCustomIdPart(itemName)}_${step}_${newPage}`)
         .setLabel(`페이지 ${newPage + 1}/${totalPages}`)
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(true)
@@ -282,7 +282,7 @@ export async function handleRecipeMaterialStandalonePageNavigation(interaction) 
     
     pageButtons.push(
       new ButtonBuilder()
-        .setCustomId(`page_next_recipe_material_standalone_${category}_${itemName}_${step}_${newPage}`)
+        .setCustomId(`page_next_recipe_material_standalone_${category}_${encodeCustomIdPart(itemName)}_${step}_${newPage}`)
         .setLabel('다음 ▶')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(newPage >= totalPages - 1)

@@ -1,7 +1,7 @@
 // 레시피 modal 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, saveRecipe } from '../../database.js';
-import { getItemIcon, getTimeoutSettings } from '../../utils.js';
+import { getItemIcon, getTimeoutSettings, decodeCustomIdPart } from '../../utils.js';
 
 /**
  * 레시피 수정 수량 modal 핸들러
@@ -12,8 +12,8 @@ export async function handleRecipeEditQuantityModal(interaction) {
     const parts = interaction.customId.replace('recipe_edit_quantity_modal_', '').split('_');
     const category = parts[0];
     const step = parseInt(parts[parts.length - 2]);
-    const materialName = parts[parts.length - 1];
-    const itemName = parts.slice(1, -2).join('_');
+    const materialName = decodeCustomIdPart(parts[parts.length - 1]);
+    const itemName = decodeCustomIdPart(parts.slice(1, -2).join('_'));
     
     const quantity = parseInt(interaction.fields.getTextInputValue('material_quantity').trim());
     
@@ -113,8 +113,8 @@ export async function handleRecipeQuantityModal(interaction) {
     const parts = interaction.customId.replace('recipe_quantity_modal_', '').split('_');
     const category = parts[0];
     const step = parseInt(parts[parts.length - 2]);
-    const materialName = parts[parts.length - 1];
-    const itemName = parts.slice(1, -2).join('_');
+    const materialName = decodeCustomIdPart(parts[parts.length - 1]);
+    const itemName = decodeCustomIdPart(parts.slice(1, -2).join('_'));
     
     const quantity = parseInt(interaction.fields.getTextInputValue('material_quantity').trim());
     
@@ -214,8 +214,8 @@ export async function handleRecipeStandaloneQuantityModal(interaction) {
     const parts = interaction.customId.replace('recipe_standalone_quantity_modal_', '').split('_');
     const category = parts[0];
     const step = parseInt(parts[parts.length - 2]);
-    const materialName = parts[parts.length - 1];
-    const itemName = parts.slice(1, -2).join('_');
+    const materialName = decodeCustomIdPart(parts[parts.length - 1]);
+    const itemName = decodeCustomIdPart(parts.slice(1, -2).join('_'));
     
     const quantity = parseInt(interaction.fields.getTextInputValue('material_quantity').trim());
     

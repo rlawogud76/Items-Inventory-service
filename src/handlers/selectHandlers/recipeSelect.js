@@ -1,7 +1,7 @@
 // 레시피 select 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, StringSelectMenuBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { loadInventory } from '../../database.js';
-import { getItemIcon, getTimeoutSettings } from '../../utils.js';
+import { getItemIcon, getTimeoutSettings, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
 
 /**
  * 레시피 수정 시작 - 제작품 선택 후 1단계(첫 재료 선택) 핸들러
@@ -47,7 +47,7 @@ export async function handleRecipeEditStartSelect(interaction) {
     }));
 
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`select_recipe_material_edit_${category}_${selectedItem}_1`)
+      .setCustomId(`select_recipe_material_edit_${category}_${encodeCustomIdPart(selectedItem)}_1`)
       .setPlaceholder('재료 1을 선택하세요')
       .addOptions(materialOptions);
 
@@ -56,17 +56,17 @@ export async function handleRecipeEditStartSelect(interaction) {
     if (totalPages > 1) {
       rows.push(new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setCustomId(`page_prev_recipe_material_edit_${category}_${selectedItem}_1_${page}`)
+          .setCustomId(`page_prev_recipe_material_edit_${category}_${encodeCustomIdPart(selectedItem)}_1_${page}`)
           .setLabel('◀ 이전')
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(page === 0),
         new ButtonBuilder()
-          .setCustomId(`page_info_recipe_material_edit_${category}_${selectedItem}_1_${page}`)
+          .setCustomId(`page_info_recipe_material_edit_${category}_${encodeCustomIdPart(selectedItem)}_1_${page}`)
           .setLabel(`페이지 ${page + 1}/${totalPages}`)
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(true),
         new ButtonBuilder()
-          .setCustomId(`page_next_recipe_material_edit_${category}_${selectedItem}_1_${page}`)
+          .setCustomId(`page_next_recipe_material_edit_${category}_${encodeCustomIdPart(selectedItem)}_1_${page}`)
           .setLabel('다음 ▶')
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(page >= totalPages - 1)
@@ -99,12 +99,12 @@ export async function handleRecipeMaterialEditSelect(interaction) {
     const parts = interaction.customId.replace('select_recipe_material_edit_', '').split('_');
     const category = parts[0];
     const step = parseInt(parts[parts.length - 1]);
-    const itemName = parts.slice(1, -1).join('_');
+    const itemName = decodeCustomIdPart(parts.slice(1, -1).join('_'));
     const selectedMaterial = interaction.values[0];
     
     // 수량 입력 모달 표시
     const modal = new ModalBuilder()
-      .setCustomId(`recipe_edit_quantity_modal_${category}_${itemName}_${step}_${selectedMaterial}`)
+      .setCustomId(`recipe_edit_quantity_modal_${category}_${encodeCustomIdPart(itemName)}_${step}_${encodeCustomIdPart(selectedMaterial)}`)
       .setTitle(`재료 ${step}: ${selectedMaterial}`);
     
     const quantityInput = new TextInputBuilder()
@@ -144,12 +144,12 @@ export async function handleRecipeMaterialSelect(interaction) {
     const parts = interaction.customId.replace('select_recipe_material_', '').split('_');
     const category = parts[0];
     const step = parseInt(parts[parts.length - 1]); // 문자열을 숫자로 변환
-    const itemName = parts.slice(1, -1).join('_');
+    const itemName = decodeCustomIdPart(parts.slice(1, -1).join('_'));
     const selectedMaterial = interaction.values[0];
     
     // 수량 입력 모달 표시
     const modal = new ModalBuilder()
-      .setCustomId(`recipe_quantity_modal_${category}_${itemName}_${step}_${selectedMaterial}`)
+      .setCustomId(`recipe_quantity_modal_${category}_${encodeCustomIdPart(itemName)}_${step}_${encodeCustomIdPart(selectedMaterial)}`)
       .setTitle(`재료 ${step}: ${selectedMaterial}`);
     
     const quantityInput = new TextInputBuilder()
@@ -231,7 +231,7 @@ export async function handleRecipeAddSelect(interaction) {
     }));
     
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`select_recipe_material_standalone_${category}_${selectedItem}_1`)
+      .setCustomId(`select_recipe_material_standalone_${category}_${encodeCustomIdPart(selectedItem)}_1`)
       .setPlaceholder('재료 1을 선택하세요 (필수)')
       .addOptions(materialOptions);
     
@@ -243,7 +243,7 @@ export async function handleRecipeAddSelect(interaction) {
       
       pageButtons.push(
         new ButtonBuilder()
-          .setCustomId(`page_prev_recipe_material_standalone_${category}_${selectedItem}_1_${page}`)
+          .setCustomId(`page_prev_recipe_material_standalone_${category}_${encodeCustomIdPart(selectedItem)}_1_${page}`)
           .setLabel('◀ 이전')
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(page === 0)
@@ -251,7 +251,7 @@ export async function handleRecipeAddSelect(interaction) {
       
       pageButtons.push(
         new ButtonBuilder()
-          .setCustomId(`page_info_recipe_material_standalone_${category}_${selectedItem}_1_${page}`)
+          .setCustomId(`page_info_recipe_material_standalone_${category}_${encodeCustomIdPart(selectedItem)}_1_${page}`)
           .setLabel(`페이지 ${page + 1}/${totalPages}`)
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(true)
@@ -259,7 +259,7 @@ export async function handleRecipeAddSelect(interaction) {
       
       pageButtons.push(
         new ButtonBuilder()
-          .setCustomId(`page_next_recipe_material_standalone_${category}_${selectedItem}_1_${page}`)
+          .setCustomId(`page_next_recipe_material_standalone_${category}_${encodeCustomIdPart(selectedItem)}_1_${page}`)
           .setLabel('다음 ▶')
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(page >= totalPages - 1)
@@ -290,14 +290,14 @@ export async function handleRecipeMaterialStandaloneSelect(interaction) {
     const parts = interaction.customId.replace('select_recipe_material_standalone_', '').split('_');
     const category = parts[0];
     const step = parseInt(parts[parts.length - 1]);
-    const itemName = parts.slice(1, -1).join('_');
+    const itemName = decodeCustomIdPart(parts.slice(1, -1).join('_'));
     const selectedMaterial = interaction.values[0];
     
     // 수량 입력 모달 표시
     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = await import('discord.js');
     
     const modal = new ModalBuilder()
-      .setCustomId(`recipe_standalone_quantity_modal_${category}_${itemName}_${step}_${selectedMaterial}`)
+      .setCustomId(`recipe_standalone_quantity_modal_${category}_${encodeCustomIdPart(itemName)}_${step}_${encodeCustomIdPart(selectedMaterial)}`)
       .setTitle(`재료 ${step}: ${selectedMaterial}`);
     
     const quantityInput = new TextInputBuilder()

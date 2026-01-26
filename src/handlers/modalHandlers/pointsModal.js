@@ -1,7 +1,7 @@
 // 배점 관리 모달 핸들러
 
 import { getItemPoints, updateItemPoints } from '../../database.js';
-import { getTimeoutSettings } from '../../utils.js';
+import { getTimeoutSettings, decodeCustomIdPart } from '../../utils.js';
 
 /**
  * 배점 입력 모달 처리 (재고/제작 설정용)
@@ -9,7 +9,7 @@ import { getTimeoutSettings } from '../../utils.js';
 export async function handlePointsModal(interaction, parts) {
   const type = parts[2];
   const category = parts[3];
-  const itemName = parts.slice(4).join('_'); // 아이템 이름 (언더스코어 포함 가능)
+  const itemName = decodeCustomIdPart(parts.slice(4).join('_')); // 아이템 이름 (언더스코어 포함 가능)
   
   const newPointsStr = interaction.fields.getTextInputValue('points').trim();
   const newPoints = parseInt(newPointsStr);
@@ -72,7 +72,7 @@ export async function handleContributionPointsModal(interaction, parts) {
   // customId: contribution_modal_points_inventory_해양_산호
   const type = parts[3];
   const category = parts[4];
-  const itemName = parts.slice(5).join('_');
+  const itemName = decodeCustomIdPart(parts.slice(5).join('_'));
   
   const newPointsStr = interaction.fields.getTextInputValue('points').trim();
   const newPoints = parseInt(newPointsStr);

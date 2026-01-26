@@ -1,7 +1,7 @@
 // 레시피 관리 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { loadInventory } from '../../database.js';
-import { getItemIcon, getTimeoutSettings } from '../../utils.js';
+import { getItemIcon, getTimeoutSettings, safeDeleteReply, safeErrorReply, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
 
 /**
  * 이모지 검증 함수 - Select Menu는 유니코드 이모지만 허용
@@ -393,7 +393,7 @@ export async function handleRecipeAddSkipButton(interaction) {
     const prefix = isSkip ? 'skip_recipe_' : 'add_recipe_';
     const parts = interaction.customId.replace(prefix, '').split('_');
     const category = parts[0];
-    const itemName = parts.slice(1).join('_');
+    const itemName = decodeCustomIdPart(parts.slice(1).join('_'));
     
     const inventory = await loadInventory();
     const { infoTimeout } = getTimeoutSettings(inventory);
@@ -440,7 +440,7 @@ export async function handleRecipeAddSkipButton(interaction) {
     
     const { StringSelectMenuBuilder } = await import('discord.js');
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`select_recipe_material_${category}_${itemName}_1`)
+      .setCustomId(`select_recipe_material_${category}_${encodeCustomIdPart(itemName)}_1`)
       .setPlaceholder('재료 1을 선택하세요 (필수)')
       .addOptions(materialOptions);
     
@@ -452,7 +452,7 @@ export async function handleRecipeAddSkipButton(interaction) {
       
       pageButtons.push(
         new ButtonBuilder()
-          .setCustomId(`page_prev_recipe_material_${category}_${itemName}_1_${page}`)
+          .setCustomId(`page_prev_recipe_material_${category}_${encodeCustomIdPart(itemName)}_1_${page}`)
           .setLabel('◀ 이전')
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(page === 0)
@@ -460,7 +460,7 @@ export async function handleRecipeAddSkipButton(interaction) {
       
       pageButtons.push(
         new ButtonBuilder()
-          .setCustomId(`page_info_recipe_material_${category}_${itemName}_1_${page}`)
+          .setCustomId(`page_info_recipe_material_${category}_${encodeCustomIdPart(itemName)}_1_${page}`)
           .setLabel(`페이지 ${page + 1}/${totalPages}`)
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(true)
@@ -468,7 +468,7 @@ export async function handleRecipeAddSkipButton(interaction) {
       
       pageButtons.push(
         new ButtonBuilder()
-          .setCustomId(`page_next_recipe_material_${category}_${itemName}_1_${page}`)
+          .setCustomId(`page_next_recipe_material_${category}_${encodeCustomIdPart(itemName)}_1_${page}`)
           .setLabel('다음 ▶')
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(page >= totalPages - 1)
@@ -507,13 +507,13 @@ export async function handleRecipeMoreFinishButton(interaction) {
       parts = interaction.customId.replace(prefix, '').split('_');
       category = parts[0];
       step = isFinish ? null : parseInt(parts[parts.length - 1]);
-      itemName = isFinish ? parts.slice(1).join('_') : parts.slice(1, -1).join('_');
+      itemName = decodeCustomIdPart(isFinish ? parts.slice(1).join('_') : parts.slice(1, -1).join('_'));
     } else {
       prefix = isFinish ? 'finish_recipe_' : 'add_more_recipe_';
       parts = interaction.customId.replace(prefix, '').split('_');
       category = parts[0];
       step = isFinish ? null : parseInt(parts[parts.length - 1]);
-      itemName = isFinish ? parts.slice(1).join('_') : parts.slice(1, -1).join('_');
+      itemName = decodeCustomIdPart(isFinish ? parts.slice(1).join('_') : parts.slice(1, -1).join('_'));
     }
     
     const inventory = await loadInventory();
@@ -562,7 +562,7 @@ export async function handleRecipeMoreFinishButton(interaction) {
     
     const { StringSelectMenuBuilder } = await import('discord.js');
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`select_recipe_material${isEdit ? '_edit' : ''}_${category}_${itemName}_${step}`)
+      .setCustomId(`select_recipe_material${isEdit ? '_edit' : ''}_${category}_${encodeCustomIdPart(itemName)}_${step}`)
       .setPlaceholder(`재료 ${step}을 선택하세요`)
       .addOptions(materialOptions);
     
@@ -574,7 +574,7 @@ export async function handleRecipeMoreFinishButton(interaction) {
       
       pageButtons.push(
         new ButtonBuilder()
-          .setCustomId(`page_prev_recipe_material${isEdit ? '_edit' : ''}_${category}_${itemName}_${step}_${page}`)
+          .setCustomId(`page_prev_recipe_material${isEdit ? '_edit' : ''}_${category}_${encodeCustomIdPart(itemName)}_${step}_${page}`)
           .setLabel('◀ 이전')
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(page === 0)
@@ -582,7 +582,7 @@ export async function handleRecipeMoreFinishButton(interaction) {
       
       pageButtons.push(
         new ButtonBuilder()
-          .setCustomId(`page_info_recipe_material${isEdit ? '_edit' : ''}_${category}_${itemName}_${step}_${page}`)
+          .setCustomId(`page_info_recipe_material${isEdit ? '_edit' : ''}_${category}_${encodeCustomIdPart(itemName)}_${step}_${page}`)
           .setLabel(`페이지 ${page + 1}/${totalPages}`)
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(true)
@@ -590,7 +590,7 @@ export async function handleRecipeMoreFinishButton(interaction) {
       
       pageButtons.push(
         new ButtonBuilder()
-          .setCustomId(`page_next_recipe_material${isEdit ? '_edit' : ''}_${category}_${itemName}_${step}_${page}`)
+          .setCustomId(`page_next_recipe_material${isEdit ? '_edit' : ''}_${category}_${encodeCustomIdPart(itemName)}_${step}_${page}`)
           .setLabel('다음 ▶')
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(page >= totalPages - 1)
@@ -637,7 +637,7 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
     const parts = interaction.customId.replace(prefix, '').split('_');
     const category = parts[0];
     const step = isFinish ? null : parseInt(parts[parts.length - 1]);
-    const itemName = isFinish ? parts.slice(1).join('_') : parts.slice(1, -1).join('_');
+    const itemName = decodeCustomIdPart(isFinish ? parts.slice(1).join('_') : parts.slice(1, -1).join('_'));
     
     const inventory = await loadInventory();
     const { infoTimeout, selectTimeout } = getTimeoutSettings(inventory);
@@ -685,7 +685,7 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
     
     const { StringSelectMenuBuilder } = await import('discord.js');
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`select_recipe_material_standalone_${category}_${itemName}_${step}`)
+      .setCustomId(`select_recipe_material_standalone_${category}_${encodeCustomIdPart(itemName)}_${step}`)
       .setPlaceholder(`재료 ${step}을 선택하세요`)
       .addOptions(materialOptions);
     
@@ -697,7 +697,7 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
       
       pageButtons.push(
         new ButtonBuilder()
-          .setCustomId(`page_prev_recipe_material_standalone_${category}_${itemName}_${step}_${page}`)
+          .setCustomId(`page_prev_recipe_material_standalone_${category}_${encodeCustomIdPart(itemName)}_${step}_${page}`)
           .setLabel('◀ 이전')
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(page === 0)
@@ -705,7 +705,7 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
       
       pageButtons.push(
         new ButtonBuilder()
-          .setCustomId(`page_info_recipe_material_standalone_${category}_${itemName}_${step}_${page}`)
+          .setCustomId(`page_info_recipe_material_standalone_${category}_${encodeCustomIdPart(itemName)}_${step}_${page}`)
           .setLabel(`페이지 ${page + 1}/${totalPages}`)
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(true)
@@ -713,7 +713,7 @@ export async function handleRecipeStandaloneMoreFinishButton(interaction) {
       
       pageButtons.push(
         new ButtonBuilder()
-          .setCustomId(`page_next_recipe_material_standalone_${category}_${itemName}_${step}_${page}`)
+          .setCustomId(`page_next_recipe_material_standalone_${category}_${encodeCustomIdPart(itemName)}_${step}_${page}`)
           .setLabel('다음 ▶')
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(page >= totalPages - 1)

@@ -1,7 +1,7 @@
 // 관리(삭제/수정/순서변경) select 핸들러
 import { EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, removeItem, updateItemsOrder } from '../../database.js';
-import { formatQuantity, getTimeoutSettings, addHistory } from '../../utils.js';
+import { formatQuantity, getTimeoutSettings, addHistory, encodeCustomIdPart } from '../../utils.js';
 
 /**
  * 삭제 항목 선택 핸들러
@@ -91,7 +91,7 @@ export async function handleEditSelect(interaction) {
     
     // 이름 수정 모달 표시
     const modal = new ModalBuilder()
-      .setCustomId(`edit_name_modal_${type}_${category}_${selectedItem}`)
+      .setCustomId(`edit_name_modal_${type}_${category}_${encodeCustomIdPart(selectedItem)}`)
       .setTitle(`✏️ 이름 수정: ${selectedItem}`);
     
     const nameInput = new TextInputBuilder()
