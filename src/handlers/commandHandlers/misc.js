@@ -239,3 +239,26 @@ export async function handleContributionResetCommand(interaction) {
     ephemeral: true 
   });
 }
+
+/**
+ * /임베드비교 커맨드 처리
+ */
+export async function handleEmbedCompareCommand(interaction) {
+  const text = ['✅ 상태: 정상', '📦 재고: 120개', '🔨 제작: 8건'].join('\n');
+
+  const embed = new EmbedBuilder()
+    .setTitle('상태 요약')
+    .setColor(0x5865F2)
+    .addFields(
+      { name: '상태', value: '정상', inline: true },
+      { name: '재고', value: '120개', inline: true },
+      { name: '제작', value: '8건', inline: true }
+    )
+    .setFooter({ text: '임베드 예시 (비교용)' });
+
+  await interaction.reply({
+    content: `일반 텍스트:\n${text}`,
+    embeds: [embed],
+    ephemeral: true
+  });
+}

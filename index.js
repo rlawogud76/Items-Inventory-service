@@ -233,6 +233,10 @@ client.on('ready', async () => {
       new SlashCommandBuilder()
         .setName('권한설정')
         .setDescription('관리자/마을원 권한 범위를 설정합니다')
+      ,
+      new SlashCommandBuilder()
+        .setName('임베드비교')
+        .setDescription('일반 텍스트와 임베드를 비교합니다')
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);

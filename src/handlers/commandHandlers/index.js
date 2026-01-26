@@ -11,7 +11,8 @@ export {
   handleUsageCommand,
   handleEmojiCommand,
   handleHistoryCommand,
-  handleContributionResetCommand
+  handleContributionResetCommand,
+  handleEmbedCompareCommand
 } from './misc.js';
 
 // 기여도

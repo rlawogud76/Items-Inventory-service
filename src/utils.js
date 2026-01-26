@@ -256,6 +256,8 @@ export function resolveFeatureKeyFromCommand(commandName) {
       return 'repair';
     case '권한설정':
       return 'permissions';
+    case '임베드비교':
+      return 'usage';
     default:
       return null;
   }

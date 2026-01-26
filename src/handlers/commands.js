@@ -9,7 +9,8 @@ import {
   handleContributionResetCommand,
   handleContributionCommand,
   handleRepairCommand,
-  handlePermissionsCommand
+  handlePermissionsCommand,
+  handleEmbedCompareCommand
 } from './commandHandlers/index.js';
 import { requireFeature, resolveFeatureKeyFromCommand } from '../utils.js';
 
@@ -59,6 +60,9 @@ export async function handleCommandInteraction(interaction, activeMessages) {
     }
     else if (commandName === '권한설정') {
       return await handlePermissionsCommand(interaction);
+    }
+    else if (commandName === '임베드비교') {
+      return await handleEmbedCompareCommand(interaction);
     }
     
   } catch (error) {
