@@ -262,7 +262,7 @@ export async function handlePointsCategoryButton(interaction, parts) {
     
     // 셀렉트 메뉴 옵션
     const options = pageItems.map(itemName => {
-      const currentPoints = itemPoints?.[type]?.[category]?.[itemName] || 1;
+      const currentPoints = itemPoints?.[type]?.[category]?.[itemName] ?? 1;
       return {
         label: itemName,
         value: itemName,

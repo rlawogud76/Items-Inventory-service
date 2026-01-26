@@ -12,7 +12,7 @@ import {
 } from './utils.js';
 
 // 제작 임베드 생성
-export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', barLength = 10, page = 0, fullInventory = null) {
+export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'normal', barLength = 10, page = 0, fullInventory = null, itemPoints = null) {
   const embed = new EmbedBuilder()
     .setColor(0xFFA500)
     .setTimestamp()
@@ -55,6 +55,10 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       const current = formatQuantity(data.quantity);
       const required = formatQuantity(data.required);
       
+      // 배점 확인
+      const points = itemPoints?.crafting?.[categoryName]?.[itemName] ?? 1;
+      const pointsText = ` (${points}점)`;
+
       // 태그 확인
       const tag = getItemTag(itemName, categoryName, 'crafting', fullInventory);
       const tagColor = getItemTagColor(itemName, categoryName, 'crafting', fullInventory);
@@ -96,7 +100,7 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
       }
 
       embed.addFields({
-        name: `${icon} ${coloredItemName}${tagText}`,
+        name: `${icon} ${coloredItemName}${pointsText}${tagText}`,
         value: fieldValue,
         inline: false
       });
@@ -135,14 +139,18 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
         const icon = getItemIcon(itemName, fullInventory);
         const percentage = data.required > 0 ? Math.round((data.quantity / data.required) * 100) : 0;
         
+        // 배점 확인
+        const points = itemPoints?.crafting?.[catName]?.[itemName] ?? 1;
+        const pointsText = ` (${points}점)`;
+
         // 제작 중인 사람 확인
         const craftingInfo = crafting.crafting?.[catName]?.[itemName];
         const craftingText = craftingInfo ? ` 🔨 **${craftingInfo.userName}**` : '';
         
         if (uiMode === 'detailed') {
-          categoryText += `${icon} ${itemName}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${craftingText}\n`;
+          categoryText += `${icon} ${itemName}${pointsText}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${craftingText}\n`;
         } else {
-          categoryText += `${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${craftingText}\n`;
+          categoryText += `${icon} ${itemName}${pointsText}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${craftingText}\n`;
         }
         
         // 마지막 아이템이 아니면 구분선 추가
@@ -174,7 +182,7 @@ export function createCraftingEmbed(crafting, categoryName = null, uiMode = 'nor
 }
 
 // 재고 임베드 생성
-export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal', barLength = 10, page = 0) {
+export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'normal', barLength = 10, page = 0, itemPoints = null) {
   const embed = new EmbedBuilder()
     .setColor(0x5865F2)
     .setTimestamp()
@@ -212,6 +220,10 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
       const current = formatQuantity(data.quantity);
       const required = formatQuantity(data.required);
       
+      // 배점 확인
+      const points = itemPoints?.inventory?.[categoryName]?.[itemName] ?? 1;
+      const pointsText = ` (${points}점)`;
+
       // 태그 확인
       const tag = getItemTag(itemName, categoryName, 'inventory', inventory);
       const tagColor = getItemTagColor(itemName, categoryName, 'inventory', inventory);
@@ -253,7 +265,7 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
       }
 
       embed.addFields({
-        name: `${icon} ${coloredItemName}${tagText}`,
+        name: `${icon} ${coloredItemName}${pointsText}${tagText}`,
         value: fieldValue,
         inline: false
       });
@@ -288,14 +300,18 @@ export function createInventoryEmbed(inventory, categoryName = null, uiMode = 'n
         const icon = getItemIcon(itemName, inventory);
         const percentage = data.required > 0 ? Math.round((data.quantity / data.required) * 100) : 0;
         
+        // 배점 확인
+        const points = itemPoints?.inventory?.[catName]?.[itemName] ?? 1;
+        const pointsText = ` (${points}점)`;
+
         // 수집 중인 사람 확인
         const collectingInfo = inventory.collecting?.[catName]?.[itemName];
         const collectingText = collectingInfo ? ` 👤 **${collectingInfo.userName}**` : '';
         
         if (uiMode === 'detailed') {
-          categoryText += `${icon} ${itemName}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${collectingText}\n`;
+          categoryText += `${icon} ${itemName}${pointsText}\n**현재:** ${data.quantity}개 / **목표:** ${data.required}개\n**진행률:** ${percentage}% ${status}${collectingText}\n`;
         } else {
-          categoryText += `${icon} ${itemName}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${collectingText}\n`;
+          categoryText += `${icon} ${itemName}${pointsText}\n**${data.quantity}/${data.required}** (${percentage}%) ${status}${collectingText}\n`;
         }
         
         // 마지막 아이템이 아니면 구분선 추가

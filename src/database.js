@@ -1081,7 +1081,7 @@ export async function getItemsWithPoints(type) {
     
     return items.map(item => ({
       ...item,
-      points: itemPoints?.[type]?.[item.category]?.[item.name] || 1
+      points: itemPoints?.[type]?.[item.category]?.[item.name] ?? 1
     }));
   } catch (error) {
     console.error('❌ 배점 포함 아이템 조회 실패:', error);

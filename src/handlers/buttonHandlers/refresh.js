@@ -1,5 +1,5 @@
 // 새로고침 핸들러
-import { loadInventory } from '../../database.js';
+import { loadInventory, getItemPoints } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 
 export async function handleRefresh(interaction) {
@@ -13,7 +13,10 @@ export async function handleRefresh(interaction) {
     console.log('  - 타입:', type);
     console.log('  - 카테고리:', category || '전체');
     
-    const inventory = await loadInventory();
+    const [inventory, itemPoints] = await Promise.all([
+      loadInventory(),
+      getItemPoints()
+    ]);
     const uiMode = inventory.settings?.uiMode || 'normal';
     const barLength = inventory.settings?.barLength || 15;
     let embed, buttons, items, totalPages;
@@ -22,11 +25,11 @@ export async function handleRefresh(interaction) {
       const crafting = inventory.crafting || { categories: {}, crafting: {} };
       items = Object.entries(crafting.categories[category] || {});
       totalPages = Math.ceil(items.length / 25);
-      embed = createCraftingEmbed(crafting, category, uiMode, barLength, 0, inventory);
+      embed = createCraftingEmbed(crafting, category, uiMode, barLength, 0, inventory, itemPoints);
     } else {
       items = Object.entries(inventory.categories[category] || {});
       totalPages = Math.ceil(items.length / 25);
-      embed = createInventoryEmbed(inventory, category, uiMode, barLength, 0);
+      embed = createInventoryEmbed(inventory, category, uiMode, barLength, 0, itemPoints);
     }
     
     buttons = createButtons(category, true, type || 'inventory', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);

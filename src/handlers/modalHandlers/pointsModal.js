@@ -15,10 +15,10 @@ export async function handlePointsModal(interaction, parts) {
   const newPoints = parseInt(newPointsStr);
   
   // 입력 검증
-  if (isNaN(newPoints) || newPoints < 1 || newPoints > 100) {
+  if (isNaN(newPoints) || newPoints < 0 || newPoints > 100) {
     const timeouts = await getTimeoutSettings();
     await interaction.reply({
-      content: `❌ 배점은 1~100 사이의 숫자여야 합니다.\n\n_이 메시지는 ${timeouts.info}초 후 자동 삭제됩니다_`,
+      content: `❌ 배점은 0~100 사이의 숫자여야 합니다.\n\n_이 메시지는 ${timeouts.info}초 후 자동 삭제됩니다_`,
       ephemeral: true
     });
     
@@ -33,7 +33,7 @@ export async function handlePointsModal(interaction, parts) {
   try {
     // 현재 배점 조회
     const itemPoints = await getItemPoints();
-    const oldPoints = itemPoints?.[type]?.[category]?.[itemName] || 1;
+    const oldPoints = itemPoints?.[type]?.[category]?.[itemName] ?? 1;
     
     // 배점 업데이트
     await updateItemPoints(type, category, itemName, newPoints);
@@ -78,9 +78,9 @@ export async function handleContributionPointsModal(interaction, parts) {
   const newPoints = parseInt(newPointsStr);
   
   // 입력 검증
-  if (isNaN(newPoints) || newPoints < 1 || newPoints > 100) {
+  if (isNaN(newPoints) || newPoints < 0 || newPoints > 100) {
     await interaction.reply({
-      content: '❌ 배점은 1~100 사이의 숫자여야 합니다.',
+      content: '❌ 배점은 0~100 사이의 숫자여야 합니다.',
       ephemeral: true
     });
     return;
@@ -89,7 +89,7 @@ export async function handleContributionPointsModal(interaction, parts) {
   try {
     // 현재 배점 조회
     const itemPoints = await getItemPoints();
-    const oldPoints = itemPoints?.[type]?.[category]?.[itemName] || 1;
+    const oldPoints = itemPoints?.[type]?.[category]?.[itemName] ?? 1;
     
     // 배점 업데이트
     await updateItemPoints(type, category, itemName, newPoints);

@@ -174,7 +174,7 @@ export function calculateContributions(historyEntries, itemPoints, options = {})
     if (quantity === 0) continue;
     
     // 배점 가져오기 (기본값: 1)
-    const points = itemPoints?.[entryType]?.[category]?.[itemName] || 1;
+    const points = itemPoints?.[entryType]?.[category]?.[itemName] ?? 1;
     
     // 점수 계산: quantity × points
     const score = quantity * points;

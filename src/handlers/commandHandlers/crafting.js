@@ -2,7 +2,7 @@
 
 import { EmbedBuilder } from 'discord.js';
 import { createCraftingEmbed, createButtons } from '../../embeds.js';
-import { loadInventory, addItem, removeItem, saveRecipe } from '../../database.js';
+import { loadInventory, getItemPoints, addItem, removeItem, saveRecipe } from '../../database.js';
 import { getItemIcon, addHistory, sendTemporaryReply } from '../../utils.js';
 
 /**
@@ -17,7 +17,10 @@ export async function handleCraftingCommand(interaction, activeMessages) {
   await interaction.deferReply({ ephemeral: true });
   
   try {
-    const inventory = await loadInventory();
+    const [inventory, itemPoints] = await Promise.all([
+      loadInventory(),
+      getItemPoints()
+    ]);
     const crafting = inventory.crafting || { categories: {}, crafting: {} };
     const uiMode = inventory.settings?.uiMode || 'normal';
     const barLength = inventory.settings?.barLength || 15;
@@ -26,7 +29,7 @@ export async function handleCraftingCommand(interaction, activeMessages) {
     const items = Object.entries(crafting.categories[category] || {});
     const totalPages = Math.ceil(items.length / 25);
     
-    const embed = createCraftingEmbed(crafting, category, uiMode, barLength, 0, inventory);
+    const embed = createCraftingEmbed(crafting, category, uiMode, barLength, 0, inventory, itemPoints);
     const buttons = createButtons(category, true, 'crafting', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
     const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
     

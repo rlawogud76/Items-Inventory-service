@@ -1,6 +1,6 @@
 // 페이지네이션 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
-import { loadInventory } from '../../database.js';
+import { loadInventory, getItemPoints } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 import { getItemIcon, getTimeoutSettings, validateEmoji, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
 import { updateAutoRefreshPage } from './settings.js';
@@ -17,7 +17,10 @@ export async function handlePageNavigation(interaction) {
     
     const newPage = direction === 'prev' ? currentPage - 1 : currentPage + 1;
     
-    const inventory = await loadInventory();
+    const [inventory, itemPoints] = await Promise.all([
+      loadInventory(),
+      getItemPoints()
+    ]);
     const uiMode = inventory.settings?.uiMode || 'normal';
     const barLength = inventory.settings?.barLength || 15;
     
@@ -27,11 +30,11 @@ export async function handlePageNavigation(interaction) {
       const crafting = inventory.crafting || { categories: {}, crafting: {} };
       items = Object.entries(crafting.categories[category] || {});
       totalPages = Math.ceil(items.length / 25);
-      embed = createCraftingEmbed(crafting, category, uiMode, barLength, newPage, inventory);
+      embed = createCraftingEmbed(crafting, category, uiMode, barLength, newPage, inventory, itemPoints);
     } else {
       items = Object.entries(inventory.categories[category] || {});
       totalPages = Math.ceil(items.length / 25);
-      embed = createInventoryEmbed(inventory, category, uiMode, barLength, newPage);
+      embed = createInventoryEmbed(inventory, category, uiMode, barLength, newPage, itemPoints);
     }
     
     const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, newPage, totalPages);
@@ -77,7 +80,10 @@ export async function handlePageJump(interaction) {
     const currentPage = parseInt(parts[parts.length - 2]);
     const category = parts.slice(4, -2).join('_');
     
-    const inventory = await loadInventory();
+    const [inventory, itemPoints] = await Promise.all([
+      loadInventory(),
+      getItemPoints()
+    ]);
     const { infoTimeout } = getTimeoutSettings(inventory);
     
     const modal = new ModalBuilder()
@@ -433,9 +439,9 @@ export async function handlePageJumpModal(interaction) {
     
     if (type === 'crafting') {
       const crafting = inventory.crafting || { categories: {}, crafting: {} };
-      embed = createCraftingEmbed(crafting, category, uiMode, barLength, newPage, inventory);
+      embed = createCraftingEmbed(crafting, category, uiMode, barLength, newPage, inventory, itemPoints);
     } else {
-      embed = createInventoryEmbed(inventory, category, uiMode, barLength, newPage);
+      embed = createInventoryEmbed(inventory, category, uiMode, barLength, newPage, itemPoints);
     }
     
     const buttons = createButtons(category, true, type, uiMode, barLength, inventory, interaction.user.id, newPage, totalPages);

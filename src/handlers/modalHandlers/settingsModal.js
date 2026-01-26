@@ -1,5 +1,5 @@
 // 설정 관련 modal 핸들러 (바 크기 등)
-import { loadInventory, updateSettings } from '../../database.js';
+import { loadInventory, getItemPoints, updateSettings } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 import { getAutoRefreshTimers } from '../buttonHandlers/settings.js';
 
@@ -26,7 +26,10 @@ export async function handleBarSizeModal(interaction) {
 
     const newLength = Math.round(percentage / 10);
 
-    const inventory = await loadInventory();
+    const [inventory, itemPoints] = await Promise.all([
+      loadInventory(),
+      getItemPoints()
+    ]);
     
     // DB 저장 (새 스키마)
     await updateSettings({ barLength: newLength });
@@ -43,11 +46,11 @@ export async function handleBarSizeModal(interaction) {
       const crafting = inventory.crafting || { categories: {}, crafting: {} };
       const items = Object.entries(crafting.categories[category] || {});
       totalPages = Math.ceil(items.length / 25);
-      embed = createCraftingEmbed(crafting, category, uiMode, newLength, 0, inventory);
+      embed = createCraftingEmbed(crafting, category, uiMode, newLength, 0, inventory, itemPoints);
     } else {
       const items = Object.entries(inventory.categories[category] || {});
       totalPages = Math.ceil(items.length / 25);
-      embed = createInventoryEmbed(inventory, category, uiMode, newLength, 0);
+      embed = createInventoryEmbed(inventory, category, uiMode, newLength, 0, itemPoints);
     }
 
     const messageId = interaction.message?.id;

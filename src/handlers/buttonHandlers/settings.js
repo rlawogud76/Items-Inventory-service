@@ -1,6 +1,6 @@
 // 설정 핸들러 (UI 모드, 바 크기)
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
-import { loadInventory, updateSettings } from '../../database.js';
+import { loadInventory, getItemPoints, updateSettings } from '../../database.js';
 import { createCraftingEmbed, createInventoryEmbed, createButtons } from '../../embeds.js';
 
 // 자동 새로고침 타이머 저장소 (messageId -> { timer, type, category, page, errorCount, lastRefresh })
@@ -32,7 +32,10 @@ export async function handleBarSizeButton(interaction) {
     const type = parts[2]; // 'inventory' or 'crafting'
     const category = parts.length > 3 ? parts.slice(3).join('_') : null;
     
-    const inventory = await loadInventory();
+    const [inventory, itemPoints] = await Promise.all([
+      loadInventory(),
+      getItemPoints()
+    ]);
     const currentLength = inventory.settings?.barLength || 15;
     
     // 모달 생성
@@ -101,11 +104,11 @@ export async function handleUiModeButton(interaction) {
       const crafting = inventory.crafting || { categories: {}, crafting: {} };
       items = Object.entries(crafting.categories[category] || {});
       totalPages = Math.ceil(items.length / 25);
-      embed = createCraftingEmbed(crafting, category, newMode, barLength, 0, inventory);
+      embed = createCraftingEmbed(crafting, category, newMode, barLength, 0, inventory, itemPoints);
     } else {
       items = Object.entries(inventory.categories[category] || {});
       totalPages = Math.ceil(items.length / 25);
-      embed = createInventoryEmbed(inventory, category, newMode, barLength, 0);
+      embed = createInventoryEmbed(inventory, category, newMode, barLength, 0, itemPoints);
     }
     
     console.log('📏 Embed 생성 완료, totalPages:', totalPages);
@@ -218,7 +221,10 @@ export async function handleAutoRefreshButton(interaction) {
       autoRefreshTimers.delete(messageId);
       console.log('⏸️ 자동 새로고침 중지:', messageId);
       
-      const inventory = await loadInventory();
+      const [inventory, itemPoints] = await Promise.all([
+        loadInventory(),
+        getItemPoints()
+      ]);
       const uiMode = inventory.settings?.uiMode || 'normal';
       const barLength = inventory.settings?.barLength || 15;
       const page = timerData.page || 0;
@@ -228,11 +234,11 @@ export async function handleAutoRefreshButton(interaction) {
         const crafting = inventory.crafting || { categories: {}, crafting: {} };
         items = Object.entries(crafting.categories?.[category] || {});
         totalPages = Math.ceil(items.length / 25) || 1;
-        embed = createCraftingEmbed(crafting, category, uiMode, barLength, page, inventory);
+        embed = createCraftingEmbed(crafting, category, uiMode, barLength, page, inventory, itemPoints);
       } else {
         items = Object.entries(inventory.categories?.[category] || {});
         totalPages = Math.ceil(items.length / 25) || 1;
-        embed = createInventoryEmbed(inventory, category, uiMode, barLength, page);
+        embed = createInventoryEmbed(inventory, category, uiMode, barLength, page, itemPoints);
       }
       
       const buttons = createButtons(category, false, type || 'inventory', uiMode, barLength, inventory, interaction.user.id, page, totalPages);
@@ -242,7 +248,10 @@ export async function handleAutoRefreshButton(interaction) {
       // 시작
       console.log('▶️ 자동 새로고침 시작:', messageId, '/ 타입:', type, '/ 카테고리:', category || '전체', '/ 페이지:', currentPage);
       
-      const inventory = await loadInventory();
+      const [inventory, itemPoints] = await Promise.all([
+        loadInventory(),
+        getItemPoints()
+      ]);
       const uiMode = inventory.settings?.uiMode || 'normal';
       const barLength = inventory.settings?.barLength || 15;
       
@@ -251,11 +260,11 @@ export async function handleAutoRefreshButton(interaction) {
         const crafting = inventory.crafting || { categories: {}, crafting: {} };
         items = Object.entries(crafting.categories?.[category] || {});
         totalPages = Math.ceil(items.length / 25) || 1;
-        embed = createCraftingEmbed(crafting, category, uiMode, barLength, currentPage, inventory);
+        embed = createCraftingEmbed(crafting, category, uiMode, barLength, currentPage, inventory, itemPoints);
       } else {
         items = Object.entries(inventory.categories?.[category] || {});
         totalPages = Math.ceil(items.length / 25) || 1;
-        embed = createInventoryEmbed(inventory, category, uiMode, barLength, currentPage);
+        embed = createInventoryEmbed(inventory, category, uiMode, barLength, currentPage, itemPoints);
       }
       
       const buttons = createButtons(category, true, type || 'inventory', uiMode, barLength, inventory, interaction.user.id, currentPage, totalPages);
@@ -297,7 +306,10 @@ export async function handleAutoRefreshButton(interaction) {
             return;
           }
           
-          const inv = await loadInventory();
+          const [inv, itemPoints] = await Promise.all([
+            loadInventory(),
+            getItemPoints()
+          ]);
           const uiMode = inv.settings?.uiMode || 'normal';
           const barLength = inv.settings?.barLength || 15;
           const page = timerData.page;
@@ -307,11 +319,11 @@ export async function handleAutoRefreshButton(interaction) {
             const crafting = inv.crafting || { categories: {}, crafting: {} };
             items = Object.entries(crafting.categories?.[category] || {});
             totalPages = Math.ceil(items.length / 25) || 1;
-            emb = createCraftingEmbed(crafting, category, uiMode, barLength, page, inv);
+            emb = createCraftingEmbed(crafting, category, uiMode, barLength, page, inv, itemPoints);
           } else {
             items = Object.entries(inv.categories?.[category] || {});
             totalPages = Math.ceil(items.length / 25) || 1;
-            emb = createInventoryEmbed(inv, category, uiMode, barLength, page);
+            emb = createInventoryEmbed(inv, category, uiMode, barLength, page, itemPoints);
           }
           
           const btns = createButtons(category, true, type || 'inventory', uiMode, barLength, inv, null, page, totalPages);
@@ -374,7 +386,10 @@ async function stopAutoRefresh(messageId, reason, timerData = null) {
       const channel = await data.client.channels.fetch(data.channelId);
       const message = await channel.messages.fetch(messageId);
       
-      const inventory = await loadInventory();
+      const [inventory, itemPoints] = await Promise.all([
+        loadInventory(),
+        getItemPoints()
+      ]);
       const uiMode = inventory.settings?.uiMode || 'normal';
       const barLength = inventory.settings?.barLength || 15;
       const page = data.page || 0;
@@ -384,11 +399,11 @@ async function stopAutoRefresh(messageId, reason, timerData = null) {
         const crafting = inventory.crafting || { categories: {}, crafting: {} };
         items = Object.entries(crafting.categories?.[data.category] || {});
         totalPages = Math.ceil(items.length / 25) || 1;
-        embed = createCraftingEmbed(crafting, data.category, uiMode, barLength, page, inventory);
+        embed = createCraftingEmbed(crafting, data.category, uiMode, barLength, page, inventory, itemPoints);
       } else {
         items = Object.entries(inventory.categories?.[data.category] || {});
         totalPages = Math.ceil(items.length / 25) || 1;
-        embed = createInventoryEmbed(inventory, data.category, uiMode, barLength, page);
+        embed = createInventoryEmbed(inventory, data.category, uiMode, barLength, page, itemPoints);
       }
       
       const buttons = createButtons(data.category, false, data.type || 'inventory', uiMode, barLength, inventory, null, page, totalPages);

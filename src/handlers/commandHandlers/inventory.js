@@ -1,7 +1,7 @@
 // 재고 커맨드 핸들러
 
 import { createInventoryEmbed, createButtons } from '../../embeds.js';
-import { loadInventory } from '../../database.js';
+import { loadInventory, getItemPoints } from '../../database.js';
 
 /**
  * /재고 커맨드 처리
@@ -15,7 +15,10 @@ export async function handleInventoryCommand(interaction, activeMessages) {
   await interaction.deferReply({ ephemeral: true });
   
   try {
-    const inventory = await loadInventory();
+    const [inventory, itemPoints] = await Promise.all([
+      loadInventory(),
+      getItemPoints()
+    ]);
     const uiMode = inventory.settings?.uiMode || 'normal';
     const barLength = inventory.settings?.barLength || 15;
     
@@ -23,7 +26,7 @@ export async function handleInventoryCommand(interaction, activeMessages) {
     const items = Object.entries(inventory.categories[category] || {});
     const totalPages = Math.ceil(items.length / 25);
     
-    const embed = createInventoryEmbed(inventory, category, uiMode, barLength, 0);
+    const embed = createInventoryEmbed(inventory, category, uiMode, barLength, 0, itemPoints);
     const buttons = createButtons(category, true, 'inventory', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
     const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
     

@@ -15,7 +15,7 @@ export async function handlePointsItemSelect(interaction, parts) {
   
   // 현재 배점 조회
   const itemPoints = await getItemPoints();
-  const currentPoints = itemPoints?.[type]?.[category]?.[selectedItem] || 1;
+  const currentPoints = itemPoints?.[type]?.[category]?.[selectedItem] ?? 1;
   
   // 모달 생성
   const modal = new ModalBuilder()
@@ -24,9 +24,9 @@ export async function handlePointsItemSelect(interaction, parts) {
   
   const pointsInput = new TextInputBuilder()
     .setCustomId('points')
-    .setLabel(`${selectedItem} 배점 (1-100)`)
+    .setLabel(`${selectedItem} 배점 (0-100)`)
     .setStyle(TextInputStyle.Short)
-    .setPlaceholder('1-100 사이의 숫자를 입력하세요')
+    .setPlaceholder('0-100 사이의 숫자를 입력하세요')
     .setValue(currentPoints.toString())
     .setRequired(true)
     .setMinLength(1)
@@ -51,7 +51,7 @@ export async function handleContributionPointsItemSelect(interaction) {
   
   // 현재 배점 조회
   const itemPoints = await getItemPoints();
-  const currentPoints = itemPoints?.[type]?.[category]?.[selectedItem] || 1;
+  const currentPoints = itemPoints?.[type]?.[category]?.[selectedItem] ?? 1;
   
   // 모달 생성 - contribution 전용 모달
   const modal = new ModalBuilder()
@@ -60,9 +60,9 @@ export async function handleContributionPointsItemSelect(interaction) {
   
   const pointsInput = new TextInputBuilder()
     .setCustomId('points')
-    .setLabel(`${selectedItem} 배점 (1-100)`)
+    .setLabel(`${selectedItem} 배점 (0-100)`)
     .setStyle(TextInputStyle.Short)
-    .setPlaceholder('1-100 사이의 숫자를 입력하세요')
+    .setPlaceholder('0-100 사이의 숫자를 입력하세요')
     .setValue(currentPoints.toString())
     .setRequired(true)
     .setMinLength(1)
