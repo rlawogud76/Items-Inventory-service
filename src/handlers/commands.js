@@ -10,7 +10,8 @@ import {
   handleContributionCommand,
   handleRepairCommand,
   handlePermissionsCommand,
-  handleEmbedCompareCommand
+  handleEmbedCompareCommand,
+  handleCloseAllMessagesCommand
 } from './commandHandlers/index.js';
 import { requireFeature, resolveFeatureKeyFromCommand } from '../utils.js';
 
@@ -63,6 +64,9 @@ export async function handleCommandInteraction(interaction, activeMessages) {
     }
     else if (commandName === '임베드비교') {
       return await handleEmbedCompareCommand(interaction);
+    }
+    else if (commandName === '메시지닫기') {
+      return await handleCloseAllMessagesCommand(interaction, activeMessages);
     }
     
   } catch (error) {

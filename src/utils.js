@@ -258,6 +258,8 @@ export function resolveFeatureKeyFromCommand(commandName) {
       return 'permissions';
     case '임베드비교':
       return 'usage';
+    case '메시지닫기':
+      return 'permissions';
     default:
       return null;
   }

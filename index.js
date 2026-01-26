@@ -190,6 +190,9 @@ client.on('ready', async () => {
             .setDescription('확인할 내역 개수 (기본: 10개)')
             .setRequired(false)),
       new SlashCommandBuilder()
+        .setName('메시지닫기')
+        .setDescription('프라이빗 포함 모든 활성 메시지를 닫습니다'),
+      new SlashCommandBuilder()
         .setName('사용법')
         .setDescription('처음 사용하는 사람을 위한 사용법을 확인합니다'),
       new SlashCommandBuilder()

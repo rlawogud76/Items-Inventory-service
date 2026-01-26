@@ -79,6 +79,10 @@ export async function handleUsageCommand(interaction) {
           '최근 수정 내역을 확인합니다 (최대 25개).',
           '> 예: `/수정내역 개수:20`',
           '',
+          '**`/메시지닫기`**',
+          '프라이빗 포함 모든 활성 메시지를 닫습니다.',
+          '> 관리자 전용 명령어',
+          '',
           '**`/복구`**',
           '중간 제작품 연동을 복구합니다.'
         ].join('\n'),
@@ -260,5 +264,49 @@ export async function handleEmbedCompareCommand(interaction) {
     content: `일반 텍스트:\n${text}`,
     embeds: [embed],
     ephemeral: true
+  });
+}
+
+/**
+ * /메시지닫기 커맨드 처리
+ * 프라이빗(에페메랄) 포함 모든 활성 메시지를 닫음
+ * @param {Interaction} interaction
+ * @param {Map} activeMessages
+ */
+export async function handleCloseAllMessagesCommand(interaction, activeMessages) {
+  const messageMap = activeMessages || global.activeMessages;
+
+  if (!messageMap || messageMap.size === 0) {
+    return await interaction.reply({ content: '닫을 활성 메시지가 없습니다.', ephemeral: true });
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+
+  const total = messageMap.size;
+  let success = 0;
+  let failed = 0;
+
+  for (const [messageId, data] of messageMap.entries()) {
+    try {
+      if (data?.interaction) {
+        await data.interaction.deleteReply();
+        success += 1;
+      } else {
+        failed += 1;
+      }
+    } catch (error) {
+      failed += 1;
+    } finally {
+      messageMap.delete(messageId);
+    }
+  }
+
+  await interaction.editReply({
+    content: [
+      '✅ 모든 활성 메시지를 닫았습니다.',
+      `- 대상: ${total}개`,
+      `- 성공: ${success}개`,
+      `- 실패: ${failed}개`
+    ].join('\n')
   });
 }
