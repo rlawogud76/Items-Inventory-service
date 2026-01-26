@@ -8,7 +8,7 @@ export { handleCraftingCommand } from './crafting.js';
 
 // 기타
 export { 
-  handleHelpCommand,
+  handleUsageCommand,
   handleEmojiCommand,
   handleHistoryCommand,
   handleContributionResetCommand

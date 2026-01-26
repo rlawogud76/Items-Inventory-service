@@ -3,7 +3,7 @@
 import {
   handleInventoryCommand,
   handleCraftingCommand,
-  handleHelpCommand,
+  handleUsageCommand,
   handleEmojiCommand,
   handleHistoryCommand,
   handleContributionResetCommand,
@@ -33,8 +33,8 @@ export async function handleCommandInteraction(interaction, activeMessages) {
     }
     
     // 기타
-    else if (commandName === '도움말') {
-      return await handleHelpCommand(interaction);
+    else if (commandName === '사용법') {
+      return await handleUsageCommand(interaction);
     }
     else if (commandName === '기여도') {
       return await handleContributionCommand(interaction);

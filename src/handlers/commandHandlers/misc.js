@@ -1,4 +1,4 @@
-// 기타 커맨드 핸들러 (도움말, 통계, 이모지설정, 수정내역, 기여도초기화)
+// 기타 커맨드 핸들러 (사용법, 통계, 이모지설정, 수정내역, 기여도초기화)
 
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, updateItemDetails, getHistory, getHistoryCount } from '../../database.js';
@@ -6,30 +6,39 @@ import { getItemIcon, sendTemporaryReply } from '../../utils.js';
 import { STACK, EMOJIS, UI } from '../../constants.js';
 
 /**
- * /도움말 커맨드 처리
+ * /사용법 커맨드 처리
  */
-export async function handleHelpCommand(interaction) {
+export async function handleUsageCommand(interaction) {
   const helpEmbed = new EmbedBuilder()
-    .setTitle('📖 재고 관리 봇 사용법')
+    .setTitle('📘 처음 쓰는 사람을 위한 사용법')
     .setColor(0x5865F2)
-    .setDescription('**MongoDB 기반 실시간 재고 관리 시스템**\n변경사항이 자동으로 감지되어 즉시 반영됩니다.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    .setDescription('처음 사용해도 바로 이해할 수 있게 핵심만 정리했습니다.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     .addFields(
       { 
-        name: `${EMOJIS.BOX} 재고 관리`, 
+        name: '✅ 1분 시작 가이드', 
         value: [
-          '**`/재고 [카테고리]`**',
-          '재고 현황을 실시간으로 확인합니다.',
-          '> 예: `/재고 카테고리:해양`',
-          '> 💡 변경사항이 자동으로 업데이트됩니다!',
+          '1) **`/재고 카테고리:해양`** 또는 **`/제작 카테고리:해양`** 실행',
+          '2) 화면에 뜨는 버튼으로 모든 관리를 진행',
+          '3) 수량 변경하면 모든 화면이 자동 업데이트',
           '',
-          '**버튼 기능:**',
+          '💡 **핵심:** 명령어는 화면 열기용, 나머지는 버튼으로 처리'
+        ].join('\n'),
+        inline: false
+      },
+      { 
+        name: '\u200B', 
+        value: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        inline: false
+      },
+      { 
+        name: `${EMOJIS.BOX} 재고 화면에서 할 수 있는 것`, 
+        value: [
           `• ${EMOJIS.BOX} 수집하기: 작업자 등록 (다른 사람에게 표시)`,
           '• 📊 수량관리: 추가/수정/차감/목표 수정',
           '• 📋 물품관리: 물품 추가/삭제/이름 수정',
           '• 🏷️ 태그관리: 물품을 태그로 그룹화',
           '• ♻️ 초기화: 개별 또는 일괄 초기화',
-          '• 📏 UI 모드: 일반/상세 모드 전환',
-          '• 📊 바 크기: 프로그레스 바 크기 조절'
+          '• 📏 UI 모드/바 크기: 화면 표시 방식 조절'
         ].join('\n'),
         inline: false
       },
@@ -39,22 +48,14 @@ export async function handleHelpCommand(interaction) {
         inline: false
       },
       { 
-        name: '🔨 제작 관리', 
+        name: '🔨 제작 화면에서 할 수 있는 것', 
         value: [
-          '**`/제작 [카테고리]`**',
-          '제작 현황을 실시간으로 확인합니다.',
-          '> 예: `/제작 카테고리:해양`',
-          '> 💡 변경사항이 자동으로 업데이트됩니다!',
-          '',
-          '**버튼 기능:**',
           '• 🔨 제작하기: 작업자 등록 (다른 사람에게 표시)',
           '• 📊 수량관리: 추가/수정/차감/목표 수정',
           '• 📦 품목관리: 품목 추가/삭제/이름 수정',
           '• 🏷️ 태그관리: 품목을 태그로 그룹화',
-          '• 📋 레시피: 레시피 조회/추가/수정/삭제',
-          '• ♻️ 초기화: 개별 또는 일괄 초기화',
-          '• 📏 UI 모드: 일반/상세 모드 전환',
-          '• 📊 바 크기: 프로그레스 바 크기 조절'
+          '• 📋 레시피: 조회/추가/수정/삭제',
+          '• ♻️ 초기화, 📏 UI 모드/바 크기 조절'
         ].join('\n'),
         inline: false
       },
@@ -64,25 +65,7 @@ export async function handleHelpCommand(interaction) {
         inline: false
       },
       { 
-        name: '📋 레시피 관리', 
-        value: [
-          '**제작 화면의 "📋 레시피" 버튼 사용:**',
-          '• 📖 조회: 레시피 확인 (재료 충분 여부 표시)',
-          '• ➕ 추가: 새 레시피 추가 (최대 5개 재료)',
-          '• ✏️ 수정: 기존 레시피 수정',
-          '• 🗑️ 삭제: 레시피 삭제',
-          '',
-          '> 💡 25개 초과 시 자동으로 페이지 버튼이 생성됩니다!'
-        ].join('\n'),
-        inline: false
-      },
-      { 
-        name: '\u200B', 
-        value: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-        inline: false
-      },
-      { 
-        name: '🔧 기타 기능', 
+        name: '🔧 기타 명령어', 
         value: [
           '**`/기여도`**',
           '재고 및 제작 기여도 순위를 확인합니다.',
@@ -94,7 +77,10 @@ export async function handleHelpCommand(interaction) {
           '',
           '**`/수정내역 [개수]`**',
           '최근 수정 내역을 확인합니다 (최대 25개).',
-          '> 예: `/수정내역 개수:20`'
+          '> 예: `/수정내역 개수:20`',
+          '',
+          '**`/복구`**',
+          '중간 제작품 연동을 복구합니다.'
         ].join('\n'),
         inline: false
       },
