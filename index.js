@@ -15,7 +15,7 @@ import { INTERACTION_CONFIG } from './src/constants.js';
 dotenv.config();
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers]
 });
 
 // 활성 메시지 추적 (변경 감지용)

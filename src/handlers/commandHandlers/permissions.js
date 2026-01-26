@@ -126,12 +126,41 @@ export async function handlePermissionStatusCommand(interaction) {
       ? adminUserIds.map((id) => `<@${id}>`).join(', ')
       : '없음';
 
+    let memberListText = '가져오는 중...';
+    try {
+      const members = await interaction.guild.members.fetch();
+      const excludedIds = new Set([ownerId, ...adminUserIds].filter(Boolean));
+      const memberIds = members
+        .filter((m) => !m.user?.bot)
+        .filter((m) => !excludedIds.has(m.id))
+        .map((m) => m.id);
+
+      if (memberIds.length === 0) {
+        memberListText = '없음';
+      } else {
+        const mentions = memberIds.map((id) => `<@${id}>`);
+        let display = '';
+        let shown = 0;
+        for (const mention of mentions) {
+          const next = display ? `${display}, ${mention}` : mention;
+          if (next.length > 900) break; // embed field length safety
+          display = next;
+          shown += 1;
+        }
+        const remaining = memberIds.length - shown;
+        memberListText = remaining > 0 ? `${display} 외 ${remaining}명` : display;
+      }
+    } catch (error) {
+      memberListText = '멤버 목록을 가져올 수 없습니다. (멤버 인텐트 필요)';
+    }
+
     const embed = new EmbedBuilder()
       .setTitle('🔐 권한 현황')
       .setColor(0x5865F2)
       .addFields(
         { name: '서버장', value: ownerText, inline: false },
         { name: '관리자', value: adminMentions, inline: false },
+        { name: '멤버', value: memberListText, inline: false },
         { name: '관리자 권한 범위', value: formatFeatureKeys(adminAllowedFeatureKeys), inline: false },
         { name: '마을원 권한 범위', value: formatFeatureKeys(memberAllowedFeatureKeys), inline: false }
       )
