@@ -109,3 +109,11 @@ export {
   handlePointsViewButton,
   handlePointsViewTypeButton
 } from './points.js';
+
+// 권한 설정
+export {
+  handlePermissionRefresh,
+  handlePermissionAdminAdd,
+  handlePermissionAdminRemove,
+  handlePermissionMemberEdit
+} from './permissions.js';

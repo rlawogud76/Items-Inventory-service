@@ -43,3 +43,6 @@ export {
 
 // 배점 관리
 export { handlePointsItemSelect, handleContributionPointsItemSelect } from './pointsSelect.js';
+
+// 권한 설정
+export { handlePermissionMemberSelect } from './permissionsSelect.js';

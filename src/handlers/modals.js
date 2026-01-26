@@ -13,10 +13,13 @@ import {
   handleBarSizeModal,
   handleTimeoutSettingsModal,
   handlePointsModal,
-  handleContributionPointsModal
+  handleContributionPointsModal,
+  handlePermissionAdminAddModal,
+  handlePermissionAdminRemoveModal
 } from './modalHandlers/index.js';
 
 import { handlePageJumpModal, handleGenericPageJumpModal } from './buttonHandlers/pagination.js';
+import { requireFeature, resolveFeatureKeyFromCustomId } from '../utils.js';
 
 /**
  * Modal 제출 인터랙션 처리 함수
@@ -26,6 +29,10 @@ import { handlePageJumpModal, handleGenericPageJumpModal } from './buttonHandler
 export async function handleModalInteraction(interaction) {
   try {
     console.log('Modal 제출 감지! customId:', interaction.customId);
+
+    const featureKey = resolveFeatureKeyFromCustomId(interaction.customId);
+    const allowed = await requireFeature(interaction, featureKey);
+    if (!allowed) return true;
   
   // 페이지 점프 모달 (임베드용)
   if (interaction.customId.startsWith('page_jump_modal_')) {
@@ -116,6 +123,16 @@ export async function handleModalInteraction(interaction) {
   else if (interaction.customId.startsWith('contribution_modal_points_')) {
     const parts = interaction.customId.split('_');
     await handleContributionPointsModal(interaction, parts);
+    return true;
+  }
+
+  // 권한 설정 - 관리자 승급/강등
+  else if (interaction.customId === 'perm_admin_add_modal') {
+    await handlePermissionAdminAddModal(interaction);
+    return true;
+  }
+  else if (interaction.customId === 'perm_admin_remove_modal') {
+    await handlePermissionAdminRemoveModal(interaction);
     return true;
   }
   

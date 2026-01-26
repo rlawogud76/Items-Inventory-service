@@ -75,3 +75,24 @@ export const EMOJIS = {
     WHITE: '⚪',
   }
 };
+
+// 권한 기능키 목록
+export const PERMISSION_FEATURE_KEYS = [
+  { key: '*', label: '전체 허용', description: '모든 기능 사용 허용' },
+  { key: 'inventory', label: '재고', description: '재고 화면 및 관련 기능' },
+  { key: 'crafting', label: '제작', description: '제작 화면 및 관련 기능' },
+  { key: 'quantity', label: '수량', description: '수량 변경/관리' },
+  { key: 'reset', label: '초기화', description: '초기화/리셋 기능' },
+  { key: 'manage', label: '물품관리', description: '추가/수정/삭제/정렬' },
+  { key: 'recipe', label: '레시피', description: '레시피 추가/수정' },
+  { key: 'tag', label: '태그', description: '태그 설정/관리' },
+  { key: 'settings', label: '설정', description: 'UI/타이머 설정' },
+  { key: 'work', label: '작업', description: '수집/제작 작업' },
+  { key: 'contribution', label: '기여도', description: '기여도 조회/배점' },
+  { key: 'points', label: '배점', description: '배점 설정/조회' },
+  { key: 'history', label: '수정내역', description: '수정 내역 조회' },
+  { key: 'emoji', label: '이모지', description: '이모지 설정' },
+  { key: 'repair', label: '복구', description: '복구 기능' },
+  { key: 'usage', label: '사용법', description: '사용법 안내' },
+  { key: 'permissions', label: '권한설정', description: '권한 관리' }
+];

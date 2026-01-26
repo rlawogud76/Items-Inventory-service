@@ -1,5 +1,5 @@
 // 유틸리티 함수들
-import { addHistoryEntry, updateItemQuantity } from './database.js';
+import { addHistoryEntry, updateItemQuantity, getSettings } from './database.js';
 import { STACK, LIMITS, UI, EMOJIS } from './constants.js';
 
 /**
@@ -160,6 +160,136 @@ export function isValidName(name) {
   // 특수문자 제한 (한글, 영문, 숫자, 공백, 일부 특수문자만 허용)
   const validPattern = /^[가-힣a-zA-Z0-9\s\-_()]+$/;
   return validPattern.test(name);
+}
+
+/**
+ * 권한 설정 조회
+ */
+export async function getPermissionSettings() {
+  const setting = await getSettings();
+  return {
+    adminUserIds: setting?.adminUserIds || [],
+    memberAllowedFeatureKeys: setting?.memberAllowedFeatureKeys || ['*']
+  };
+}
+
+/**
+ * 서버장 여부 확인
+ */
+export async function isServerOwner(interaction) {
+  try {
+    if (!interaction.guild) return false;
+    if (interaction.guild.ownerId) {
+      return interaction.guild.ownerId === interaction.user.id;
+    }
+    const owner = await interaction.guild.fetchOwner();
+    return owner?.id === interaction.user.id;
+  } catch (error) {
+    console.warn('⚠️ 서버장 확인 실패:', error?.message || error);
+    return false;
+  }
+}
+
+/**
+ * 관리자 여부 확인 (서버장 포함)
+ */
+export async function isAdmin(interaction) {
+  if (await isServerOwner(interaction)) return true;
+  const { adminUserIds } = await getPermissionSettings();
+  return adminUserIds.includes(interaction.user.id);
+}
+
+/**
+ * 기능키 접근 가능 여부 확인
+ */
+export async function canUseFeature(interaction, featureKey) {
+  if (!featureKey) return true;
+  if (featureKey === 'refresh' || featureKey === 'pagination') return true;
+  if (featureKey === 'permissions') return await isAdmin(interaction);
+  if (await isAdmin(interaction)) return true;
+  const { memberAllowedFeatureKeys } = await getPermissionSettings();
+  if (memberAllowedFeatureKeys.includes('*')) return true;
+  return memberAllowedFeatureKeys.includes(featureKey);
+}
+
+/**
+ * 권한 부족 메시지 응답
+ */
+export async function replyNoPermission(interaction, extraText = '') {
+  const smallText = extraText ? `\n_${extraText}_` : '\n_관리자/서버장에게 권한 설정을 요청하세요_';
+  const message = `❌ 권한이 없습니다.${smallText}`;
+  await safeErrorReply(interaction, message, true);
+}
+
+/**
+ * 기능키가 있는지 검사하고 없으면 차단
+ */
+export async function requireFeature(interaction, featureKey, extraText = '') {
+  const allowed = await canUseFeature(interaction, featureKey);
+  if (!allowed) {
+    await replyNoPermission(interaction, extraText);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * commandName -> 기능키 매핑
+ */
+export function resolveFeatureKeyFromCommand(commandName) {
+  switch (commandName) {
+    case '재고':
+      return 'inventory';
+    case '제작':
+      return 'crafting';
+    case '사용법':
+      return 'usage';
+    case '기여도':
+      return 'contribution';
+    case '이모지설정':
+      return 'emoji';
+    case '수정내역':
+      return 'history';
+    case '기여도초기화':
+      return 'contribution';
+    case '복구':
+      return 'repair';
+    case '권한설정':
+      return 'permissions';
+    default:
+      return null;
+  }
+}
+
+/**
+ * customId -> 기능키 매핑
+ */
+export function resolveFeatureKeyFromCustomId(customId) {
+  if (!customId) return null;
+  if (customId.startsWith('refresh') || customId === 'contribution_refresh') return 'refresh';
+  if (customId.startsWith('page_') || customId.startsWith('page_jump_') || customId.startsWith('page_prev_') || customId.startsWith('page_next_')) return 'pagination';
+  if (customId.startsWith('select_') || customId.startsWith('confirm_') || customId.startsWith('change_')) {
+    // select/confirm/change는 내부 도메인을 기준으로 아래에서 매핑
+  }
+  if (customId.startsWith('perm_') || customId.startsWith('permission_') || customId.startsWith('permissions_')) return 'permissions';
+  if (customId.startsWith('quantity') || customId.startsWith('modal_add_') || customId.startsWith('modal_edit_') || customId.startsWith('modal_subtract_') || customId.startsWith('modal_edit_required_')) return 'quantity';
+  if (customId.startsWith('reset')) return 'reset';
+  if (customId.startsWith('manage') || customId.startsWith('add_item_') || customId.startsWith('reorder_') || customId.startsWith('move_item_') || customId.startsWith('move_position_')) return 'manage';
+  if (customId.startsWith('recipe')) return 'recipe';
+  if (customId.startsWith('tag_') || customId.startsWith('manage_tag')) return 'tag';
+  if (customId.startsWith('ui_mode') || customId.startsWith('bar_size') || customId.startsWith('auto_refresh') || customId.startsWith('timeout_settings')) return 'settings';
+  if (customId.startsWith('collecting') || customId.startsWith('crafting') || customId.startsWith('stop_collecting_') || customId.startsWith('stop_crafting_')) return 'work';
+  if (customId.startsWith('contribution')) return 'contribution';
+  if (customId.startsWith('points')) return 'points';
+  if (customId.startsWith('select_item_') || customId.startsWith('select_item_type_')) return 'work';
+  if (customId.startsWith('select_quantity_')) return 'quantity';
+  if (customId.startsWith('select_reset_')) return 'reset';
+  if (customId.startsWith('select_remove_') || customId.startsWith('select_edit_') || customId.startsWith('select_type_change_') || customId.startsWith('confirm_type_change_')) return 'manage';
+  if (customId.startsWith('select_recipe_') || customId.startsWith('select_recipe_material_')) return 'recipe';
+  if (customId.startsWith('select_tag_') || customId.startsWith('change_tag_color_') || customId.startsWith('confirm_tag_remove_')) return 'tag';
+  if (customId.startsWith('select_points_') || customId.startsWith('modal_points_')) return 'points';
+  if (customId.startsWith('contribution_select_points_') || customId.startsWith('contribution_modal_points_')) return 'contribution';
+  return null;
 }
 
 // 수량을 상자/세트/개로 변환하는 함수

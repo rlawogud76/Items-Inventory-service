@@ -19,3 +19,6 @@ export { handleContributionCommand } from './contribution.js';
 
 // 복구
 export { handleRepairCommand } from './repair.js';
+
+// 권한 설정
+export { handlePermissionsCommand } from './permissions.js';

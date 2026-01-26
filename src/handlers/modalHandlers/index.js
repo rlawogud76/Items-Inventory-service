@@ -28,3 +28,9 @@ export { handleBarSizeModal, handleTimeoutSettingsModal } from './settingsModal.
 
 // 배점 관리
 export { handlePointsModal, handleContributionPointsModal } from './pointsModal.js';
+
+// 권한 설정
+export {
+  handlePermissionAdminAddModal,
+  handlePermissionAdminRemoveModal
+} from './permissionsModal.js';

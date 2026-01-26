@@ -25,8 +25,10 @@ import {
   handleTypeChangeSelect,
   handleConfirmTypeChange,
   handlePointsItemSelect,
-  handleContributionPointsItemSelect
+  handleContributionPointsItemSelect,
+  handlePermissionMemberSelect
 } from './selectHandlers/index.js';
+import { requireFeature, resolveFeatureKeyFromCustomId } from '../utils.js';
 
 /**
  * Select 메뉴 인터랙션 처리 함수
@@ -35,6 +37,10 @@ import {
 export async function handleSelectInteraction(interaction) {
   try {
     console.log('Select 메뉴 감지! customId:', interaction.customId);
+
+    const featureKey = resolveFeatureKeyFromCustomId(interaction.customId);
+    const allowed = await requireFeature(interaction, featureKey);
+    if (!allowed) return;
   
   // 수량 관리
   if (interaction.customId.startsWith('select_quantity_')) {
@@ -160,6 +166,11 @@ export async function handleSelectInteraction(interaction) {
   // 기여도 배점 관리 - 아이템 선택
   else if (interaction.customId.startsWith('contribution_select_points_')) {
     return await handleContributionPointsItemSelect(interaction);
+  }
+
+  // 권한 설정 - 멤버 권한 범위 선택
+  else if (interaction.customId === 'perm_member_features_select') {
+    return await handlePermissionMemberSelect(interaction);
   }
   } catch (error) {
     console.error('셀렉트 처리 에러:', error);

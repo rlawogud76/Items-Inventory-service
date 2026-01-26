@@ -894,6 +894,18 @@ export async function updateSettings(updates) {
   }
 }
 
+/**
+ * 설정 조회
+ */
+export async function getSettings() {
+  try {
+    return await Setting.findById('global').lean();
+  } catch (error) {
+    console.error('❌ 설정 조회 실패:', error.message);
+    return null;
+  }
+}
+
 // data.js에서 MongoDB로 마이그레이션
 export async function migrateFromDataFile(inventoryData) {
   try {

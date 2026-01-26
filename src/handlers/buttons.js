@@ -85,13 +85,22 @@ import {
   handlePointsCategoryButton,
   handlePointsResetButton,
   handlePointsViewButton,
-  handlePointsViewTypeButton
+  handlePointsViewTypeButton,
+  handlePermissionRefresh,
+  handlePermissionAdminAdd,
+  handlePermissionAdminRemove,
+  handlePermissionMemberEdit
 } from './buttonHandlers/index.js';
+import { requireFeature, resolveFeatureKeyFromCustomId } from '../utils.js';
 
 // 버튼 인터랙션 처리 함수
 export async function handleButtonInteraction(interaction) {
   try {
     console.log('버튼 클릭 감지! customId:', interaction.customId);
+
+    const featureKey = resolveFeatureKeyFromCustomId(interaction.customId);
+    const allowed = await requireFeature(interaction, featureKey);
+    if (!allowed) return;
     
     // ============================================
     // 1. 페이지네이션 핸들러 (분리됨)
@@ -452,6 +461,22 @@ export async function handleButtonInteraction(interaction) {
     else if (interaction.customId.startsWith('points_view_type_') || interaction.customId.startsWith('points_view_all_')) {
       const parts = interaction.customId.split('_');
       return await handlePointsViewTypeButton(interaction, parts);
+    }
+
+    // ============================================
+    // 14. 권한 설정 핸들러 (분리됨)
+    // ============================================
+    else if (interaction.customId === 'perm_refresh') {
+      return await handlePermissionRefresh(interaction);
+    }
+    else if (interaction.customId === 'perm_admin_add') {
+      return await handlePermissionAdminAdd(interaction);
+    }
+    else if (interaction.customId === 'perm_admin_remove') {
+      return await handlePermissionAdminRemove(interaction);
+    }
+    else if (interaction.customId === 'perm_member_edit') {
+      return await handlePermissionMemberEdit(interaction);
     }
   } catch (error) {
     console.error('버튼 처리 에러:', error);

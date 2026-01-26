@@ -229,6 +229,10 @@ client.on('ready', async () => {
       new SlashCommandBuilder()
         .setName('복구')
         .setDescription('중간 제작품 연동을 복구합니다 (재고-제작 연결 수정)')
+      ,
+      new SlashCommandBuilder()
+        .setName('권한설정')
+        .setDescription('관리자/마을원 권한 범위를 설정합니다')
     ].map(command => command.toJSON());
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);

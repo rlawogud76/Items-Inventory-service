@@ -8,8 +8,10 @@ import {
   handleHistoryCommand,
   handleContributionResetCommand,
   handleContributionCommand,
-  handleRepairCommand
+  handleRepairCommand,
+  handlePermissionsCommand
 } from './commandHandlers/index.js';
+import { requireFeature, resolveFeatureKeyFromCommand } from '../utils.js';
 
 /**
  * Command 인터랙션 처리 함수
@@ -22,6 +24,10 @@ export async function handleCommandInteraction(interaction, activeMessages) {
   console.log('커맨드 실행:', commandName);
   
   try {
+    const featureKey = resolveFeatureKeyFromCommand(commandName);
+    const allowed = await requireFeature(interaction, featureKey);
+    if (!allowed) return;
+
     // 재고 관련
     if (commandName === '재고') {
       return await handleInventoryCommand(interaction, activeMessages);
@@ -50,6 +56,9 @@ export async function handleCommandInteraction(interaction, activeMessages) {
     }
     else if (commandName === '복구') {
       return await handleRepairCommand(interaction);
+    }
+    else if (commandName === '권한설정') {
+      return await handlePermissionsCommand(interaction);
     }
     
   } catch (error) {

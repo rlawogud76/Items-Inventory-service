@@ -26,6 +26,11 @@ const settingSchema = new mongoose.Schema({
     inventory: { type: mongoose.Schema.Types.Mixed, default: {} },
     crafting: { type: mongoose.Schema.Types.Mixed, default: {} }
   },
+
+  // 권한 설정
+  adminUserIds: { type: [String], default: [] },
+  // '*' 포함 시 모든 기능 허용
+  memberAllowedFeatureKeys: { type: [String], default: ['*'] },
   
   // 마이그레이션 상태
   isMigrated: { type: Boolean, default: false },
