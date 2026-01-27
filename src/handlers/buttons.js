@@ -48,6 +48,8 @@ import {
   handleReorderSortButton,
   handleMoveItemPositionButton,
   handleMoveItemButton,
+  handleReorderTagButton,
+  handleReorderTagPageButton,
   handleTagSetButton,
   handleTagRemoveButton,
   handleTagColorButton,
@@ -213,10 +215,6 @@ export async function handleButtonInteraction(interaction) {
 
     else if (interaction.customId.startsWith('reorder_tag_')) {
       return await handleReorderTagButton(interaction);
-    }
-    
-    else if (interaction.customId.startsWith('page_prev_reorder_tag_') || interaction.customId.startsWith('page_next_reorder_tag_')) {
-      return await handleReorderTagPageButton(interaction);
     }
     
     else if (interaction.customId.startsWith('move_item_position_')) {
@@ -396,10 +394,6 @@ export async function handleButtonInteraction(interaction) {
       else if (interaction.customId.includes('_recipe_edit_')) {
         return await handleRecipeEditPagination(interaction);
       }
-      // 작업 페이지 이동 (collecting/crafting)
-      else if (interaction.customId.includes('_collecting_') || interaction.customId.includes('_crafting_')) {
-        return await handleWorkPageButton(interaction);
-      }
       // 수량관리 페이지 이동
       else if (interaction.customId.includes('_quantity_')) {
         return await handleQuantityPageButton(interaction);
@@ -420,12 +414,20 @@ export async function handleButtonInteraction(interaction) {
       else if (interaction.customId.includes('_type_')) {
         return await handleManageTypePageButton(interaction);
       }
+      // 태그 묶음 이동 페이지 이동
+      else if (interaction.customId.includes('_reorder_tag_')) {
+        return await handleReorderTagPageButton(interaction);
+      }
       // 순서 변경 페이지 이동
       else if (interaction.customId.includes('_reorder_second_')) {
         return await handleManageReorderSecondPageButton(interaction);
       }
       else if (interaction.customId.includes('_reorder_')) {
         return await handleManageReorderPageButton(interaction);
+      }
+      // 작업 페이지 이동 (collecting/crafting) - 가장 마지막에 체크!!!!
+      else if (interaction.customId.includes('_collecting_') || interaction.customId.includes('_crafting_')) {
+        return await handleWorkPageButton(interaction);
       }
     }
     
