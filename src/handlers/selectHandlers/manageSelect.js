@@ -463,8 +463,8 @@ export async function handleReorderMoveSelect(interaction) {
 export async function handleSortOptionSelect(interaction) {
   try {
     const parts = interaction.customId.split('_');
-    const type = parts[4]; // 'inventory' or 'crafting'
-    const category = parts.slice(5).join('_');
+    const type = parts[3]; // 'inventory' or 'crafting'
+    const category = parts.slice(4).join('_');
     const sortOption = interaction.values[0]; // 'name_asc', 'quantity_desc', etc.
     
     const inventory = await loadInventory();
