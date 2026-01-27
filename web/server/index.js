@@ -25,8 +25,12 @@ const server = http.createServer(app);
 // 허용할 Origin 목록 (외부 접속 지원)
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:3001',
   'http://127.0.0.1:5173',
-  'http://192.168.219.175:5173',  // 로컬 네트워크 IP
+  'http://192.168.219.175:5173',
+  'https://angelabot.com',
+  'https://www.angelabot.com',
+  'https://gu5v87dg.up.railway.app',
   process.env.CLIENT_URL
 ].filter(Boolean);
 
