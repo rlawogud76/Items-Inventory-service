@@ -52,8 +52,17 @@ const io = new Server(server, {
   }
 });
 
+// 디버그: 모든 요청 로깅
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.path}`);
+  next();
+});
+
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false,  // CSP 비활성화 (프론트엔드 로딩 문제 방지)
+  crossOriginEmbedderPolicy: false
+}));
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
@@ -66,6 +75,11 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+// 테스트용 루트 엔드포인트
+app.get('/test', (req, res) => {
+  res.json({ message: 'Server is working!' });
+});
 
 // API Routes
 app.use('/api/auth', authRoutes);
