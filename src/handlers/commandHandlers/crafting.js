@@ -33,14 +33,56 @@ export async function handleCraftingCommand(interaction, activeMessages) {
     const buttons = createButtons(category, true, 'crafting', uiMode, barLength, inventory, interaction.user.id, 0, totalPages);
     const reply = await interaction.editReply({ embeds: [embed], components: buttons, fetchReply: true });
     
-    // 활성 메시지로 등록 (변경 감지용) - 10분 후 자동 만료
+    // 활성 메시지로 등록 (자동 새로고침용) - 10분 후 자동 만료
     const messageId = reply.id;
+    
+    // 5초마다 자동 새로고침 인터벌 설정
+    const refreshInterval = setInterval(async () => {
+      try {
+        const messageData = activeMessages.get(messageId);
+        if (!messageData) {
+          clearInterval(refreshInterval);
+          return;
+        }
+        
+        const [latestInventory, latestItemPoints] = await Promise.all([
+          loadInventory(),
+          getItemPoints()
+        ]);
+        const latestCrafting = latestInventory.crafting || { categories: {}, crafting: {} };
+        const latestUiMode = latestInventory.settings?.uiMode || 'normal';
+        const latestBarLength = latestInventory.settings?.barLength || 15;
+        const currentPage = messageData.page || 0;
+        
+        const latestItems = Object.entries(latestCrafting.categories[category] || {});
+        const latestTotalPages = Math.ceil(latestItems.length / 25);
+        
+        const latestEmbed = createCraftingEmbed(latestCrafting, category, latestUiMode, latestBarLength, currentPage, latestInventory, latestItemPoints);
+        const latestButtons = createButtons(category, true, 'crafting', latestUiMode, latestBarLength, latestInventory, interaction.user.id, currentPage, latestTotalPages);
+        
+        await interaction.editReply({ embeds: [latestEmbed], components: latestButtons });
+      } catch (error) {
+        // interaction 토큰 만료 또는 메시지 삭제 시 인터벌 정지
+        console.log(`⏹️ 자동 새로고침 중단: ${messageId}`);
+        clearInterval(refreshInterval);
+        activeMessages.delete(messageId);
+      }
+    }, 5000); // 5초마다
+    
+    // 10분 후 자동 종료
+    setTimeout(() => {
+      clearInterval(refreshInterval);
+      activeMessages.delete(messageId);
+      console.log(`⏰ 자동 새로고침 만료: ${messageId} (10분 경과)`);
+    }, 10 * 60 * 1000);
+    
     activeMessages.set(messageId, {
       interaction,
       category,
       type: 'crafting',
       page: 0,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      refreshInterval
     });
     
     console.log(`📌 활성 메시지 등록: ${messageId} (제작 - ${category})`);
