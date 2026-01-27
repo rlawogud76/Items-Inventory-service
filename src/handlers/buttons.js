@@ -210,6 +210,14 @@ export async function handleButtonInteraction(interaction) {
     else if (interaction.customId.startsWith('reorder_sort_')) {
       return await handleReorderSortButton(interaction);
     }
+
+    else if (interaction.customId.startsWith('reorder_tag_')) {
+      return await handleReorderTagButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('page_prev_reorder_tag_') || interaction.customId.startsWith('page_next_reorder_tag_')) {
+      return await handleReorderTagPageButton(interaction);
+    }
     
     else if (interaction.customId.startsWith('move_item_position_')) {
       return await handleMoveItemPositionButton(interaction);

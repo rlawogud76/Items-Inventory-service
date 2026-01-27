@@ -42,7 +42,9 @@ export {
   handleReorderMoveButton,
   handleReorderSortButton,
   handleMoveItemButton,
-  handleMoveItemPositionButton
+  handleMoveItemPositionButton,
+  handleReorderTagButton,
+  handleReorderTagPageButton
 } from './manage.js';
 
 // 태그 관리

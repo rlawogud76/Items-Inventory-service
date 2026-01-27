@@ -1,7 +1,7 @@
 // 관리(삭제/수정/순서변경) select 핸들러
 import { EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, removeItem, updateItemsOrder } from '../../database.js';
-import { formatQuantity, getTimeoutSettings, addHistory, encodeCustomIdPart, getItemTag } from '../../utils.js';
+import { formatQuantity, getTimeoutSettings, addHistory, encodeCustomIdPart, decodeCustomIdPart, getItemTag } from '../../utils.js';
 
 /**
  * 삭제 항목 선택 핸들러
@@ -647,6 +647,202 @@ export async function handleSortOptionSelect(interaction) {
     
   } catch (error) {
     console.error('❌ 자동 정렬 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 태그 묶음 이동 첫 번째 선택 (이동할 태그 선택) 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleReorderTagFirstSelect(interaction) {
+  try {
+    const parts = interaction.customId.replace('select_reorder_tag_first_', '').split('_');
+    const type = parts[0];
+    const category = parts.slice(1).join('_');
+    const sourceTagName = interaction.values[0];
+    
+    const inventory = await loadInventory();
+    const tags = inventory.tags?.[type]?.[category] || {};
+    
+    // 이동할 위치 옵션 생성
+    // 1. 맨 위로
+    // 2. 맨 아래로
+    // 3. 다른 태그들 뒤로
+    
+    // 자기 자신 제외한 다른 태그 목록
+    const otherTags = Object.keys(tags).filter(t => t !== sourceTagName);
+    
+    const options = [
+      {
+        label: '⬆️ 맨 위로 이동',
+        value: 'move_to_top',
+        description: '목록의 가장 위로 이동합니다.',
+        emoji: '⬆️'
+      },
+      ...otherTags.map(tagName => ({
+        label: `${tagName} 뒤로 이동`,
+        value: `move_after_${tagName}`,
+        description: `"${tagName}" 태그 묶음 바로 뒤로 이동합니다.`,
+        emoji: '🏷️'
+      })),
+      {
+        label: '⬇️ 맨 아래로 이동',
+        value: 'move_to_bottom',
+        description: '목록의 가장 아래로 이동합니다.',
+        emoji: '⬇️'
+      }
+    ];
+    
+    // 페이지네이션 처리 (옵션이 많을 경우)
+    const { StringSelectMenuBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+    
+    // Discord 제한: 최대 25개 옵션
+    // 옵션이 많으면 페이지네이션 필요하지만, 여기서는 일단 25개까지만 표시하고 (Top/Bottom 포함)
+    // 태그가 매우 많으면 복잡해지므로, 현재는 25개 제한으로 구현.
+    // 필요시 페이지네이션 추가 가능.
+    
+    const limitedOptions = options.slice(0, 25);
+    
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`select_reorder_tag_second_${type}_${category}_${encodeCustomIdPart(sourceTagName)}`)
+      .setPlaceholder('이동할 위치를 선택하세요')
+      .addOptions(limitedOptions);
+      
+    const row = new ActionRowBuilder().addComponents(selectMenu);
+    
+    let contentMessage = `🏷️ **태그 묶음 이동: ${sourceTagName}**\n\n"${sourceTagName}" 태그 묶음을 어디로 이동할까요?\n선택한 위치로 해당 태그의 모든 항목이 이동합니다.`;
+    
+    await interaction.update({
+      content: contentMessage,
+      components: [row]
+    });
+    
+  } catch (error) {
+    console.error('❌ 태그 묶음 이동 첫 번째 선택 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 태그 묶음 이동 두 번째 선택 (위치 확정) 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleReorderTagSecondSelect(interaction) {
+  try {
+    const parts = interaction.customId.replace('select_reorder_tag_second_', '').split('_');
+    const sourceTagName = decodeCustomIdPart(parts.pop());
+    const type = parts[0];
+    const category = parts.slice(1).join('_');
+    const selection = interaction.values[0];
+    
+    const inventory = await loadInventory();
+    const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    
+    if (!targetData?.[category]) {
+      return await interaction.update({
+        content: `❌ 카테고리를 찾을 수 없습니다.`,
+        components: []
+      });
+    }
+    
+    const items = Object.keys(targetData[category]);
+    
+    // 1. 이동할 아이템들 식별 (Source Tag Items)
+    const sourceItems = [];
+    const otherItems = [];
+    
+    for (const item of items) {
+      if (getItemTag(item, category, type, inventory) === sourceTagName) {
+        sourceItems.push(item);
+      } else {
+        otherItems.push(item);
+      }
+    }
+    
+    if (sourceItems.length === 0) {
+      return await interaction.update({
+        content: `❌ "${sourceTagName}" 태그에 포함된 항목이 없습니다.`,
+        components: []
+      });
+    }
+    
+    // 2. 새로운 순서 구성
+    let newOrder = [];
+    
+    if (selection === 'move_to_top') {
+      newOrder = [...sourceItems, ...otherItems];
+    } else if (selection === 'move_to_bottom') {
+      newOrder = [...otherItems, ...sourceItems];
+    } else if (selection.startsWith('move_after_')) {
+      const targetTagName = selection.replace('move_after_', '');
+      
+      // Target Tag의 마지막 아이템 위치 찾기 (otherItems 기준)
+      let insertIndex = -1;
+      
+      // otherItems를 순회하며 Target Tag를 가진 마지막 아이템의 인덱스를 찾음
+      for (let i = 0; i < otherItems.length; i++) {
+        const item = otherItems[i];
+        if (getItemTag(item, category, type, inventory) === targetTagName) {
+          insertIndex = i;
+        }
+      }
+      
+      if (insertIndex === -1) {
+        // Target Tag 아이템이 없으면 그냥 맨 뒤에 추가 (혹은 맨 앞에? 일단 맨 뒤로)
+        newOrder = [...otherItems, ...sourceItems];
+      } else {
+        // 해당 위치 바로 뒤에 삽입
+        const before = otherItems.slice(0, insertIndex + 1);
+        const after = otherItems.slice(insertIndex + 1);
+        newOrder = [...before, ...sourceItems, ...after];
+      }
+    }
+    
+    // 3. DB 업데이트
+    const itemsToUpdate = newOrder.map((itemName, index) => ({
+      name: itemName,
+      order: index
+    }));
+    
+    await updateItemsOrder(type, category, itemsToUpdate);
+    
+    // 4. 결과 메시지
+    const { infoTimeout } = getTimeoutSettings(inventory);
+    const directionText = {
+      'move_to_top': '맨 위로',
+      'move_to_bottom': '맨 아래로'
+    }[selection] || `"${selection.replace('move_after_', '')}" 뒤로`;
+    
+    await addHistory(type, category, null, 'reorder', `태그 이동: ${sourceTagName} → ${directionText}`, interaction.user.username);
+    
+    let successMessage = `✅ **${sourceTagName}** 태그 묶음(${sourceItems.length}개)을 **${directionText}** 이동했습니다!\n\n**새로운 순서:**\n`;
+    
+    // 상위 15개만 표시
+    newOrder.slice(0, 15).forEach((item, idx) => {
+      const isMoved = sourceItems.includes(item);
+      const marker = isMoved ? ' 📍' : '';
+      successMessage += `${idx + 1}. ${item}${marker}\n`;
+    });
+    
+    if (newOrder.length > 15) {
+      successMessage += `... 외 ${newOrder.length - 15}개\n`;
+    }
+    successMessage += `\n_이 메시지는 ${infoTimeout/1000}초 후 자동 삭제됩니다_`;
+    
+    await interaction.update({
+      content: successMessage,
+      components: []
+    });
+    
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, infoTimeout);
+    
+  } catch (error) {
+    console.error('❌ 태그 묶음 이동 실행 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }

@@ -913,7 +913,12 @@ export async function handleManageReorderButton(interaction) {
       .setLabel('🔤 자동 정렬')
       .setStyle(ButtonStyle.Success);
     
-    const row = new ActionRowBuilder().addComponents(moveButton, sortButton);
+    const tagGroupButton = new ButtonBuilder()
+      .setCustomId(`reorder_tag_${type}_${category}`)
+      .setLabel('🏷️ 태그 묶음 이동')
+      .setStyle(ButtonStyle.Secondary);
+    
+    const row = new ActionRowBuilder().addComponents(moveButton, sortButton, tagGroupButton);
     
     // 현재 순서 표시
     let contentMessage = `🔀 **${category}** 카테고리 순서 관리\n\n`;
@@ -1476,6 +1481,148 @@ export async function handleMoveItemPositionButton(interaction) {
     
   } catch (error) {
     console.error('❌ 지정 위치 이동 모달 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 태그 묶음 이동 버튼 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleReorderTagButton(interaction) {
+  try {
+    const parts = interaction.customId.split('_');
+    const type = parts[2]; // 'inventory' or 'crafting'
+    const category = parts.slice(3).join('_');
+    
+    const inventory = await loadInventory();
+    const tags = inventory.tags?.[type]?.[category] || {};
+    const tagNames = Object.keys(tags);
+    
+    if (tagNames.length === 0) {
+      return await interaction.update({
+        content: `❌ "${category}" 카테고리에 생성된 태그가 없습니다.\n먼저 태그를 생성하고 항목을 추가해주세요.`,
+        components: []
+      });
+    }
+
+    // 태그 목록 페이지네이션
+    await renderReorderTagPage(interaction, type, category, 0);
+    
+  } catch (error) {
+    console.error('❌ 태그 묶음 이동 버튼 에러:', error);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+    }
+  }
+}
+
+/**
+ * 태그 묶음 이동 페이지 렌더링 함수
+ * @param {Interaction} interaction
+ * @param {string} type
+ * @param {string} category
+ * @param {number} page
+ */
+async function renderReorderTagPage(interaction, type, category, page) {
+  const inventory = await loadInventory();
+  const tags = inventory.tags?.[type]?.[category] || {};
+  const tagNames = Object.keys(tags);
+  
+  // 태그 목록 옵션 생성
+  const tagOptions = tagNames.map(tagName => {
+    const tagData = tags[tagName];
+    const items = Array.isArray(tagData) ? tagData : tagData.items || [];
+    const color = Array.isArray(tagData) ? 'default' : tagData.color || 'default';
+    const colorEmoji = {
+      'red': '🔴', 'green': '🟢', 'blue': '🔵', 'yellow': '🟡',
+      'purple': '🟣', 'cyan': '🔵', 'white': '⚪', 'default': '🏷️'
+    }[color] || '🏷️';
+    
+    return {
+      label: tagName,
+      value: tagName,
+      description: `색상: ${color} (${items.length}개 항목)`,
+      emoji: colorEmoji
+    };
+  });
+  
+  const pageSize = 25;
+  const totalPages = Math.ceil(tagOptions.length / pageSize);
+  const startIdx = page * pageSize;
+  const endIdx = startIdx + pageSize;
+  const limitedOptions = tagOptions.slice(startIdx, endIdx);
+  
+  const { StringSelectMenuBuilder } = await import('discord.js');
+  const selectMenu = new StringSelectMenuBuilder()
+    .setCustomId(`select_reorder_tag_first_${type}_${category}`)
+    .setPlaceholder('이동할 태그 묶음을 선택하세요')
+    .addOptions(limitedOptions);
+  
+  const rows = [new ActionRowBuilder().addComponents(selectMenu)];
+  
+  // 페이지네이션 버튼
+  if (totalPages > 1) {
+    const prevButton = new ButtonBuilder()
+      .setCustomId(`page_prev_reorder_tag_${type}_${category}_${page}`)
+      .setLabel('◀ 이전')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === 0);
+    
+    const nextButton = new ButtonBuilder()
+      .setCustomId(`page_next_reorder_tag_${type}_${category}_${page}`)
+      .setLabel('다음 ▶')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === totalPages - 1);
+    
+    const pageInfo = new ButtonBuilder()
+      .setCustomId(`page_info_${page}`)
+      .setLabel(`${page + 1} / ${totalPages}`)
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(true);
+    
+    rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
+  }
+  
+  let contentMessage = `🏷️ **태그 묶음 이동**\n\n이동할 태그를 선택하세요.\n선택한 태그에 포함된 모든 항목이 함께 이동합니다.`;
+  if (totalPages > 1) {
+    contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${tagOptions.length}개 태그)`;
+  }
+  
+  const { selectTimeout } = getTimeoutSettings(inventory);
+  contentMessage += `\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
+
+  if (interaction.replied || interaction.deferred) {
+    await interaction.editReply({
+      content: contentMessage,
+      components: rows
+    });
+  } else {
+    await interaction.update({
+      content: contentMessage,
+      components: rows
+    });
+  }
+}
+
+/**
+ * 태그 묶음 이동 페이지 버튼 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleReorderTagPageButton(interaction) {
+  try {
+    const isNext = interaction.customId.startsWith('page_next_');
+    const prefix = isNext ? 'page_next_reorder_tag_' : 'page_prev_reorder_tag_';
+    const parts = interaction.customId.replace(prefix, '').split('_');
+    const type = parts[0];
+    const currentPage = parseInt(parts[parts.length - 1]);
+    const category = parts.slice(1, -1).join('_');
+    
+    const newPage = isNext ? currentPage + 1 : currentPage - 1;
+    await renderReorderTagPage(interaction, type, category, newPage);
+    
+  } catch (error) {
+    console.error('❌ 태그 묶음 페이지 이동 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
   }
 }

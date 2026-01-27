@@ -9,6 +9,8 @@ import {
   handleReorderSecondSelect,
   handleReorderMoveSelect,
   handleSortOptionSelect,
+  handleReorderTagFirstSelect,
+  handleReorderTagSecondSelect,
   handleWorkItemSelect,
   handleTagItemsSelect,
   handleConfirmTagRemoveSelect,
@@ -82,6 +84,16 @@ export async function handleSelectInteraction(interaction) {
   // 자동 정렬 옵션 선택
   else if (interaction.customId.startsWith('select_sort_option_')) {
     return await handleSortOptionSelect(interaction);
+  }
+
+  // 순서 변경 태그 첫 번째 선택
+  else if (interaction.customId.startsWith('select_reorder_tag_first_')) {
+    return await handleReorderTagFirstSelect(interaction);
+  }
+  
+  // 순서 변경 태그 두 번째 선택
+  else if (interaction.customId.startsWith('select_reorder_tag_second_')) {
+    return await handleReorderTagSecondSelect(interaction);
   }
   
   // 물품 유형 선택 (must be before select_item_ to avoid conflict)

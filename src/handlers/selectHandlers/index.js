@@ -13,7 +13,9 @@ export {
   handleReorderFirstSelect,
   handleReorderSecondSelect,
   handleReorderMoveSelect,
-  handleSortOptionSelect
+  handleSortOptionSelect,
+  handleReorderTagFirstSelect,
+  handleReorderTagSecondSelect
 } from './manageSelect.js';
 
 // 작업 (수집/제작)
