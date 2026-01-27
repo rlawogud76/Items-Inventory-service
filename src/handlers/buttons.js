@@ -73,6 +73,7 @@ import {
   handleTagDeleteCancelButton,
   handleTagMergeConfirmButton,
   handleTagMergeCancelButton,
+  handleTagSyncButton,
   handleRecipeButton,
   handleRecipeViewButton,
   handleRecipeAddButton,
@@ -276,6 +277,10 @@ export async function handleButtonInteraction(interaction) {
 
     else if (interaction.customId.startsWith('tag_merge_cancel_')) {
       return await handleTagMergeCancelButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_sync_')) {
+      return await handleTagSyncButton(interaction);
     }
     
     // ============================================

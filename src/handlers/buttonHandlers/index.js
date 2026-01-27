@@ -72,7 +72,8 @@ export {
   handleTagDeleteConfirmButton,
   handleTagDeleteCancelButton,
   handleTagMergeConfirmButton,
-  handleTagMergeCancelButton
+  handleTagMergeCancelButton,
+  handleTagSyncButton
 } from './tag.js';
 
 // 레시피

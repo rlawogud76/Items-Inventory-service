@@ -106,7 +106,6 @@ export function addItemsToTag(tags, type, category, tagName, items, moveFromOthe
         
         if (!linkedUniqueItems.has(linkedName)) {
           linkedUniqueItems.add(linkedName);
-          console.log(`🔗 Linked Tag Add: ${linkedName} -> ${tagName} (${linkedType}/${linkedCategory})`);
         }
         linkedTagData.items = Array.from(linkedUniqueItems);
         linkedTagData.updatedAt = new Date().toISOString();
@@ -142,7 +141,6 @@ export function removeItemsFromTag(tags, type, category, tagName, items, invento
           linkedTagData.items = linkedTagData.items.filter(i => i !== linkedName);
           if (linkedTagData.items.length !== linkedBefore) {
             linkedTagData.updatedAt = new Date().toISOString();
-            console.log(`🔗 Linked Tag Remove: ${linkedName} -> ${tagName} (${linkedType}/${linkedCategory})`);
           }
         }
       }
@@ -209,4 +207,47 @@ export function searchTags(tags, type, category, query) {
     }
   }
   return results;
+}
+
+export function syncLinkedTags(inventory) {
+  const tags = inventory.tags || { inventory: {}, crafting: {} };
+  let syncedCount = 0;
+  const TAG_TYPES = ['inventory', 'crafting'];
+
+  for (const type of TAG_TYPES) {
+    const typeTags = tags[type] || {};
+    for (const [category, tagMap] of Object.entries(typeTags)) {
+      for (const [tagName, tagData] of Object.entries(tagMap)) {
+        if (!tagData.items) continue;
+
+        for (const itemName of tagData.items) {
+          const itemDef = type === 'inventory' 
+            ? inventory.categories?.[category]?.[itemName]
+            : inventory.crafting?.categories?.[category]?.[itemName];
+          
+          if (itemDef?.linkedItem) {
+            const [linkedType, linkedCategory, linkedName] = itemDef.linkedItem.split('/');
+            
+            // 연동된 쪽 태그 확인 및 생성
+            const linkedTagData = ensureTag(tags, linkedType, linkedCategory, tagName, tagData.color);
+            const linkedUniqueItems = new Set(linkedTagData.items || []);
+            
+            if (!linkedUniqueItems.has(linkedName)) {
+              linkedUniqueItems.add(linkedName);
+              linkedTagData.items = Array.from(linkedUniqueItems);
+              linkedTagData.updatedAt = new Date().toISOString();
+              syncedCount++;
+              // console.log(`🔄 Sync tag: ${tagName} -> ${linkedName} (${linkedType})`);
+            }
+            
+            // 색상 동기화 (기본값이면 원본 색상으로)
+            if (linkedTagData.color === 'default' && tagData.color !== 'default') {
+               linkedTagData.color = tagData.color;
+            }
+          }
+        }
+      }
+    }
+  }
+  return syncedCount;
 }

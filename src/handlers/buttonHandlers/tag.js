@@ -2,7 +2,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { loadInventory, updateSettings } from '../../database.js';
 import { getItemIcon, getItemTag, getTimeoutSettings, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
-import { normalizeTagsData, listTags, addItemsToTag, removeItemsFromTag, deleteTag, setTagColor, mergeTags, cleanupEmptyTags } from '../../services/tagService.js';
+import { normalizeTagsData, listTags, addItemsToTag, removeItemsFromTag, deleteTag, setTagColor, mergeTags, cleanupEmptyTags, syncLinkedTags } from '../../services/tagService.js';
 
 /**
  * 태그 관리 메인 버튼 핸들러
@@ -60,9 +60,14 @@ export async function handleManageTagButton(interaction) {
       .setLabel('🧹 빈 태그 정리')
       .setStyle(ButtonStyle.Secondary);
     
+    const syncTagButton = new ButtonBuilder()
+      .setCustomId(`tag_sync_${type}_${category}`)
+      .setLabel('🔄 연동 동기화')
+      .setStyle(ButtonStyle.Success);
+    
     const row1 = new ActionRowBuilder().addComponents(createTagButton, editTagButton, deleteTagButton);
     const row2 = new ActionRowBuilder().addComponents(colorTagButton, viewTagsButton, searchTagButton);
-    const row3 = new ActionRowBuilder().addComponents(mergeTagButton, cleanupTagButton);
+    const row3 = new ActionRowBuilder().addComponents(mergeTagButton, cleanupTagButton, syncTagButton);
     
     const inventory = await loadInventory();
     const { selectTimeout } = getTimeoutSettings(inventory);
@@ -934,6 +939,28 @@ export async function handleTagMergeCancelButton(interaction) {
   } catch (error) {
     console.error('❌ 태그 병합 취소 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 태그 연동 동기화 버튼 핸들러
+ */
+export async function handleTagSyncButton(interaction) {
+  try {
+    await interaction.deferReply({ ephemeral: true });
+    
+    const inventory = await loadInventory();
+    const syncedCount = syncLinkedTags(inventory);
+    
+    if (syncedCount > 0) {
+      await updateSettings({ tags: inventory.tags });
+      await interaction.editReply({ content: `✅ 태그 동기화 완료: ${syncedCount}개 항목이 연동되었습니다.` });
+    } else {
+      await interaction.editReply({ content: '✅ 이미 모든 태그가 연동되어 있습니다 (동기화할 내용 없음).' });
+    }
+  } catch (error) {
+    console.error('❌ 태그 동기화 에러:', error);
+    await interaction.editReply({ content: '오류가 발생했습니다: ' + error.message });
   }
 }
 
