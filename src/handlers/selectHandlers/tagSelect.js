@@ -35,11 +35,6 @@ export async function handleTagItemsSelect(interaction) {
       inventory.tags = normalized.tags;
       await updateSettings({ tags: normalized.tags });
     }
-    const normalized = normalizeTagsData(inventory.tags || {});
-    if (normalized.changed) {
-      inventory.tags = normalized.tags;
-      await updateSettings({ tags: normalized.tags });
-    }
     
     // 임시 선택 저장 (페이지 이동을 위해 누적)
     global.tagSessions = global.tagSessions || {};
