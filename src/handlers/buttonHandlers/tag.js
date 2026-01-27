@@ -412,10 +412,15 @@ export async function handleTagItemsPageButton(interaction) {
     const itemOptions = items.map(item => {
       const currentTag = getItemTag(item, category, type, inventory);
       const icon = getItemIcon(item, inventory);
+      
+      // 커스텀 이모지 처리 (ID만 추출)
+      const emojiMatch = icon.match(/<a?:.+?:(\d+)>/);
+      const emoji = emojiMatch ? emojiMatch[1] : icon;
+      
       return {
         label: item,
         value: item,
-        emoji: icon,
+        emoji: emoji,
         description: mode === 'remove' ? '태그에 포함됨' : (currentTag ? `현재: ${currentTag}` : '태그 없음')
       };
     });
