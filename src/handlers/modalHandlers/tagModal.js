@@ -88,7 +88,19 @@ export async function handleTagNameInputModal(interaction) {
     
     const row1 = new ActionRowBuilder().addComponents(selectMenu);
     const row2 = new ActionRowBuilder().addComponents(colorSelectMenu);
-    const rows = [row2, row1];
+    
+    const confirmButton = new ButtonBuilder()
+      .setCustomId(`tag_items_confirm_${type}_${category}_${encodeCustomIdPart(tagName)}`)
+      .setLabel('✅ 선택 완료')
+      .setStyle(ButtonStyle.Success);
+    
+    const clearButton = new ButtonBuilder()
+      .setCustomId(`tag_items_clear_${type}_${category}_${encodeCustomIdPart(tagName)}`)
+      .setLabel('🧹 선택 초기화')
+      .setStyle(ButtonStyle.Secondary);
+    
+    const row3 = new ActionRowBuilder().addComponents(confirmButton, clearButton);
+    const rows = [row2, row1, row3];
     
     // 페이지네이션 버튼 추가 (2페이지 이상일 때)
     if (totalPages > 1) {

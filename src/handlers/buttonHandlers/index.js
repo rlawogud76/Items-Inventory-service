@@ -54,7 +54,9 @@ export {
   handleTagColorButton,
   handleTagRemovePageButton,
   handleTagColorPageButton,
-  handleTagItemsPageButton
+  handleTagItemsPageButton,
+  handleTagItemsConfirmButton,
+  handleTagItemsClearButton
 } from './tag.js';
 
 // 레시피

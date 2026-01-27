@@ -1,6 +1,6 @@
 // 태그 관리 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
-import { loadInventory } from '../../database.js';
+import { loadInventory, updateSettings } from '../../database.js';
 import { getItemIcon, getItemTag, getTimeoutSettings, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
 
 /**
@@ -612,9 +612,20 @@ export async function handleTagItemsPageButton(interaction) {
       .setPlaceholder('태그 색상을 선택하세요')
       .addOptions(colorOptions);
     
+    const confirmButton = new ButtonBuilder()
+      .setCustomId(`tag_items_confirm_${type}_${category}_${encodeCustomIdPart(tagName)}`)
+      .setLabel('✅ 선택 완료')
+      .setStyle(ButtonStyle.Success);
+    
+    const clearButton = new ButtonBuilder()
+      .setCustomId(`tag_items_clear_${type}_${category}_${encodeCustomIdPart(tagName)}`)
+      .setLabel('🧹 선택 초기화')
+      .setStyle(ButtonStyle.Secondary);
+    
     const rows = [
       new ActionRowBuilder().addComponents(colorSelectMenu),
-      new ActionRowBuilder().addComponents(selectMenu)
+      new ActionRowBuilder().addComponents(selectMenu),
+      new ActionRowBuilder().addComponents(confirmButton, clearButton)
     ];
     
     const prevButton = new ButtonBuilder()
@@ -650,5 +661,158 @@ export async function handleTagItemsPageButton(interaction) {
   } catch (error) {
     console.error('❌ 태그 아이템 페이지 이동 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 태그 항목 선택 확정 버튼 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleTagItemsConfirmButton(interaction) {
+  try {
+    await interaction.deferUpdate();
+    
+    const parts = interaction.customId.replace('tag_items_confirm_', '').split('_');
+    const type = parts[0];
+    const tagName = decodeCustomIdPart(parts[parts.length - 1]);
+    const category = parts.slice(1, -1).join('_');
+    
+    const selectionKey = `${interaction.user.id}_${type}_${category}_${tagName}`;
+    const selectedItems = global.tempTagSelections?.[selectionKey] || [];
+    
+    if (!selectedItems || selectedItems.length === 0) {
+      return await interaction.editReply({
+        content: '❌ 선택된 항목이 없습니다. 항목을 선택한 뒤 다시 시도해주세요.',
+        components: []
+      });
+    }
+    
+    const inventory = await loadInventory();
+    
+    // 태그 구조 초기화
+    if (!inventory.tags) inventory.tags = { inventory: {}, crafting: {} };
+    if (!inventory.tags[type]) inventory.tags[type] = {};
+    if (!inventory.tags[type][category]) inventory.tags[type][category] = {};
+    
+    // 선택된 항목들을 태그에 추가
+    const selectedColor = global.tempTagColors?.[`${type}_${category}_${tagName}`] || 'default';
+    
+    if (!inventory.tags[type][category][tagName]) {
+      inventory.tags[type][category][tagName] = {
+        items: [],
+        color: selectedColor
+      };
+    } else if (Array.isArray(inventory.tags[type][category][tagName])) {
+      // 기존 배열 형식을 객체 형식으로 변환
+      inventory.tags[type][category][tagName] = {
+        items: inventory.tags[type][category][tagName],
+        color: selectedColor
+      };
+    }
+    
+    let addedCount = 0;
+    let movedCount = 0;
+    
+    for (const itemName of selectedItems) {
+      // 기존 태그에서 제거
+      const oldTag = getItemTag(itemName, category, type, inventory);
+      if (oldTag && oldTag !== tagName && inventory.tags[type][category][oldTag]) {
+        const oldTagData = inventory.tags[type][category][oldTag];
+        if (Array.isArray(oldTagData)) {
+          inventory.tags[type][category][oldTag] = oldTagData.filter(item => item !== itemName);
+          if (inventory.tags[type][category][oldTag].length === 0) {
+            delete inventory.tags[type][category][oldTag];
+          }
+        } else if (oldTagData.items) {
+          oldTagData.items = oldTagData.items.filter(item => item !== itemName);
+          if (oldTagData.items.length === 0) {
+            delete inventory.tags[type][category][oldTag];
+          }
+        }
+        movedCount++;
+      }
+      
+      // 새 태그에 추가 (중복 방지)
+      if (!inventory.tags[type][category][tagName].items.includes(itemName)) {
+        inventory.tags[type][category][tagName].items.push(itemName);
+        addedCount++;
+      }
+    }
+    
+    // 임시 정보 삭제
+    if (global.tempTagColors) {
+      delete global.tempTagColors[`${type}_${category}_${tagName}`];
+    }
+    if (global.tempTagSelections) {
+      delete global.tempTagSelections[selectionKey];
+    }
+    
+    // DB 저장 (새 스키마)
+    await updateSettings({ tags: inventory.tags });
+    
+    const successEmbed = new EmbedBuilder()
+      .setColor(0x57F287)
+      .setTitle('✅ 태그 설정 완료')
+      .setDescription([
+        `**카테고리:** ${category}`,
+        `🏷️ **태그:** ${tagName}`,
+        ``,
+        `📦 **추가된 항목:** ${addedCount}개`,
+        movedCount > 0 ? `🔄 **이동된 항목:** ${movedCount}개 (기존 태그에서 제거됨)` : '',
+        ``,
+        `**항목 목록:**`,
+        selectedItems.map(item => `• ${getItemIcon(item, inventory)} ${item}`).join('\n')
+      ].filter(Boolean).join('\n'));
+    
+    await interaction.editReply({ 
+      content: '✅ 태그 설정이 완료되었습니다!\n\n_이 메시지는 15초 후 자동 삭제됩니다_',
+      embeds: [successEmbed], 
+      components: [] 
+    });
+    
+    // 설정된 시간 후 자동 삭제
+    const { infoTimeout } = getTimeoutSettings(inventory);
+    setTimeout(async () => {
+      try {
+        await interaction.deleteReply();
+      } catch (error) {}
+    }, infoTimeout);
+    
+  } catch (error) {
+    console.error('❌ 태그 선택 확정 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 태그 항목 선택 초기화 버튼 핸들러
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleTagItemsClearButton(interaction) {
+  try {
+    await interaction.deferUpdate();
+    
+    const parts = interaction.customId.replace('tag_items_clear_', '').split('_');
+    const type = parts[0];
+    const tagName = decodeCustomIdPart(parts[parts.length - 1]);
+    const category = parts.slice(1, -1).join('_');
+    
+    const selectionKey = `${interaction.user.id}_${type}_${category}_${tagName}`;
+    if (global.tempTagSelections) {
+      delete global.tempTagSelections[selectionKey];
+    }
+    
+    const inventory = await loadInventory();
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    
+    const contentMessage = `🏷️ **태그: ${tagName}**\n\n1️⃣ 태그 색상을 선택하세요\n2️⃣ "${tagName}" 태그에 추가할 항목을 선택하세요\n💡 여러 개를 한 번에 선택할 수 있습니다.\n\n✅ 현재 선택: 0개\n\n✅ 선택 완료 버튼을 눌러 태그를 적용하세요.\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
+    
+    await interaction.editReply({
+      content: contentMessage
+    });
+    
+  } catch (error) {
+    console.error('❌ 태그 선택 초기화 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }

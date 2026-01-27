@@ -28,91 +28,21 @@ export async function handleTagItemsSelect(interaction) {
     
     const inventory = await loadInventory();
     
-    // 태그 구조 초기화
-    if (!inventory.tags) inventory.tags = { inventory: {}, crafting: {} };
-    if (!inventory.tags[type]) inventory.tags[type] = {};
-    if (!inventory.tags[type][category]) inventory.tags[type][category] = {};
+    // 임시 선택 저장 (페이지 이동을 위해 누적)
+    if (!global.tempTagSelections) global.tempTagSelections = {};
+    const selectionKey = `${interaction.user.id}_${type}_${category}_${tagName}`;
+    const currentSelection = new Set(global.tempTagSelections[selectionKey] || []);
+    selectedItems.forEach(item => currentSelection.add(item));
+    global.tempTagSelections[selectionKey] = Array.from(currentSelection);
     
-    // 선택된 항목들을 태그에 추가
-    const selectedColor = global.tempTagColors?.[`${type}_${category}_${tagName}`] || 'default';
+    const { selectTimeout } = getTimeoutSettings(inventory);
+    const selectionCount = currentSelection.size;
     
-    if (!inventory.tags[type][category][tagName]) {
-      inventory.tags[type][category][tagName] = {
-        items: [],
-        color: selectedColor
-      };
-    } else if (Array.isArray(inventory.tags[type][category][tagName])) {
-      // 기존 배열 형식을 객체 형식으로 변환
-      inventory.tags[type][category][tagName] = {
-        items: inventory.tags[type][category][tagName],
-        color: selectedColor
-      };
-    }
+    const contentMessage = `🏷️ **태그: ${tagName}**\n\n1️⃣ 태그 색상을 선택하세요\n2️⃣ "${tagName}" 태그에 추가할 항목을 선택하세요\n💡 여러 개를 한 번에 선택할 수 있습니다.\n\n✅ 현재 선택: ${selectionCount}개\n\n✅ 선택 완료 버튼을 눌러 태그를 적용하세요.\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
     
-    let addedCount = 0;
-    let movedCount = 0;
-    
-    for (const itemName of selectedItems) {
-      // 기존 태그에서 제거
-      const oldTag = getItemTag(itemName, category, type, inventory);
-      if (oldTag && oldTag !== tagName && inventory.tags[type][category][oldTag]) {
-        const oldTagData = inventory.tags[type][category][oldTag];
-        if (Array.isArray(oldTagData)) {
-          inventory.tags[type][category][oldTag] = oldTagData.filter(item => item !== itemName);
-          if (inventory.tags[type][category][oldTag].length === 0) {
-            delete inventory.tags[type][category][oldTag];
-          }
-        } else if (oldTagData.items) {
-          oldTagData.items = oldTagData.items.filter(item => item !== itemName);
-          if (oldTagData.items.length === 0) {
-            delete inventory.tags[type][category][oldTag];
-          }
-        }
-        movedCount++;
-      }
-      
-      // 새 태그에 추가 (중복 방지)
-      if (!inventory.tags[type][category][tagName].items.includes(itemName)) {
-        inventory.tags[type][category][tagName].items.push(itemName);
-        addedCount++;
-      }
-    }
-    
-    // 임시 색상 정보 삭제
-    if (global.tempTagColors) {
-      delete global.tempTagColors[`${type}_${category}_${tagName}`];
-    }
-    
-    // DB 저장 (새 스키마)
-    await updateSettings({ tags: inventory.tags });
-    
-    const successEmbed = new EmbedBuilder()
-      .setColor(0x57F287)
-      .setTitle('✅ 태그 설정 완료')
-      .setDescription([
-        `**카테고리:** ${category}`,
-        `🏷️ **태그:** ${tagName}`,
-        ``,
-        `📦 **추가된 항목:** ${addedCount}개`,
-        movedCount > 0 ? `🔄 **이동된 항목:** ${movedCount}개 (기존 태그에서 제거됨)` : '',
-        ``,
-        `**항목 목록:**`,
-        selectedItems.map(item => `• ${getItemIcon(item, inventory)} ${item}`).join('\n')
-      ].filter(Boolean).join('\n'));
-    
-    await interaction.editReply({ 
-      content: '✅ 태그 설정이 완료되었습니다!\n\n_이 메시지는 15초 후 자동 삭제됩니다_',
-      embeds: [successEmbed], 
-      components: [] 
+    await interaction.editReply({
+      content: contentMessage
     });
-    
-    // 설정된 시간 후 자동 삭제
-    const { infoTimeout } = getTimeoutSettings(inventory);
-    setTimeout(async () => {
-      try {
-        await interaction.deleteReply();
-      } catch (error) {}
-    }, infoTimeout);
     
   } catch (error) {
     console.error('❌ 태그 항목 선택 에러:', error);

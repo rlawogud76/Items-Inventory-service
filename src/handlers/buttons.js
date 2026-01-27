@@ -55,6 +55,8 @@ import {
   handleTagRemovePageButton,
   handleTagColorPageButton,
   handleTagItemsPageButton,
+  handleTagItemsConfirmButton,
+  handleTagItemsClearButton,
   handleRecipeButton,
   handleRecipeViewButton,
   handleRecipeAddButton,
@@ -214,6 +216,14 @@ export async function handleButtonInteraction(interaction) {
     
     else if (interaction.customId.startsWith('page_prev_tag_items_') || interaction.customId.startsWith('page_next_tag_items_')) {
       return await handleTagItemsPageButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_items_confirm_')) {
+      return await handleTagItemsConfirmButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_items_clear_')) {
+      return await handleTagItemsClearButton(interaction);
     }
     
     // ============================================
