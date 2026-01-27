@@ -1,7 +1,14 @@
 node_modules/
 .env
+web/server/.env
 
 # MCP files (local only, not for deployment)
 mcp-discord-monitor.js
 .kiro/
 MCP_SETUP.md
+
+# Local scripts
+웹서버실행.bat
+웹서버실행(숨김).vbs
+tunnel_url.txt
+migrate-to-atlas.js
