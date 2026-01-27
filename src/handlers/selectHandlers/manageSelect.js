@@ -470,7 +470,28 @@ export async function handleSortOptionSelect(interaction) {
     const inventory = await loadInventory();
     const { infoTimeout } = getTimeoutSettings(inventory);
     const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
+    
+    if (!targetData?.[category]) {
+      return await interaction.update({
+        content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`,
+        components: []
+      });
+    }
+    
     const items = Object.keys(targetData[category]);
+    if (items.length === 0) {
+      return await interaction.update({
+        content: `❌ "${category}" 카테고리에 항목이 없습니다.`,
+        components: []
+      });
+    }
+    
+    if (!sortOption || !sortOption.includes('_')) {
+      return await interaction.update({
+        content: '❌ 정렬 옵션이 올바르지 않습니다.',
+        components: []
+      });
+    }
     
     // 정렬 실행
     const [sortBy, sortOrder] = sortOption.split('_');

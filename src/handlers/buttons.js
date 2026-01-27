@@ -52,6 +52,9 @@ import {
   handleTagRemoveButton,
   handleTagColorButton,
   handleTagViewButton,
+  handleTagRemovePageButton,
+  handleTagColorPageButton,
+  handleTagItemsPageButton,
   handleRecipeButton,
   handleRecipeViewButton,
   handleRecipeAddButton,
@@ -198,6 +201,19 @@ export async function handleButtonInteraction(interaction) {
     
     else if (interaction.customId.startsWith('move_item_')) {
       return await handleMoveItemButton(interaction);
+    }
+
+    // 태그 페이지네이션
+    else if (interaction.customId.startsWith('page_prev_tag_remove_') || interaction.customId.startsWith('page_next_tag_remove_')) {
+      return await handleTagRemovePageButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('page_prev_tag_color_') || interaction.customId.startsWith('page_next_tag_color_')) {
+      return await handleTagColorPageButton(interaction);
+    }
+    
+    else if (interaction.customId.startsWith('page_prev_tag_items_') || interaction.customId.startsWith('page_next_tag_items_')) {
+      return await handleTagItemsPageButton(interaction);
     }
     
     // ============================================

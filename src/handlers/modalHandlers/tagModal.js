@@ -1,5 +1,5 @@
 // 태그 modal 핸들러
-import { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, updateSettings } from '../../database.js';
 import { getItemIcon, getItemTag, getTimeoutSettings, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
 
@@ -56,8 +56,13 @@ export async function handleTagNameInputModal(interaction) {
       };
     });
     
-    // Discord 제한: 최대 25개 옵션
-    const limitedOptions = itemOptions.slice(0, 25);
+    // Discord 제한: 최대 25개 옵션 - 페이지네이션
+    const pageSize = 25;
+    const totalPages = Math.ceil(itemOptions.length / pageSize);
+    const page = 0; // 첫 페이지
+    const startIdx = page * pageSize;
+    const endIdx = startIdx + pageSize;
+    const limitedOptions = itemOptions.slice(startIdx, endIdx);
     
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId(`select_tag_items_${type}_${category}_${encodeCustomIdPart(tagName)}`)
@@ -83,12 +88,40 @@ export async function handleTagNameInputModal(interaction) {
     
     const row1 = new ActionRowBuilder().addComponents(selectMenu);
     const row2 = new ActionRowBuilder().addComponents(colorSelectMenu);
+    const rows = [row2, row1];
     
-    let contentMessage = `🏷️ **태그: ${tagName}**\n\n1️⃣ 태그 색상을 선택하세요\n2️⃣ "${tagName}" 태그에 추가할 항목을 선택하세요\n💡 여러 개를 한 번에 선택할 수 있습니다.\n\n_이 메시지는 30초 후 자동 삭제됩니다_`;
+    // 페이지네이션 버튼 추가 (2페이지 이상일 때)
+    if (totalPages > 1) {
+      const prevButton = new ButtonBuilder()
+        .setCustomId(`page_prev_tag_items_${type}_${category}_${encodeCustomIdPart(tagName)}_${page}`)
+        .setLabel('◀ 이전')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(page === 0);
+      
+      const nextButton = new ButtonBuilder()
+        .setCustomId(`page_next_tag_items_${type}_${category}_${encodeCustomIdPart(tagName)}_${page}`)
+        .setLabel('다음 ▶')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(page === totalPages - 1);
+      
+      const pageInfo = new ButtonBuilder()
+        .setCustomId(`page_info_${page}`)
+        .setLabel(`${page + 1} / ${totalPages}`)
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(true);
+      
+      rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
+    }
+    
+    let contentMessage = `🏷️ **태그: ${tagName}**\n\n1️⃣ 태그 색상을 선택하세요\n2️⃣ "${tagName}" 태그에 추가할 항목을 선택하세요\n💡 여러 개를 한 번에 선택할 수 있습니다.`;
+    if (totalPages > 1) {
+      contentMessage += `\n\n📄 페이지 ${page + 1}/${totalPages} (전체 ${itemOptions.length}개 항목)`;
+    }
+    contentMessage += `\n\n_이 메시지는 30초 후 자동 삭제됩니다_`;
     
     await interaction.reply({
       content: contentMessage,
-      components: [row2, row1], // 색상 선택을 먼저
+      components: rows, // 색상 선택을 먼저
       ephemeral: true
     });
     
