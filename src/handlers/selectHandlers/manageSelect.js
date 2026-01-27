@@ -471,6 +471,70 @@ export async function handleSortOptionSelect(interaction) {
     const { infoTimeout } = getTimeoutSettings(inventory);
     const targetData = type === 'inventory' ? inventory.categories : inventory.crafting?.categories;
     
+    if (!sortOption || !sortOption.includes('_')) {
+      return await interaction.update({
+        content: '❌ 정렬 옵션이 올바르지 않습니다.',
+        components: []
+      });
+    }
+    
+    // 정렬 실행
+    const [sortBy, sortOrder] = sortOption.split('_');
+    
+    if (sortBy === 'category') {
+      const categories = Object.keys(targetData || {});
+      if (categories.length === 0) {
+        return await interaction.update({
+          content: '❌ 정렬할 카테고리가 없습니다.',
+          components: []
+        });
+      }
+      
+      const sortedCategories = categories.sort((a, b) => {
+        return sortOrder === 'asc' ? a.localeCompare(b, 'ko') : b.localeCompare(a, 'ko');
+      });
+      
+      let globalOrder = 0;
+      for (const catName of sortedCategories) {
+        const itemNames = Object.keys(targetData[catName] || {});
+        const sortedItemsInCategory = itemNames.sort((a, b) => a.localeCompare(b, 'ko'));
+        const itemsToUpdate = sortedItemsInCategory.map(itemName => ({
+          name: itemName,
+          order: globalOrder++
+        }));
+        if (itemsToUpdate.length > 0) {
+          await updateItemsOrder(type, catName, itemsToUpdate);
+        }
+      }
+      
+      const sortNames = {
+        'category_asc': '카테고리별 (가나다)',
+        'category_desc': '카테고리별 (역순)'
+      };
+      await addHistory(type, '전체', null, 'reorder', `자동 정렬: ${sortNames[sortOption]}`, interaction.user.username);
+      
+      let successMessage = `✅ **${type === 'inventory' ? '재고' : '제작'} 전체 카테고리**가 **${sortNames[sortOption]}**으로 정렬되었습니다!\n\n**카테고리 순서:**\n`;
+      sortedCategories.slice(0, 15).forEach((catName, idx) => {
+        successMessage += `${idx + 1}. ${catName}\n`;
+      });
+      if (sortedCategories.length > 15) {
+        successMessage += `... 외 ${sortedCategories.length - 15}개\n`;
+      }
+      successMessage += `\n_이 메시지는 ${infoTimeout/1000}초 후 자동 삭제됩니다_`;
+      
+      await interaction.update({
+        content: successMessage,
+        components: []
+      });
+      
+      setTimeout(async () => {
+        try {
+          await interaction.deleteReply();
+        } catch (error) {}
+      }, infoTimeout);
+      return;
+    }
+    
     if (!targetData?.[category]) {
       return await interaction.update({
         content: `❌ "${category}" 카테고리를 찾을 수 없습니다.`,
@@ -485,16 +549,6 @@ export async function handleSortOptionSelect(interaction) {
         components: []
       });
     }
-    
-    if (!sortOption || !sortOption.includes('_')) {
-      return await interaction.update({
-        content: '❌ 정렬 옵션이 올바르지 않습니다.',
-        components: []
-      });
-    }
-    
-    // 정렬 실행
-    const [sortBy, sortOrder] = sortOption.split('_');
     
     let sortedItems;
     if (sortBy === 'name') {
@@ -539,6 +593,8 @@ export async function handleSortOptionSelect(interaction) {
     
     // 히스토리 기록
     const sortNames = {
+      'category_asc': '카테고리별 (가나다)',
+      'category_desc': '카테고리별 (역순)',
       'name_asc': '이름순 (가나다)',
       'name_desc': '이름순 (역순)',
       'tag_asc': '태그별 (가나다)',

@@ -1068,6 +1068,18 @@ export async function handleReorderSortButton(interaction) {
       .setPlaceholder('정렬 방식을 선택하세요')
       .addOptions([
         {
+          label: '🗂️ 카테고리별 (가나다)',
+          value: 'category_asc',
+          description: '전체 카테고리를 가나다순으로 정렬',
+          emoji: '🗂️'
+        },
+        {
+          label: '🗂️ 카테고리별 (역순)',
+          value: 'category_desc',
+          description: '전체 카테고리를 역순으로 정렬',
+          emoji: '🗂️'
+        },
+        {
           label: '🔤 이름순 (가나다)',
           value: 'name_asc',
           description: '이름을 가나다순으로 정렬',
