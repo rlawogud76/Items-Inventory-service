@@ -56,7 +56,21 @@ export {
   handleTagColorPageButton,
   handleTagItemsPageButton,
   handleTagItemsConfirmButton,
-  handleTagItemsClearButton
+  handleTagItemsClearButton,
+  handleTagCreateButton,
+  handleTagEditButton,
+  handleTagDeleteButton,
+  handleTagSearchButton,
+  handleTagMergeButton,
+  handleTagCleanupButton,
+  handleTagActionPageButton,
+  handleTagViewPageButton,
+  handleTagEditAddButton,
+  handleTagEditRemoveButton,
+  handleTagDeleteConfirmButton,
+  handleTagDeleteCancelButton,
+  handleTagMergeConfirmButton,
+  handleTagMergeCancelButton
 } from './tag.js';
 
 // 레시피

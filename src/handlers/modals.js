@@ -10,6 +10,7 @@ import {
   handleMovePositionModal,
   handleTagNameInputModal,
   handleTagNameModal,
+  handleTagSearchModal,
   handleBarSizeModal,
   handleTimeoutSettingsModal,
   handlePointsModal,
@@ -94,9 +95,19 @@ export async function handleModalInteraction(interaction) {
     return true;
   }
   
+  else if (interaction.customId.startsWith('tag_create_modal_')) {
+    await handleTagNameInputModal(interaction);
+    return true;
+  }
+  
   // 태그 이름 (개별 설정)
   else if (interaction.customId.startsWith('tag_name_modal_')) {
     await handleTagNameModal(interaction);
+    return true;
+  }
+  
+  else if (interaction.customId.startsWith('tag_search_modal_')) {
+    await handleTagSearchModal(interaction);
     return true;
   }
   

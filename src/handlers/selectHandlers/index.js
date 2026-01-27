@@ -27,6 +27,7 @@ export {
   handleTagColorSelect,
   handleTagForColorSelect,
   handleChangeTagColor,
+  handleTagActionSelect,
   handleItemTypeSelect,
   handleTypeChangeSelect,
   handleConfirmTypeChange

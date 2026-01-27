@@ -21,6 +21,7 @@ import {
   handleTagColorSelect,
   handleTagForColorSelect,
   handleChangeTagColor,
+  handleTagActionSelect,
   handleItemTypeSelect,
   handleTypeChangeSelect,
   handleConfirmTypeChange,
@@ -106,6 +107,11 @@ export async function handleSelectInteraction(interaction) {
   // 태그 색상 선택
   else if (interaction.customId.startsWith('select_tag_color_')) {
     return await handleTagColorSelect(interaction);
+  }
+
+  // 태그 액션 선택 (편집/삭제/색상/병합/보기)
+  else if (interaction.customId.startsWith('select_tag_action_')) {
+    return await handleTagActionSelect(interaction);
   }
   
   // 태그 항목들 선택 (태그에 추가)

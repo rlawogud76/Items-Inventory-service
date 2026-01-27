@@ -57,6 +57,20 @@ import {
   handleTagItemsPageButton,
   handleTagItemsConfirmButton,
   handleTagItemsClearButton,
+  handleTagCreateButton,
+  handleTagEditButton,
+  handleTagDeleteButton,
+  handleTagSearchButton,
+  handleTagMergeButton,
+  handleTagCleanupButton,
+  handleTagActionPageButton,
+  handleTagViewPageButton,
+  handleTagEditAddButton,
+  handleTagEditRemoveButton,
+  handleTagDeleteConfirmButton,
+  handleTagDeleteCancelButton,
+  handleTagMergeConfirmButton,
+  handleTagMergeCancelButton,
   handleRecipeButton,
   handleRecipeViewButton,
   handleRecipeAddButton,
@@ -225,6 +239,38 @@ export async function handleButtonInteraction(interaction) {
     else if (interaction.customId.startsWith('tag_items_clear_')) {
       return await handleTagItemsClearButton(interaction);
     }
+
+    else if (interaction.customId.startsWith('page_prev_tag_action_') || interaction.customId.startsWith('page_next_tag_action_')) {
+      return await handleTagActionPageButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('page_prev_tag_view_') || interaction.customId.startsWith('page_next_tag_view_')) {
+      return await handleTagViewPageButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_edit_add_')) {
+      return await handleTagEditAddButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_edit_remove_')) {
+      return await handleTagEditRemoveButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_delete_confirm_')) {
+      return await handleTagDeleteConfirmButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_delete_cancel_')) {
+      return await handleTagDeleteCancelButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_merge_confirm_')) {
+      return await handleTagMergeConfirmButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_merge_cancel_')) {
+      return await handleTagMergeCancelButton(interaction);
+    }
     
     // ============================================
     // 6. 레시피 핸들러 (분리됨)
@@ -254,6 +300,30 @@ export async function handleButtonInteraction(interaction) {
     
     else if (interaction.customId.startsWith('manage_tag')) {
       return await handleManageTagButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_create_')) {
+      return await handleTagCreateButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_edit_')) {
+      return await handleTagEditButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_delete_')) {
+      return await handleTagDeleteButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_search_')) {
+      return await handleTagSearchButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_merge_')) {
+      return await handleTagMergeButton(interaction);
+    }
+
+    else if (interaction.customId.startsWith('tag_cleanup_')) {
+      return await handleTagCleanupButton(interaction);
     }
     
     else if (interaction.customId.startsWith('tag_set_')) {

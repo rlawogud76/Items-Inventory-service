@@ -18,7 +18,8 @@ export {
 // 태그
 export { 
   handleTagNameInputModal, 
-  handleTagNameModal 
+  handleTagNameModal,
+  handleTagSearchModal
 } from './tagModal.js';
 
 // 설정 (바 크기 등)

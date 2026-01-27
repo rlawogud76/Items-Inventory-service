@@ -2,6 +2,7 @@
 import { EmbedBuilder, ActionRowBuilder } from 'discord.js';
 import { loadInventory, updateSettings, updateItemDetails, addItem } from '../../database.js';
 import { getItemIcon, getItemTag, getLinkedItem, getTimeoutSettings, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
+import { normalizeTagsData } from '../../services/tagService.js';
 
 /**
  * 태그 항목 선택 핸들러 (태그에 추가할 항목들)
@@ -13,9 +14,11 @@ export async function handleTagItemsSelect(interaction) {
     await interaction.deferUpdate();
     
     const parts = interaction.customId.replace('select_tag_items_', '').split('_');
+    const hasMode = parts[0] !== 'inventory' && parts[0] !== 'crafting';
+    const mode = hasMode ? parts[0] : 'create';
     const tagName = decodeCustomIdPart(parts[parts.length - 1]);
-    const type = parts[0];
-    const category = parts.slice(1, -1).join('_');
+    const type = hasMode ? parts[1] : parts[0];
+    const category = hasMode ? parts.slice(2, -1).join('_') : parts.slice(1, -1).join('_');
     
     const selectedItems = interaction.values;
     
@@ -27,18 +30,36 @@ export async function handleTagItemsSelect(interaction) {
     }
     
     const inventory = await loadInventory();
+    const normalized = normalizeTagsData(inventory.tags || {});
+    if (normalized.changed) {
+      inventory.tags = normalized.tags;
+      await updateSettings({ tags: normalized.tags });
+    }
+    const normalized = normalizeTagsData(inventory.tags || {});
+    if (normalized.changed) {
+      inventory.tags = normalized.tags;
+      await updateSettings({ tags: normalized.tags });
+    }
     
     // 임시 선택 저장 (페이지 이동을 위해 누적)
-    if (!global.tempTagSelections) global.tempTagSelections = {};
-    const selectionKey = `${interaction.user.id}_${type}_${category}_${tagName}`;
-    const currentSelection = new Set(global.tempTagSelections[selectionKey] || []);
+    global.tagSessions = global.tagSessions || {};
+    const sessionKey = `${interaction.user.id}_${type}_${category}_${tagName}_${mode}`;
+    const session = global.tagSessions[sessionKey] || { selectedItems: [], color: 'default' };
+    const currentSelection = new Set(session.selectedItems || []);
     selectedItems.forEach(item => currentSelection.add(item));
-    global.tempTagSelections[selectionKey] = Array.from(currentSelection);
+    session.selectedItems = Array.from(currentSelection);
+    session.mode = mode;
+    session.type = type;
+    session.category = category;
+    session.tagName = tagName;
+    session.updatedAt = Date.now();
+    global.tagSessions[sessionKey] = session;
     
     const { selectTimeout } = getTimeoutSettings(inventory);
     const selectionCount = currentSelection.size;
     
-    const contentMessage = `🏷️ **태그: ${tagName}**\n\n1️⃣ 태그 색상을 선택하세요\n2️⃣ "${tagName}" 태그에 추가할 항목을 선택하세요\n💡 여러 개를 한 번에 선택할 수 있습니다.\n\n✅ 현재 선택: ${selectionCount}개\n\n✅ 선택 완료 버튼을 눌러 태그를 적용하세요.\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
+    const actionText = mode === 'remove' ? '제거' : '추가';
+    const contentMessage = `🏷️ **태그: ${tagName}**\n\n"${tagName}" 태그에 ${actionText}할 항목을 선택하세요\n💡 여러 개를 한 번에 선택할 수 있습니다.\n\n✅ 현재 선택: ${selectionCount}개\n\n✅ 선택 완료 버튼을 눌러 태그를 적용하세요.\n\n_이 메시지는 ${selectTimeout/1000}초 후 자동 삭제됩니다_`;
     
     await interaction.editReply({
       content: contentMessage
@@ -175,14 +196,6 @@ export async function handleTagColorSelect(interaction) {
     
     const selectedColor = interaction.values[0];
     
-    // 색상 정보 저장 (임시로 interaction에 저장)
-    const colorInfo = {
-      type,
-      category, 
-      tagName,
-      color: selectedColor
-    };
-    
     // 색상 선택 완료 메시지 업데이트
     const COLOR_NAMES = {
       'default': '기본',
@@ -197,14 +210,18 @@ export async function handleTagColorSelect(interaction) {
     
     const colorName = COLOR_NAMES[selectedColor] || selectedColor;
     
+    // 선택된 색상을 세션에 저장
+    global.tagSessions = global.tagSessions || {};
+    const sessionKey = `${interaction.user.id}_${type}_${category}_${tagName}_create`;
+    const session = global.tagSessions[sessionKey] || { selectedItems: [], color: 'default' };
+    session.color = selectedColor;
+    session.updatedAt = Date.now();
+    global.tagSessions[sessionKey] = session;
+    
     await interaction.editReply({
       content: `🏷️ **태그: ${tagName}** (색상: ${colorName})\n\n✅ 색상이 선택되었습니다!\n이제 "${tagName}" 태그에 추가할 항목을 선택하세요.\n💡 여러 개를 한 번에 선택할 수 있습니다.`,
-      components: interaction.message.components.slice(1) // 색상 선택 메뉴 제거, 아이템 선택 메뉴만 유지
+      components: interaction.message.components
     });
-    
-    // 선택된 색상을 전역 변수나 캐시에 임시 저장
-    global.tempTagColors = global.tempTagColors || {};
-    global.tempTagColors[`${type}_${category}_${tagName}`] = selectedColor;
     
   } catch (error) {
     console.error('❌ 태그 색상 선택 에러:', error);
@@ -322,6 +339,164 @@ export async function handleChangeTagColor(interaction) {
     
   } catch (error) {
     console.error('❌ 태그 색상 변경 에러:', error);
+    await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
+  }
+}
+
+/**
+ * 태그 액션 선택 핸들러 (편집/삭제/색상/병합/보기)
+ * @param {Interaction} interaction - Discord 인터랙션
+ */
+export async function handleTagActionSelect(interaction) {
+  try {
+    await interaction.deferUpdate();
+    
+    const parts = interaction.customId.replace('select_tag_action_', '').split('_');
+    const action = parts[0];
+    const type = parts[1];
+    const category = parts.slice(2).join('_');
+    const tagName = interaction.values[0];
+    
+    const inventory = await loadInventory();
+    const normalized = normalizeTagsData(inventory.tags || {});
+    if (normalized.changed) {
+      inventory.tags = normalized.tags;
+      await updateSettings({ tags: normalized.tags });
+    }
+    
+    if (action === 'edit') {
+      const { ButtonBuilder, ButtonStyle } = await import('discord.js');
+      const addButton = new ButtonBuilder()
+        .setCustomId(`tag_edit_add_${type}_${category}_${encodeCustomIdPart(tagName)}`)
+        .setLabel('➕ 항목 추가')
+        .setStyle(ButtonStyle.Success);
+      const removeButton = new ButtonBuilder()
+        .setCustomId(`tag_edit_remove_${type}_${category}_${encodeCustomIdPart(tagName)}`)
+        .setLabel('➖ 항목 제거')
+        .setStyle(ButtonStyle.Secondary);
+      const row = new ActionRowBuilder().addComponents(addButton, removeButton);
+      await interaction.editReply({
+        content: `🏷️ **${tagName}** 태그 편집\n\n작업을 선택하세요:`,
+        components: [row]
+      });
+      return;
+    }
+    
+    if (action === 'delete') {
+      const { ButtonBuilder, ButtonStyle } = await import('discord.js');
+      const confirmButton = new ButtonBuilder()
+        .setCustomId(`tag_delete_confirm_${type}_${category}_${encodeCustomIdPart(tagName)}`)
+        .setLabel('🗑️ 삭제')
+        .setStyle(ButtonStyle.Danger);
+      const cancelButton = new ButtonBuilder()
+        .setCustomId(`tag_delete_cancel_${type}_${category}`)
+        .setLabel('취소')
+        .setStyle(ButtonStyle.Secondary);
+      const row = new ActionRowBuilder().addComponents(confirmButton, cancelButton);
+      await interaction.editReply({
+        content: `⚠️ **"${tagName}" 태그를 삭제할까요?**\n태그만 제거되며, 항목은 유지됩니다.`,
+        components: [row]
+      });
+      return;
+    }
+    
+    if (action === 'color') {
+      const colorOptions = [
+        { label: '기본', value: 'default', emoji: '🏷️', description: '기본 색상' },
+        { label: '빨강', value: 'red', emoji: '🔴', description: '빨간색' },
+        { label: '초록', value: 'green', emoji: '🟢', description: '초록색' },
+        { label: '파랑', value: 'blue', emoji: '🔵', description: '파란색' },
+        { label: '노랑', value: 'yellow', emoji: '🟡', description: '노란색' },
+        { label: '보라', value: 'purple', emoji: '🟣', description: '보라색' },
+        { label: '청록', value: 'cyan', emoji: '🔵', description: '청록색' },
+        { label: '흰색', value: 'white', emoji: '⚪', description: '흰색' }
+      ];
+      const { StringSelectMenuBuilder } = await import('discord.js');
+      const colorSelectMenu = new StringSelectMenuBuilder()
+        .setCustomId(`change_tag_color_${type}_${category}_${encodeCustomIdPart(tagName)}`)
+        .setPlaceholder('새로운 색상을 선택하세요')
+        .addOptions(colorOptions);
+      const row = new ActionRowBuilder().addComponents(colorSelectMenu);
+      await interaction.editReply({
+        content: `🎨 **"${tagName}" 태그 색상 변경**\n\n새로운 색상을 선택하세요:`,
+        components: [row]
+      });
+      return;
+    }
+    
+    if (action === 'merge_source') {
+      global.tagMergeSessions = global.tagMergeSessions || {};
+      global.tagMergeSessions[`${interaction.user.id}_${type}_${category}`] = { sourceTag: tagName };
+      
+      const tags = Object.keys(inventory.tags?.[type]?.[category] || {}).filter(t => t !== tagName);
+      const tagOptions = tags.map(t => ({ label: t, value: t, description: '대상 태그', emoji: '🏷️' }));
+      if (tagOptions.length === 0) {
+        return await interaction.editReply({
+          content: '❌ 병합할 대상 태그가 없습니다.',
+          components: []
+        });
+      }
+      const { StringSelectMenuBuilder } = await import('discord.js');
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId(`select_tag_action_merge_target_${type}_${category}`)
+        .setPlaceholder('대상 태그를 선택하세요')
+        .setMinValues(1)
+        .setMaxValues(1)
+        .addOptions(tagOptions.slice(0, 25));
+      const row = new ActionRowBuilder().addComponents(selectMenu);
+      await interaction.editReply({
+        content: `🔀 **태그 병합**\n\n원본: ${tagName}\n대상 태그를 선택하세요:`,
+        components: [row]
+      });
+      return;
+    }
+    
+    if (action === 'merge_target') {
+      global.tagMergeSessions = global.tagMergeSessions || {};
+      const session = global.tagMergeSessions[`${interaction.user.id}_${type}_${category}`];
+      if (!session?.sourceTag) {
+        return await interaction.editReply({
+          content: '❌ 병합할 원본 태그 정보가 없습니다.',
+          components: []
+        });
+      }
+      session.targetTag = tagName;
+      const { ButtonBuilder, ButtonStyle } = await import('discord.js');
+      const confirmButton = new ButtonBuilder()
+        .setCustomId(`tag_merge_confirm_${type}_${category}`)
+        .setLabel('🔀 병합')
+        .setStyle(ButtonStyle.Danger);
+      const cancelButton = new ButtonBuilder()
+        .setCustomId(`tag_merge_cancel_${type}_${category}`)
+        .setLabel('취소')
+        .setStyle(ButtonStyle.Secondary);
+      const row = new ActionRowBuilder().addComponents(confirmButton, cancelButton);
+      await interaction.editReply({
+        content: `⚠️ **태그 병합 확인**\n원본: ${session.sourceTag}\n대상: ${session.targetTag}`,
+        components: [row]
+      });
+      return;
+    }
+    
+    if (action === 'view') {
+      const tagData = inventory.tags?.[type]?.[category]?.[tagName];
+      if (!tagData) {
+        return await interaction.editReply({
+          content: `❌ 태그 "${tagName}"을 찾을 수 없습니다.`,
+          components: []
+        });
+      }
+      const items = tagData.items || [];
+      const itemList = items.slice(0, 20).map(item => `• ${getItemIcon(item, inventory)} ${item}`).join('\n');
+      const extra = items.length > 20 ? `\n... 외 ${items.length - 20}개` : '';
+      await interaction.editReply({
+        content: `🏷️ **${tagName}** (${items.length}개)\n\n${itemList || '없음'}${extra}`,
+        components: []
+      });
+      return;
+    }
+  } catch (error) {
+    console.error('❌ 태그 액션 선택 에러:', error);
     await interaction.reply({ content: '오류가 발생했습니다: ' + error.message, ephemeral: true }).catch(() => {});
   }
 }
