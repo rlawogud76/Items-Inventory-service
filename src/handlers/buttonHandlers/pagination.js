@@ -414,7 +414,10 @@ export async function handlePageJumpModal(interaction) {
     const pageInput = interaction.fields.getTextInputValue('page_number').trim();
     const targetPage = parseInt(pageInput);
     
-    const inventory = await loadInventory();
+    const [inventory, itemPoints] = await Promise.all([
+      loadInventory(),
+      getItemPoints()
+    ]);
     const { infoTimeout } = getTimeoutSettings(inventory);
     
     // 페이지 번호 검증
