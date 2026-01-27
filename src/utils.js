@@ -448,7 +448,7 @@ export async function addHistory(type, category, itemName, action, details, user
     timestamp: new Date().toISOString(),
     type,
     category,
-    itemName,
+    itemName: itemName || '전체',
     action,
     details,
     userName

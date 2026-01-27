@@ -558,8 +558,8 @@ export async function handleSortOptionSelect(interaction) {
     } else if (sortBy === 'tag') {
       // 태그별 정렬: 태그명으로 먼저 정렬, 같은 태그 내에서는 이름순
       sortedItems = items.sort((a, b) => {
-        const tagA = targetData[category][a].tag || '태그없음';
-        const tagB = targetData[category][b].tag || '태그없음';
+        const tagA = getItemTag(a, category, type, inventory) || '태그없음';
+        const tagB = getItemTag(b, category, type, inventory) || '태그없음';
         
         // 태그가 다르면 태그로 정렬
         if (tagA !== tagB) {
@@ -613,7 +613,7 @@ export async function handleSortOptionSelect(interaction) {
     if (sortBy === 'tag') {
       let currentTag = null;
       sortedItems.slice(0, 15).forEach((item, idx) => {
-        const itemTag = targetData[category][item].tag || '태그없음';
+        const itemTag = getItemTag(item, category, type, inventory) || '태그없음';
         if (currentTag !== itemTag) {
           if (currentTag !== null) successMessage += '\n';
           successMessage += `[${itemTag}]\n`;
