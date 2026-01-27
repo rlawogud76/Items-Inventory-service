@@ -139,6 +139,7 @@ export async function handleRecipeMaterialPageNavigation(interaction) {
     const newPage = direction === 'prev' ? currentPage - 1 : currentPage + 1;
     
     const inventory = await loadInventory();
+    const itemPoints = await getItemPoints();
     
     // 카테고리 존재 확인
     if (!inventory.categories?.[category]) {
