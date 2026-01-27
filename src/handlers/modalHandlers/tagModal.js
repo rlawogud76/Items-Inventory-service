@@ -142,29 +142,6 @@ export async function handleTagNameInputModal(interaction) {
       rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
     }
     
-    // 페이지네이션 버튼 추가 (2페이지 이상일 때)
-    if (totalPages > 1) {
-      const prevButton = new ButtonBuilder()
-        .setCustomId(`page_prev_tag_items_${type}_${category}_${encodeCustomIdPart(tagName)}_${page}`)
-        .setLabel('◀ 이전')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(page === 0);
-      
-      const nextButton = new ButtonBuilder()
-        .setCustomId(`page_next_tag_items_${type}_${category}_${encodeCustomIdPart(tagName)}_${page}`)
-        .setLabel('다음 ▶')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(page === totalPages - 1);
-      
-      const pageInfo = new ButtonBuilder()
-        .setCustomId(`page_info_${page}`)
-        .setLabel(`${page + 1} / ${totalPages}`)
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(true);
-      
-      rows.push(new ActionRowBuilder().addComponents(prevButton, pageInfo, nextButton));
-    }
-    
     // 세션 초기화
     global.tagSessions = global.tagSessions || {};
     const sessionKey = `${interaction.user.id}_${type}_${category}_${tagName}_create`;
