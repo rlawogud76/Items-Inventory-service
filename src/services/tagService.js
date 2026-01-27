@@ -57,7 +57,7 @@ export function listTags(tags, type, category) {
   }));
 }
 
-export function addItemsToTag(tags, type, category, tagName, items, moveFromOtherTags = true) {
+export function addItemsToTag(tags, type, category, tagName, items, moveFromOtherTags = true, inventory = null) {
   const tagData = ensureTag(tags, type, category, tagName);
   const uniqueItems = new Set(tagData.items);
   let addedCount = 0;
@@ -79,6 +79,39 @@ export function addItemsToTag(tags, type, category, tagName, items, moveFromOthe
       uniqueItems.add(itemName);
       addedCount++;
     }
+
+    // 연동된 아이템 동기화 (재고 <-> 제작)
+    if (inventory) {
+      const itemDef = type === 'inventory' 
+        ? inventory.categories?.[category]?.[itemName]
+        : inventory.crafting?.categories?.[category]?.[itemName];
+      
+      if (itemDef?.linkedItem) {
+        const [linkedType, linkedCategory, linkedName] = itemDef.linkedItem.split('/');
+        
+        // 연동된 쪽에도 태그 생성 (색상은 현재 태그 색상 따름)
+        const linkedTagData = ensureTag(tags, linkedType, linkedCategory, tagName, tagData.color);
+        const linkedUniqueItems = new Set(linkedTagData.items);
+        
+        // 연동 아이템 이동 처리
+        if (moveFromOtherTags) {
+          for (const [otherTag, otherData] of Object.entries(tags?.[linkedType]?.[linkedCategory] || {})) {
+            if (otherTag === tagName) continue;
+            if (otherData?.items?.includes(linkedName)) {
+              otherData.items = otherData.items.filter(i => i !== linkedName);
+              otherData.updatedAt = new Date().toISOString();
+            }
+          }
+        }
+        
+        if (!linkedUniqueItems.has(linkedName)) {
+          linkedUniqueItems.add(linkedName);
+          console.log(`🔗 Linked Tag Add: ${linkedName} -> ${tagName} (${linkedType}/${linkedCategory})`);
+        }
+        linkedTagData.items = Array.from(linkedUniqueItems);
+        linkedTagData.updatedAt = new Date().toISOString();
+      }
+    }
   }
 
   tagData.items = Array.from(uniqueItems);
@@ -87,11 +120,35 @@ export function addItemsToTag(tags, type, category, tagName, items, moveFromOthe
   return { addedCount, movedCount };
 }
 
-export function removeItemsFromTag(tags, type, category, tagName, items) {
+export function removeItemsFromTag(tags, type, category, tagName, items, inventory = null) {
   const tagData = tags?.[type]?.[category]?.[tagName];
   if (!tagData) return { removedCount: 0 };
   const before = tagData.items.length;
   const removeSet = new Set(items);
+  
+  // 연동된 아이템 동기화
+  if (inventory) {
+    for (const itemName of items) {
+      const itemDef = type === 'inventory' 
+        ? inventory.categories?.[category]?.[itemName]
+        : inventory.crafting?.categories?.[category]?.[itemName];
+      
+      if (itemDef?.linkedItem) {
+        const [linkedType, linkedCategory, linkedName] = itemDef.linkedItem.split('/');
+        const linkedTagData = tags?.[linkedType]?.[linkedCategory]?.[tagName];
+        
+        if (linkedTagData) {
+          const linkedBefore = linkedTagData.items.length;
+          linkedTagData.items = linkedTagData.items.filter(i => i !== linkedName);
+          if (linkedTagData.items.length !== linkedBefore) {
+            linkedTagData.updatedAt = new Date().toISOString();
+            console.log(`🔗 Linked Tag Remove: ${linkedName} -> ${tagName} (${linkedType}/${linkedCategory})`);
+          }
+        }
+      }
+    }
+  }
+  
   tagData.items = tagData.items.filter(i => !removeSet.has(i));
   tagData.updatedAt = new Date().toISOString();
   return { removedCount: before - tagData.items.length };

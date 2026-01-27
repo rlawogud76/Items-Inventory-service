@@ -544,14 +544,14 @@ export async function handleTagItemsConfirmButton(interaction) {
     let removedCount = 0;
     
     if (mode === 'remove') {
-      const result = removeItemsFromTag(inventory.tags, type, category, tagName, selectedItems);
+      const result = removeItemsFromTag(inventory.tags, type, category, tagName, selectedItems, inventory);
       removedCount = result.removedCount;
     } else {
       if (mode === 'create') {
         const sessionColor = global.tagSessions?.[sessionKey]?.color || 'default';
         setTagColor(inventory.tags, type, category, tagName, sessionColor);
       }
-      const result = addItemsToTag(inventory.tags, type, category, tagName, selectedItems, true);
+      const result = addItemsToTag(inventory.tags, type, category, tagName, selectedItems, true, inventory);
       addedCount = result.addedCount;
       movedCount = result.movedCount;
     }
@@ -1138,10 +1138,16 @@ async function showTagItemsSelection(interaction, { type, category, tagName, mod
   
   const itemOptions = items.map(item => {
     const currentTag = getItemTag(item, category, type, inventory);
+    const icon = getItemIcon(item, inventory);
+    
+    // 커스텀 이모지 처리
+    const emojiMatch = icon.match(/<a?:.+?:(\d+)>/);
+    const emoji = emojiMatch ? emojiMatch[1] : icon;
+      
     return {
       label: item,
       value: item,
-      emoji: getItemIcon(item, inventory),
+      emoji: emoji,
       description: mode === 'remove' ? '태그에 포함됨' : (currentTag ? `현재: ${currentTag}` : '태그 없음')
     };
   });
