@@ -12,3 +12,4 @@ MCP_SETUP.md
 웹서버실행(숨김).vbs
 tunnel_url.txt
 migrate-to-atlas.js
+web/server/migrate-to-atlas.js

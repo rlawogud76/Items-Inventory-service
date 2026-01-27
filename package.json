@@ -14,8 +14,7 @@
     "client": "npm run dev --workspace=web/client",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "build": "npm run build --workspace=web/client",
-    "start:prod": "node web/server/index.js",
-    "postinstall": "npm run build"
+    "start:prod": "node web/server/index.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
