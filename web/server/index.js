@@ -83,15 +83,24 @@ app.get('/api/health', (req, res) => {
 
 // 프로덕션: 빌드된 프론트엔드 제공
 const clientDist = path.join(__dirname, '../client/dist');
-app.use(express.static(clientDist));
+console.log('📁 Static files path:', clientDist);
 
-// SPA fallback - API가 아닌 모든 요청을 index.html로
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
-    return next();
-  }
-  res.sendFile(path.join(clientDist, 'index.html'));
-});
+// Static 파일 존재 확인
+const fs = require('fs');
+if (fs.existsSync(clientDist)) {
+  console.log('✅ dist 폴더 존재');
+  app.use(express.static(clientDist));
+  
+  // SPA fallback - API가 아닌 모든 요청을 index.html로
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+      return next();
+    }
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+} else {
+  console.log('⚠️ dist 폴더 없음 - API only mode');
+}
 
 // Socket.io 연결 처리
 io.on('connection', (socket) => {
