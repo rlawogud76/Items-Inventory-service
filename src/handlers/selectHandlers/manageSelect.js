@@ -1,7 +1,7 @@
 // 관리(삭제/수정/순서변경) select 핸들러
 import { EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, removeItem, updateItemsOrder } from '../../database.js';
-import { formatQuantity, getTimeoutSettings, addHistory, encodeCustomIdPart } from '../../utils.js';
+import { formatQuantity, getTimeoutSettings, addHistory, encodeCustomIdPart, getItemTag } from '../../utils.js';
 
 /**
  * 삭제 항목 선택 핸들러
