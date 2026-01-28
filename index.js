@@ -7,7 +7,6 @@ import { handleSelectInteraction } from './src/handlers/selects.js';
 import { handleModalInteraction } from './src/handlers/modals.js';
 import { handleCommandInteraction } from './src/handlers/commands.js';
 import { handleQuantityModal } from './src/handlers/modalHandlers/quantityModal.js';
-import apiServer from './api-server.js';
 import { updateBotInfo, addEvent } from './src/statusLogger.js';
 import { INTERACTION_CONFIG } from './src/constants.js';
 
@@ -43,15 +42,6 @@ async function gracefulShutdown(signal) {
       await disconnectDatabase();
     } catch (err) {
       console.warn('DB disconnect 실패:', err?.message || err);
-    }
-
-    // API 서버 종료 (존재하면)
-    try {
-      if (apiServer && typeof apiServer.close === 'function') {
-        await new Promise((resolve) => apiServer.close(resolve));
-      }
-    } catch (err) {
-      console.warn('API 서버 종료 실패:', err?.message || err);
     }
 
     console.log('종료 완료.');
