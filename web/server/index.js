@@ -103,13 +103,42 @@ console.log('📁 Static files path:', clientDist);
 const fs = require('fs');
 if (fs.existsSync(clientDist)) {
   console.log('✅ dist 폴더 존재');
-  app.use(express.static(clientDist));
   
-  // SPA fallback - API가 아닌 모든 요청을 index.html로
+  // index.html은 캐시 방지 (항상 최신 버전 로드)
+  app.get('/', (req, res) => {
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+  
+  // 정적 파일 (JS/CSS는 해시가 있어서 1년 캐시 가능)
+  app.use(express.static(clientDist, {
+    maxAge: '1y',
+    setHeaders: (res, filePath) => {
+      // HTML 파일은 캐시 방지
+      if (filePath.endsWith('.html')) {
+        res.set({
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        });
+      }
+    }
+  }));
+  
+  // SPA fallback - API가 아닌 모든 요청을 index.html로 (캐시 방지 헤더 포함)
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
       return next();
     }
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     res.sendFile(path.join(clientDist, 'index.html'));
   });
 } else {
