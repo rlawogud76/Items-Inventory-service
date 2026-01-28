@@ -9,8 +9,8 @@ router.get('/', optionalAuth, async (req, res, next) => {
     // 권한 체크
     if (req.user) {
       const allowedFeatures = req.user.isAdmin || req.user.isServerOwner
-        ? req.user.adminAllowedFeatures 
-        : req.user.memberAllowedFeatures;
+        ? (req.user.adminAllowedFeatures || ['*'])
+        : (req.user.memberAllowedFeatures || []);
       
       if (!allowedFeatures.includes('*') && !allowedFeatures.includes('history')) {
         return res.status(403).json({ error: '수정내역 조회 권한이 없습니다.' });

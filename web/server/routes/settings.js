@@ -102,6 +102,10 @@ router.get('/points', async (req, res, next) => {
       db.loadInventory('crafting')
     ]);
     
+    // 배열이 undefined인 경우 빈 배열로 처리
+    const invItems = inventoryItems || [];
+    const craftItems = craftingItems || [];
+    
     // 실제 아이템 기반으로 배점 구조 생성
     const result = {
       inventory: {},
@@ -109,7 +113,7 @@ router.get('/points', async (req, res, next) => {
     };
     
     // 재고 아이템
-    for (const item of inventoryItems) {
+    for (const item of invItems) {
       if (!result.inventory[item.category]) {
         result.inventory[item.category] = {};
       }
@@ -119,7 +123,7 @@ router.get('/points', async (req, res, next) => {
     }
     
     // 제작 아이템
-    for (const item of craftingItems) {
+    for (const item of craftItems) {
       if (!result.crafting[item.category]) {
         result.crafting[item.category] = {};
       }
