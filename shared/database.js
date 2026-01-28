@@ -357,7 +357,7 @@ async function updateItemQuantity(type, category, itemName, delta, userName, act
     
     const result = await Item.findOneAndUpdate(
       { type, category, name: itemName },
-      { $inc: { quantity: delta } },
+      { $inc: { quantity: delta }, $set: { updatedAt: new Date() } },
       { new: true }
     );
     
@@ -388,7 +388,7 @@ async function setItemQuantity(type, category, itemName, value, userName, action
   try {
     const result = await Item.findOneAndUpdate(
       { type, category, name: itemName },
-      { $set: { quantity: Math.max(0, value) } },
+      { $set: { quantity: Math.max(0, value), updatedAt: new Date() } },
       { new: true }
     );
     
@@ -423,9 +423,10 @@ async function updateMultipleItems(updates, historyEntries) {
       const fieldName = u.field === 'required' ? 'required' : 'quantity';
       
       if (u.operation === 'set') {
-        update.$set = { [fieldName]: u.value };
+        update.$set = { [fieldName]: u.value, updatedAt: new Date() };
       } else {
         update.$inc = { [fieldName]: u.delta };
+        update.$set = { updatedAt: new Date() };
       }
       
       return { updateOne: { filter, update } };
@@ -500,7 +501,7 @@ async function removeItem(type, category, name) {
 async function updateItemDetails(type, category, oldName, updates) {
   try {
     const filter = { type, category, name: oldName };
-    const update = { $set: updates };
+    const update = { $set: { ...updates, updatedAt: new Date() } };
     
     if (updates.name && updates.name !== oldName) {
       const exists = await Item.exists({ type, category, name: updates.name });
@@ -573,8 +574,8 @@ async function removeRecipe(category, resultName) {
 async function updateItemWorker(type, category, itemName, workerData) {
   try {
     const update = workerData 
-      ? { worker: workerData } 
-      : { worker: { userId: null, userName: null, startTime: null } };
+      ? { worker: workerData, updatedAt: new Date() } 
+      : { worker: { userId: null, userName: null, startTime: null }, updatedAt: new Date() };
       
     const result = await Item.findOneAndUpdate(
       { type, category, name: itemName },

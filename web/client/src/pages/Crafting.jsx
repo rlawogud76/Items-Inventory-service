@@ -414,14 +414,14 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit
                         onClick={() => setShowPresets(false)}
                       />
                       {/* 프리셋 드롭다운 */}
-                      <div className="absolute right-0 top-full mt-1 bg-dark-300 border border-dark-100 rounded-lg shadow-lg z-50 min-w-[140px]">
+                      <div className="absolute right-0 top-full mt-1 bg-dark-300 border border-dark-100 rounded-lg shadow-lg z-50 min-w-[160px]">
                         <div className="p-1">
                           <div className="text-xs text-gray-500 px-2 py-1">추가</div>
                           {PRESETS.filter(p => p.value > 0).map(preset => (
                             <button
                               key={preset.value}
                               onClick={() => handlePresetClick(preset.value)}
-                              className={`w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm ${preset.color}`}
+                              className={`w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm whitespace-nowrap ${preset.color}`}
                             >
                               {preset.label}
                             </button>
@@ -432,7 +432,7 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit
                             <button
                               key={preset.value}
                               onClick={() => handlePresetClick(preset.value)}
-                              className={`w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm ${preset.color}`}
+                              className={`w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm whitespace-nowrap ${preset.color}`}
                             >
                               {preset.label}
                             </button>
@@ -441,21 +441,21 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit
                           <div className="text-xs text-gray-500 px-2 py-1">단위별 입력</div>
                           <button
                             onClick={() => { startDeltaMode(true); setShowPresets(false); }}
-                            className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-green-400"
+                            className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-green-400 whitespace-nowrap"
                           >
-                            ➕ 추가 (단위입력)
+                            ➕ 추가
                           </button>
                           <button
                             onClick={() => { startDeltaMode(false); setShowPresets(false); }}
-                            className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-red-400"
+                            className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-red-400 whitespace-nowrap"
                           >
-                            ➖ 차감 (단위입력)
+                            ➖ 차감
                           </button>
                           <button
                             onClick={() => { startSetMode(); setShowPresets(false); }}
-                            className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-blue-400"
+                            className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-blue-400 whitespace-nowrap"
                           >
-                            📝 수량 직접 설정
+                            📝 직접 설정
                           </button>
                         </div>
                       </div>
