@@ -716,6 +716,7 @@ async function getCategories(type) {
 // 유저 등록/업데이트
 async function registerUser(userData) {
   try {
+    console.log('📝 유저 등록/업데이트:', userData.username, userData.id);
     const settings = await getSettings();
     const registeredUsers = settings?.registeredUsers || [];
     
@@ -728,12 +729,15 @@ async function registerUser(userData) {
         ...registeredUsers[existingIndex],
         ...userData
       };
+      console.log('✅ 유저 업데이트 완료:', userData.username);
     } else {
       // 새 유저 추가
       registeredUsers.push(userData);
+      console.log('✅ 새 유저 추가:', userData.username);
     }
     
     await updateSettings({ registeredUsers });
+    console.log('📊 현재 등록된 유저 수:', registeredUsers.length);
     return true;
   } catch (error) {
     console.error('❌ 유저 등록 실패:', error);

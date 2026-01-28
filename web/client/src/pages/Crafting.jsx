@@ -155,346 +155,367 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit
     : 0
 
   return (
-    <div className="bg-dark-200 rounded-lg p-4 hover:bg-dark-100/50 transition-colors group">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <DiscordText className="text-lg">{item.emoji || '⭐'}</DiscordText>
-          <DiscordText className="font-medium">{item.name}</DiscordText>
-          {item.itemType === 'intermediate' && (
-            <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded whitespace-nowrap">중간재</span>
-          )}
-          {/* 작업자 상태 */}
-          {item.worker?.userId ? (
-            <button
-              onClick={() => user && (user.id === item.worker.userId || user.isAdmin) && onWorkerToggle(item, 'stop')}
-              className={`text-xs px-2 py-0.5 rounded transition-colors whitespace-nowrap ${
-                user && (user.id === item.worker.userId || user.isAdmin)
-                  ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 cursor-pointer'
-                  : 'bg-orange-500/20 text-orange-400 cursor-default'
-              }`}
-              title={user && (user.id === item.worker.userId || user.isAdmin) ? '클릭하여 작업 중단' : ''}
-            >
-              {item.worker.userName} 작업중
-            </button>
-          ) : user && (
-            <button
-              onClick={() => onWorkerToggle(item, 'start')}
-              className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded transition-colors opacity-0 group-hover:opacity-100 whitespace-nowrap"
-            >
-              작업 시작
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {/* 수정/삭제 버튼 - 호버 시 표시 */}
-          {user && (
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="bg-dark-200 rounded-lg overflow-hidden hover:bg-dark-100/50 transition-colors group">
+      {/* 메인 카드 영역 */}
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <DiscordText className="text-lg">{item.emoji || '⭐'}</DiscordText>
+            <DiscordText className="font-medium">{item.name}</DiscordText>
+            {item.itemType === 'intermediate' && (
+              <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded whitespace-nowrap">중간재</span>
+            )}
+            {/* 작업자 상태 */}
+            {item.worker?.userId ? (
               <button
-                onClick={() => onEdit(item)}
-                className="p-1 hover:bg-dark-300 rounded text-blue-400"
-                title="수정"
+                onClick={() => user && (user.id === item.worker.userId || user.isAdmin) && onWorkerToggle(item, 'stop')}
+                className={`text-xs px-2 py-0.5 rounded transition-colors whitespace-nowrap ${
+                  user && (user.id === item.worker.userId || user.isAdmin)
+                    ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 cursor-pointer'
+                    : 'bg-orange-500/20 text-orange-400 cursor-default'
+                }`}
+                title={user && (user.id === item.worker.userId || user.isAdmin) ? '클릭하여 작업 중단' : ''}
               >
-                <Edit size={14} />
+                {item.worker.userName} 작업중
               </button>
+            ) : user && (
               <button
-                onClick={() => onDelete(item)}
-                className="p-1 hover:bg-dark-300 rounded text-red-400"
-                title="삭제"
+                onClick={() => onWorkerToggle(item, 'start')}
+                className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded transition-colors opacity-0 group-hover:opacity-100 whitespace-nowrap"
               >
-                <Trash2 size={14} />
+                작업 시작
               </button>
-            </div>
-          )}
-          {/* 레시피 버튼 */}
-          {recipe ? (
-            <div className="flex items-center">
-              <button
-                onClick={() => setShowRecipe(!showRecipe)}
-                className={clsx(
-                  'p-1 rounded-l transition-colors',
-                  showRecipe ? 'bg-primary-600 text-white' : 'hover:bg-dark-300 text-gray-400'
-                )}
-                title="레시피 보기"
-              >
-                <BookOpen size={16} />
-              </button>
-              {user && (
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {/* 수정/삭제 버튼 - 호버 시 표시 */}
+            {user && (
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
-                  onClick={() => onRecipeEdit(item, recipe)}
-                  className="p-1 rounded-r hover:bg-dark-300 text-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="레시피 편집"
+                  onClick={() => onEdit(item)}
+                  className="p-1 hover:bg-dark-300 rounded text-blue-400"
+                  title="수정"
                 >
                   <Edit size={14} />
                 </button>
-              )}
-            </div>
-          ) : user && (
-            <button
-              onClick={() => onRecipeEdit(item, null)}
-              className="p-1 rounded hover:bg-dark-300 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
-              title="레시피 추가"
-            >
-              <BookOpen size={16} />
-            </button>
-          )}
-          <span className={clsx(
-            'text-sm ml-1',
-            percentage >= 100 ? 'text-green-400' : '',
-            percentage >= 50 && percentage < 100 ? 'text-yellow-400' : '',
-            percentage < 50 ? 'text-red-400' : ''
-          )}>
-            {percentage.toFixed(0)}%
-          </span>
+                <button
+                  onClick={() => onDelete(item)}
+                  className="p-1 hover:bg-dark-300 rounded text-red-400"
+                  title="삭제"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )}
+            {/* 레시피 버튼 */}
+            {recipe ? (
+              <div className="flex items-center">
+                <button
+                  onClick={() => setShowRecipe(!showRecipe)}
+                  className={clsx(
+                    'p-1 rounded-l transition-colors',
+                    showRecipe ? 'bg-primary-600 text-white' : 'hover:bg-dark-300 text-gray-400'
+                  )}
+                  title="레시피 보기"
+                >
+                  <BookOpen size={16} />
+                </button>
+                {user && (
+                  <button
+                    onClick={() => onRecipeEdit(item, recipe)}
+                    className="p-1 rounded-r hover:bg-dark-300 text-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="레시피 편집"
+                  >
+                    <Edit size={14} />
+                  </button>
+                )}
+              </div>
+            ) : user && (
+              <button
+                onClick={() => onRecipeEdit(item, null)}
+                className="p-1 rounded hover:bg-dark-300 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="레시피 추가"
+              >
+                <BookOpen size={16} />
+              </button>
+            )}
+            <span className={clsx(
+              'text-sm ml-1',
+              percentage >= 100 ? 'text-green-400' : '',
+              percentage >= 50 && percentage < 100 ? 'text-yellow-400' : '',
+              percentage < 50 ? 'text-red-400' : ''
+            )}>
+              {percentage.toFixed(0)}%
+            </span>
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-sm">
-          {/* 수량 클릭 시 직접 설정 모드 */}
-          {user && editMode === null ? (
-            <button
-              onClick={startSetMode}
-              className="hover:bg-dark-300 px-1.5 py-0.5 rounded transition-colors cursor-pointer group/qty"
-              title="클릭하여 수량 직접 설정"
-            >
-              <span className="text-gray-300 group-hover/qty:text-blue-400">{formatQuantity(item.quantity)}</span>
-              <span className="text-gray-500"> / </span>
-              <span className="text-gray-400">{formatQuantity(item.required)}</span>
-            </button>
-          ) : (
-            <>
-              <span className="text-gray-300">{formatQuantity(item.quantity)}</span>
-              <span className="text-gray-500"> / </span>
-              <span className="text-gray-400">{formatQuantity(item.required)}</span>
-            </>
-          )}
-        </div>
-
-        {/* 수량 조절 버튼 */}
-        {user && (
-          <div className="flex items-center gap-1 relative">
-            {editMode === 'delta' ? (
-              /* 증감 모드 - 단위별 입력 */
-              <form onSubmit={handleDeltaSubmit} className="flex items-center gap-1.5 flex-nowrap">
-                <span className={`text-sm font-medium shrink-0 ${isAdding ? 'text-green-400' : 'text-red-400'}`}>
-                  {isAdding ? '+' : '-'}
-                </span>
-                <div className="flex items-center gap-1 shrink-0">
-                  <input
-                    type="number"
-                    value={deltaUnits.boxes || ''}
-                    onChange={(e) => setDeltaUnits({...deltaUnits, boxes: e.target.value})}
-                    placeholder="0"
-                    min="0"
-                    className="w-12 px-2 py-1.5 bg-dark-300 border border-dark-100 rounded text-sm text-center focus:border-primary-500 focus:outline-none"
-                    autoFocus
-                  />
-                  <span className="text-xs text-gray-400 whitespace-nowrap">상</span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <input
-                    type="number"
-                    value={deltaUnits.sets || ''}
-                    onChange={(e) => setDeltaUnits({...deltaUnits, sets: e.target.value})}
-                    placeholder="0"
-                    min="0"
-                    className="w-12 px-2 py-1.5 bg-dark-300 border border-dark-100 rounded text-sm text-center focus:border-primary-500 focus:outline-none"
-                  />
-                  <span className="text-xs text-gray-400 whitespace-nowrap">세</span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <input
-                    type="number"
-                    value={deltaUnits.items || ''}
-                    onChange={(e) => setDeltaUnits({...deltaUnits, items: e.target.value})}
-                    placeholder="0"
-                    min="0"
-                    className="w-12 px-2 py-1.5 bg-dark-300 border border-dark-100 rounded text-sm text-center focus:border-primary-500 focus:outline-none"
-                  />
-                  <span className="text-xs text-gray-400 whitespace-nowrap">개</span>
-                </div>
-                <button
-                  type="submit"
-                  className={`px-2 py-1 rounded text-sm shrink-0 ${isAdding ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
-                >
-                  ✓
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditMode(null)}
-                  className="px-2 py-1 bg-dark-100 hover:bg-dark-200 rounded text-sm shrink-0"
-                >
-                  ✕
-                </button>
-              </form>
-            ) : editMode === 'set' ? (
-              /* 직접 설정 모드 - 단위별 입력 */
-              <form onSubmit={handleSetSubmit} className="flex items-center gap-1.5 flex-nowrap">
-                <span className="text-xs text-blue-400 shrink-0">→</span>
-                <div className="flex items-center gap-1 shrink-0">
-                  <input
-                    type="number"
-                    value={setUnits.boxes || ''}
-                    onChange={(e) => setSetUnits({...setUnits, boxes: e.target.value})}
-                    placeholder="0"
-                    min="0"
-                    className="w-12 px-2 py-1.5 bg-dark-300 border border-dark-100 rounded text-sm text-center focus:border-blue-500 focus:outline-none"
-                    autoFocus
-                  />
-                  <span className="text-xs text-gray-400 whitespace-nowrap">상</span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <input
-                    type="number"
-                    value={setUnits.sets || ''}
-                    onChange={(e) => setSetUnits({...setUnits, sets: e.target.value})}
-                    placeholder="0"
-                    min="0"
-                    className="w-12 px-2 py-1.5 bg-dark-300 border border-dark-100 rounded text-sm text-center focus:border-blue-500 focus:outline-none"
-                  />
-                  <span className="text-xs text-gray-400 whitespace-nowrap">세</span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <input
-                    type="number"
-                    value={setUnits.items || ''}
-                    onChange={(e) => setSetUnits({...setUnits, items: e.target.value})}
-                    placeholder="0"
-                    min="0"
-                    className="w-12 px-2 py-1.5 bg-dark-300 border border-dark-100 rounded text-sm text-center focus:border-blue-500 focus:outline-none"
-                  />
-                  <span className="text-xs text-gray-400 whitespace-nowrap">개</span>
-                </div>
-                <button
-                  type="submit"
-                  className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm shrink-0"
-                >
-                  ✓
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditMode(null)}
-                  className="px-2 py-1 bg-dark-100 hover:bg-dark-200 rounded text-sm shrink-0"
-                >
-                  ✕
-                </button>
-              </form>
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-sm">
+            {/* 수량 클릭 시 직접 설정 모드 */}
+            {user && editMode === null ? (
+              <button
+                onClick={startSetMode}
+                className="hover:bg-dark-300 px-1.5 py-0.5 rounded transition-colors cursor-pointer group/qty"
+                title="클릭하여 수량 직접 설정"
+              >
+                <span className="text-gray-300 group-hover/qty:text-blue-400">{formatQuantity(item.quantity)}</span>
+                <span className="text-gray-500"> / </span>
+                <span className="text-gray-400">{formatQuantity(item.required)}</span>
+              </button>
             ) : (
               <>
-                {/* 빠른 조절 버튼 */}
-                <button
-                  onClick={() => onQuantityChange(item, -1)}
-                  className="p-1 hover:bg-dark-300 rounded text-red-400"
-                  title="-1"
-                >
-                  <Minus size={16} />
-                </button>
-                <button
-                  onClick={() => onQuantityChange(item, 1)}
-                  className="p-1 hover:bg-dark-300 rounded text-green-400"
-                  title="+1"
-                >
-                  <Plus size={16} />
-                </button>
-                
-                {/* 프리셋 버튼 */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowPresets(!showPresets)}
-                    className="px-2 py-1 hover:bg-dark-300 rounded text-gray-400 text-xs font-medium"
-                    title="프리셋 수량"
-                  >
-                    ±세트
-                  </button>
-                  
-                  {showPresets && (
-                    <>
-                      {/* 배경 클릭 시 닫기 */}
-                      <div 
-                        className="fixed inset-0 z-40" 
-                        onClick={() => setShowPresets(false)}
-                      />
-                      {/* 프리셋 드롭다운 */}
-                      <div className="absolute right-0 top-full mt-1 bg-dark-300 border border-dark-100 rounded-lg shadow-lg z-50 min-w-[160px]">
-                        <div className="p-1">
-                          <div className="text-xs text-gray-500 px-2 py-1">추가</div>
-                          {PRESETS.filter(p => p.value > 0).map(preset => (
-                            <button
-                              key={preset.value}
-                              onClick={() => handlePresetClick(preset.value)}
-                              className={`w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm whitespace-nowrap ${preset.color}`}
-                            >
-                              {preset.label}
-                            </button>
-                          ))}
-                          <div className="border-t border-dark-100 my-1" />
-                          <div className="text-xs text-gray-500 px-2 py-1">차감</div>
-                          {PRESETS.filter(p => p.value < 0).map(preset => (
-                            <button
-                              key={preset.value}
-                              onClick={() => handlePresetClick(preset.value)}
-                              className={`w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm whitespace-nowrap ${preset.color}`}
-                            >
-                              {preset.label}
-                            </button>
-                          ))}
-                          <div className="border-t border-dark-100 my-1" />
-                          <div className="text-xs text-gray-500 px-2 py-1">단위별 입력</div>
-                          <button
-                            onClick={() => { startDeltaMode(true); setShowPresets(false); }}
-                            className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-green-400 whitespace-nowrap"
-                          >
-                            ➕ 추가
-                          </button>
-                          <button
-                            onClick={() => { startDeltaMode(false); setShowPresets(false); }}
-                            className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-red-400 whitespace-nowrap"
-                          >
-                            ➖ 차감
-                          </button>
-                          <button
-                            onClick={() => { startSetMode(); setShowPresets(false); }}
-                            className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-blue-400 whitespace-nowrap"
-                          >
-                            📝 직접 설정
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-                
-                {/* 직접 수량 설정 버튼 */}
-                <button
-                  onClick={startSetMode}
-                  className="px-1.5 py-0.5 hover:bg-blue-600/20 rounded text-blue-400 text-xs font-medium border border-blue-500/30"
-                  title="수량 직접 설정"
-                >
-                  설정
-                </button>
+                <span className="text-gray-300">{formatQuantity(item.quantity)}</span>
+                <span className="text-gray-500"> / </span>
+                <span className="text-gray-400">{formatQuantity(item.required)}</span>
               </>
             )}
+          </div>
+
+          {/* 수량 조절 버튼 - editMode가 null일 때만 표시 */}
+          {user && editMode === null && (
+            <div className="flex items-center gap-1 relative">
+              {/* 빠른 조절 버튼 */}
+              <button
+                onClick={() => onQuantityChange(item, -1)}
+                className="p-1 hover:bg-dark-300 rounded text-red-400"
+                title="-1"
+              >
+                <Minus size={16} />
+              </button>
+              <button
+                onClick={() => onQuantityChange(item, 1)}
+                className="p-1 hover:bg-dark-300 rounded text-green-400"
+                title="+1"
+              >
+                <Plus size={16} />
+              </button>
+              
+              {/* 프리셋 버튼 */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowPresets(!showPresets)}
+                  className="px-2 py-1 hover:bg-dark-300 rounded text-gray-400 text-xs font-medium"
+                  title="프리셋 수량"
+                >
+                  ±세트
+                </button>
+                
+                {showPresets && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowPresets(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-1 bg-dark-300 border border-dark-100 rounded-lg shadow-lg z-50 min-w-[160px]">
+                      <div className="p-1">
+                        <div className="text-xs text-gray-500 px-2 py-1">추가</div>
+                        {PRESETS.filter(p => p.value > 0).map(preset => (
+                          <button
+                            key={preset.value}
+                            onClick={() => handlePresetClick(preset.value)}
+                            className={`w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm whitespace-nowrap ${preset.color}`}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                        <div className="border-t border-dark-100 my-1" />
+                        <div className="text-xs text-gray-500 px-2 py-1">차감</div>
+                        {PRESETS.filter(p => p.value < 0).map(preset => (
+                          <button
+                            key={preset.value}
+                            onClick={() => handlePresetClick(preset.value)}
+                            className={`w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm whitespace-nowrap ${preset.color}`}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                        <div className="border-t border-dark-100 my-1" />
+                        <div className="text-xs text-gray-500 px-2 py-1">직접 입력</div>
+                        <button
+                          onClick={() => { startDeltaMode(true); setShowPresets(false); }}
+                          className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-green-400 whitespace-nowrap"
+                        >
+                          ➕ 추가
+                        </button>
+                        <button
+                          onClick={() => { startDeltaMode(false); setShowPresets(false); }}
+                          className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-red-400 whitespace-nowrap"
+                        >
+                          ➖ 차감
+                        </button>
+                        <button
+                          onClick={() => { startSetMode(); setShowPresets(false); }}
+                          className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-blue-400 whitespace-nowrap"
+                        >
+                          📝 직접 설정
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              {/* 직접 수량 설정 버튼 */}
+              <button
+                onClick={startSetMode}
+                className="px-1.5 py-0.5 hover:bg-blue-600/20 rounded text-blue-400 text-xs font-medium border border-blue-500/30"
+                title="수량 직접 설정"
+              >
+                설정
+              </button>
+            </div>
+          )}
+        </div>
+
+        <ProgressBar current={item.quantity} target={item.required} />
+
+        {/* 레시피 표시 */}
+        {showRecipe && recipe && (
+          <div className="mt-3 pt-3 border-t border-dark-100">
+            <p className="text-sm text-gray-400 mb-2">필요 재료:</p>
+            <div className="space-y-1">
+              {recipe.materials.map((material, idx) => (
+                <div key={idx} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-300">
+                    <DiscordText>{material.name}</DiscordText>
+                    <span className="text-gray-500 ml-1">(<DiscordText>{material.category}</DiscordText>)</span>
+                  </span>
+                  <span className="text-gray-400">{material.quantity}개</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      <ProgressBar current={item.quantity} target={item.required} />
+      {/* 인라인 확장 편집 영역 */}
+      {editMode && (
+        <div className="border-t border-dark-100 bg-dark-300/50 p-4">
+          <form onSubmit={editMode === 'delta' ? handleDeltaSubmit : handleSetSubmit}>
+            {/* 모드 표시 */}
+            <div className="flex items-center justify-between mb-3">
+              <span className={clsx(
+                'text-sm font-medium',
+                editMode === 'set' ? 'text-blue-400' :
+                isAdding ? 'text-green-400' : 'text-red-400'
+              )}>
+                {editMode === 'set' ? '📝 수량 직접 설정' :
+                 isAdding ? '➕ 수량 추가' : '➖ 수량 차감'}
+              </span>
+              {editMode === 'delta' && (
+                <button
+                  type="button"
+                  onClick={() => setIsAdding(!isAdding)}
+                  className={clsx(
+                    'text-xs px-2 py-1 rounded',
+                    isAdding ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30' : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
+                  )}
+                >
+                  {isAdding ? '차감으로 전환' : '추가로 전환'}
+                </button>
+              )}
+            </div>
 
-      {/* 레시피 표시 */}
-      {showRecipe && recipe && (
-        <div className="mt-3 pt-3 border-t border-dark-100">
-          <p className="text-sm text-gray-400 mb-2">필요 재료:</p>
-          <div className="space-y-1">
-            {recipe.materials.map((material, idx) => (
-              <div key={idx} className="flex items-center justify-between text-sm">
-                <span className="text-gray-300">
-                  <DiscordText>{material.name}</DiscordText>
-                  <span className="text-gray-500 ml-1">(<DiscordText>{material.category}</DiscordText>)</span>
-                </span>
-                <span className="text-gray-400">{material.quantity}개</span>
+            {/* 입력 필드 */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">상자</label>
+                <input
+                  type="number"
+                  value={editMode === 'delta' ? (deltaUnits.boxes || '') : (setUnits.boxes || '')}
+                  onChange={(e) => editMode === 'delta' 
+                    ? setDeltaUnits({...deltaUnits, boxes: e.target.value})
+                    : setSetUnits({...setUnits, boxes: e.target.value})
+                  }
+                  placeholder="0"
+                  min="0"
+                  className="w-full px-3 py-2 bg-dark-400 border border-dark-100 rounded-lg text-center text-lg focus:border-primary-500 focus:outline-none"
+                  autoFocus
+                />
               </div>
-            ))}
-          </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">세트</label>
+                <input
+                  type="number"
+                  value={editMode === 'delta' ? (deltaUnits.sets || '') : (setUnits.sets || '')}
+                  onChange={(e) => editMode === 'delta'
+                    ? setDeltaUnits({...deltaUnits, sets: e.target.value})
+                    : setSetUnits({...setUnits, sets: e.target.value})
+                  }
+                  placeholder="0"
+                  min="0"
+                  className="w-full px-3 py-2 bg-dark-400 border border-dark-100 rounded-lg text-center text-lg focus:border-primary-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">개</label>
+                <input
+                  type="number"
+                  value={editMode === 'delta' ? (deltaUnits.items || '') : (setUnits.items || '')}
+                  onChange={(e) => editMode === 'delta'
+                    ? setDeltaUnits({...deltaUnits, items: e.target.value})
+                    : setSetUnits({...setUnits, items: e.target.value})
+                  }
+                  placeholder="0"
+                  min="0"
+                  className="w-full px-3 py-2 bg-dark-400 border border-dark-100 rounded-lg text-center text-lg focus:border-primary-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* 현재 → 변경 후 미리보기 */}
+            <div className="text-sm text-gray-400 mb-4 text-center">
+              {editMode === 'set' ? (
+                <>
+                  <span className="text-gray-500">{formatQuantity(item.quantity)}</span>
+                  <span className="text-blue-400 mx-2">→</span>
+                  <span className="text-white">{formatQuantity(convertToTotal(
+                    parseInt(setUnits.boxes) || 0,
+                    parseInt(setUnits.sets) || 0,
+                    parseInt(setUnits.items) || 0
+                  ))}</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-gray-500">{formatQuantity(item.quantity)}</span>
+                  <span className={isAdding ? 'text-green-400' : 'text-red-400'}> {isAdding ? '+' : '-'} </span>
+                  <span className="text-white">{formatQuantity(convertToTotal(
+                    parseInt(deltaUnits.boxes) || 0,
+                    parseInt(deltaUnits.sets) || 0,
+                    parseInt(deltaUnits.items) || 0
+                  ))}</span>
+                  <span className="text-gray-500 mx-2">=</span>
+                  <span className="text-white">{formatQuantity(Math.max(0, item.quantity + (isAdding ? 1 : -1) * convertToTotal(
+                    parseInt(deltaUnits.boxes) || 0,
+                    parseInt(deltaUnits.sets) || 0,
+                    parseInt(deltaUnits.items) || 0
+                  )))}</span>
+                </>
+              )}
+            </div>
+
+            {/* 버튼 */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setEditMode(null)}
+                className="flex-1 px-4 py-2 bg-dark-100 hover:bg-dark-200 rounded-lg transition-colors"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                className={clsx(
+                  'flex-1 px-4 py-2 rounded-lg transition-colors font-medium',
+                  editMode === 'set' ? 'bg-blue-600 hover:bg-blue-700' :
+                  isAdding ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+                )}
+              >
+                {editMode === 'set' ? '설정' : isAdding ? '추가' : '차감'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

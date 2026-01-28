@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Clock, ChevronLeft, ChevronRight, ShieldX } from 'lucide-react'
 import api from '../services/api'
 import { DiscordText } from '../utils/discordEmoji'
 import clsx from 'clsx'
@@ -54,15 +54,32 @@ function History() {
   const [typeFilter, setTypeFilter] = useState('')
   const limit = 20
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['history', page, typeFilter],
     queryFn: () => api.get('/history', {
       params: { page, limit, type: typeFilter || undefined }
     }).then(res => res.data),
+    retry: (failureCount, error) => {
+      // 403 권한 없음 에러는 재시도 안함
+      if (error?.response?.status === 403) return false
+      return failureCount < 3
+    }
   })
 
   const history = data?.data || []
   const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0 }
+
+  // 권한 없음 에러 표시
+  if (error?.response?.status === 403) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <ShieldX className="w-16 h-16 text-red-500 mb-4" />
+        <h2 className="text-xl font-bold text-red-400 mb-2">권한이 없습니다</h2>
+        <p className="text-gray-400">수정내역 조회 권한이 비활성화되어 있습니다.</p>
+        <p className="text-gray-500 text-sm mt-2">관리자에게 문의하세요.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

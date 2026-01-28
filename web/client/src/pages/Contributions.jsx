@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Trophy, Package, Hammer, RotateCcw } from 'lucide-react'
+import { Trophy, Package, Hammer, RotateCcw, ShieldX } from 'lucide-react'
 import { useState } from 'react'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -9,10 +9,26 @@ function Contributions() {
   const queryClient = useQueryClient()
   const [showResetConfirm, setShowResetConfirm] = useState(false)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['contributions'],
     queryFn: () => api.get('/contributions?limit=50').then(res => res.data),
+    retry: (failureCount, error) => {
+      if (error?.response?.status === 403) return false
+      return failureCount < 3
+    }
   })
+
+  // 권한 없음 에러 표시
+  if (error?.response?.status === 403) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <ShieldX className="w-16 h-16 text-red-500 mb-4" />
+        <h2 className="text-xl font-bold text-red-400 mb-2">권한이 없습니다</h2>
+        <p className="text-gray-400">기여도 조회 권한이 비활성화되어 있습니다.</p>
+        <p className="text-gray-500 text-sm mt-2">관리자에게 문의하세요.</p>
+      </div>
+    )
+  }
 
   const resetMutation = useMutation({
     mutationFn: () => api.delete('/contributions/reset'),
