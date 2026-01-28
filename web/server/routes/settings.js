@@ -164,8 +164,8 @@ router.post('/points/reset', authenticate, requireAdmin, async (req, res, next) 
   }
 });
 
-// 유저 목록 조회 (관리자 전용)
-router.get('/users', authenticate, requireAdmin, async (req, res, next) => {
+// 유저 목록 조회
+router.get('/users', authenticate, requireFeature('users'), async (req, res, next) => {
   try {
     const settings = await db.getSettings();
     const registeredUsers = await db.getRegisteredUsers();

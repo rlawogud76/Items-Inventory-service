@@ -15,6 +15,7 @@ const FEATURE_KEYS = [
   { key: 'work', label: '작업', description: '작업 관리' },
   { key: 'contribution', label: '기여도', description: '기여도 조회' },
   { key: 'history', label: '수정내역', description: '수정내역 조회' },
+  { key: 'users', label: '유저 조회', description: '등록된 유저 목록 조회' },
   { key: 'settings', label: '설정', description: '봇 설정 변경' },
   { key: 'points', label: '배점', description: '배점 설정 변경' },
   { key: 'permissions', label: '권한', description: '권한 설정 변경' },
