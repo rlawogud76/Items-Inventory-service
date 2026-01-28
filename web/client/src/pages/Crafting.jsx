@@ -644,6 +644,9 @@ function Crafting() {
       if (context?.previousItems) {
         queryClient.setQueryData(['items', 'crafting', category], context.previousItems)
       }
+      // 에러 메시지 표시
+      const errorMessage = err.response?.data?.error || '작업 상태 변경 실패'
+      alert(errorMessage)
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['items', 'crafting'] })

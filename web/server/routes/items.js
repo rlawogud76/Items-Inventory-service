@@ -214,13 +214,35 @@ router.patch('/:type/:category/:name/worker', authenticate, requireFeature('work
     const { type, category, name } = req.params;
     const { action } = req.body; // 'start' or 'stop'
     
+    // 현재 아이템 정보 조회
+    const items = await db.getItems(type, category);
+    const item = items.find(i => i.name === name);
+    
+    if (!item) {
+      return res.status(404).json({ error: '아이템을 찾을 수 없습니다.' });
+    }
+    
     let workerData = null;
     if (action === 'start') {
+      // 이미 다른 사람이 작업 중인 경우 차단
+      if (item.worker?.userId && item.worker.userId !== req.user.id) {
+        return res.status(409).json({ 
+          error: `${item.worker.userName}님이 이미 작업 중입니다.` 
+        });
+      }
+      
       workerData = {
         userId: req.user.id,
         userName: req.user.username,
         startTime: new Date()
       };
+    } else if (action === 'stop') {
+      // 본인이 아닌 경우 관리자만 중단 가능
+      if (item.worker?.userId && item.worker.userId !== req.user.id && !req.user.isAdmin) {
+        return res.status(403).json({ 
+          error: '본인의 작업만 중단할 수 있습니다.' 
+        });
+      }
     }
     
     const success = await db.updateItemWorker(type, category, name, workerData);
