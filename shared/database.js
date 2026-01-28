@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const { Item } = require('./models/Item');
 const { Recipe } = require('./models/Recipe');
 const { Setting } = require('./models/Setting');
+const { User } = require('./models/User');
 const { DB_CONFIG } = require('./constants');
 
 // 변경 감지 관련
@@ -713,48 +714,51 @@ async function getCategories(type) {
   }
 }
 
-// 유저 등록/업데이트
+// 유저 등록/업데이트 (별도 User 컬렉션 사용)
 async function registerUser(userData) {
   try {
     console.log('📝 유저 등록/업데이트:', userData.username, userData.id);
     
-    // 먼저 기존 유저가 있는지 확인하고 업데이트 시도
-    const updateResult = await Setting.findOneAndUpdate(
-      { _id: 'global', 'registeredUsers.id': userData.id },
-      { 
-        $set: { 
-          'registeredUsers.$': userData 
-        } 
+    // upsert로 한 번에 처리 (있으면 업데이트, 없으면 생성)
+    const result = await User.findByIdAndUpdate(
+      userData.id,
+      {
+        _id: userData.id,
+        username: userData.username,
+        globalName: userData.globalName,
+        avatar: userData.avatar
       },
-      { new: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     
-    if (updateResult) {
-      // 기존 유저 업데이트 성공
-      console.log('✅ 유저 업데이트 완료:', userData.username);
-      const count = updateResult.registeredUsers?.length || 0;
-      console.log('📊 현재 등록된 유저 수:', count);
-      notifyChangeListeners();
-      return true;
-    }
+    const isNew = !result.createdAt || (Date.now() - new Date(result.createdAt).getTime() < 1000);
+    console.log(isNew ? '✅ 새 유저 추가:' : '✅ 유저 업데이트 완료:', userData.username);
     
-    // 기존 유저가 없으면 새로 추가 (atomic push)
-    const pushResult = await Setting.findByIdAndUpdate(
-      'global',
-      { 
-        $push: { registeredUsers: userData } 
-      },
-      { new: true, upsert: true }
-    );
-    
-    console.log('✅ 새 유저 추가:', userData.username);
-    const count = pushResult.registeredUsers?.length || 0;
+    const count = await User.countDocuments();
     console.log('📊 현재 등록된 유저 수:', count);
+    
     notifyChangeListeners();
     return true;
   } catch (error) {
     console.error('❌ 유저 등록 실패:', error);
     return false;
+  }
+}
+
+// 등록된 유저 목록 조회
+async function getRegisteredUsers() {
+  try {
+    const users = await User.find().lean();
+    return users.map(u => ({
+      id: u._id,
+      username: u.username,
+      globalName: u.globalName,
+      avatar: u.avatar,
+      registeredAt: u.registeredAt
+    }));
+  } catch (error) {
+    console.error('❌ 유저 목록 조회 실패:', error);
+    return [];
   }
 }
 
@@ -807,6 +811,7 @@ module.exports = {
   
   // 유저
   registerUser,
+  getRegisteredUsers,
   
   // 모델 (직접 접근용)
   Item,

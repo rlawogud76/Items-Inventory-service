@@ -168,7 +168,7 @@ router.post('/points/reset', authenticate, requireAdmin, async (req, res, next) 
 router.get('/users', authenticate, requireAdmin, async (req, res, next) => {
   try {
     const settings = await db.getSettings();
-    const registeredUsers = settings?.registeredUsers || [];
+    const registeredUsers = await db.getRegisteredUsers();
     const adminUserIds = settings?.adminUserIds || [];
     const serverOwnerId = settings?.serverOwnerId || process.env.SERVER_OWNER_ID;
     
