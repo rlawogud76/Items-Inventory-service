@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, NavLink } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   Plus, 
   Minus, 
@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Search,
   BookOpen,
-  RotateCcw
+  RotateCcw,
+  Undo2
 } from 'lucide-react'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -156,17 +157,17 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit
   return (
     <div className="bg-dark-200 rounded-lg p-4 hover:bg-dark-100/50 transition-colors group">
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <DiscordText className="text-lg">{item.emoji || '⭐'}</DiscordText>
           <DiscordText className="font-medium">{item.name}</DiscordText>
           {item.itemType === 'intermediate' && (
-            <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded">중간재</span>
+            <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded whitespace-nowrap">중간재</span>
           )}
           {/* 작업자 상태 */}
           {item.worker?.userId ? (
             <button
               onClick={() => user && (user.id === item.worker.userId || user.isAdmin) && onWorkerToggle(item, 'stop')}
-              className={`text-xs px-2 py-0.5 rounded transition-colors ${
+              className={`text-xs px-2 py-0.5 rounded transition-colors whitespace-nowrap ${
                 user && (user.id === item.worker.userId || user.isAdmin)
                   ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 cursor-pointer'
                   : 'bg-orange-500/20 text-orange-400 cursor-default'
@@ -178,7 +179,7 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit
           ) : user && (
             <button
               onClick={() => onWorkerToggle(item, 'start')}
-              className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded transition-colors opacity-0 group-hover:opacity-100"
+              className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded transition-colors opacity-0 group-hover:opacity-100 whitespace-nowrap"
             >
               작업 시작
             </button>
@@ -506,6 +507,22 @@ function Crafting() {
   const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   
+  // 되돌리기 기능
+  const [undoStack, setUndoStack] = useState([])
+  const [showUndo, setShowUndo] = useState(false)
+  
+  // 되돌리기 토스트 타이머
+  useEffect(() => {
+    if (undoStack.length > 0) {
+      setShowUndo(true)
+      const timer = setTimeout(() => {
+        setShowUndo(false)
+        setUndoStack([])
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [undoStack])
+  
   // 모달 상태
   const [itemModalOpen, setItemModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
@@ -676,12 +693,41 @@ function Crafting() {
   })
 
   const handleQuantityChange = (item, delta) => {
+    setUndoStack([{ 
+      item, 
+      prevValue: item.quantity, 
+      delta: -delta,
+      type: 'delta',
+      description: `${item.name}: ${delta > 0 ? '+' : ''}${delta}`
+    }])
     quantityMutation.mutate({ item, delta })
   }
 
   const handleQuantitySet = (item, value) => {
+    setUndoStack([{ 
+      item, 
+      prevValue: item.quantity, 
+      newValue: value,
+      type: 'set',
+      description: `${item.name}: ${item.quantity} → ${value}`
+    }])
     quantitySetMutation.mutate({ item, value })
   }
+
+  // 되돌리기 실행
+  const handleUndo = useCallback(() => {
+    if (undoStack.length === 0) return
+    
+    const lastAction = undoStack[0]
+    if (lastAction.type === 'delta') {
+      quantityMutation.mutate({ item: lastAction.item, delta: lastAction.delta })
+    } else if (lastAction.type === 'set') {
+      quantitySetMutation.mutate({ item: lastAction.item, value: lastAction.prevValue })
+    }
+    
+    setUndoStack([])
+    setShowUndo(false)
+  }, [undoStack, quantityMutation, quantitySetMutation])
 
   const handleWorkerToggle = (item, action) => {
     workerMutation.mutate({ item, action })
@@ -854,7 +900,7 @@ function Crafting() {
                     <span className="text-sm text-gray-400">({catItems.length})</span>
                   </h2>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {catItems.map((item) => (
                     <CraftingItemRow
                       key={`${item.category}-${item.name}`}
@@ -915,6 +961,30 @@ function Crafting() {
         isSaving={recipeMutation.isPending}
         isDeleting={recipeDeleteMutation.isPending}
       />
+      
+      {/* 되돌리기 토스트 */}
+      {showUndo && undoStack.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+          <div className="flex items-center gap-3 px-4 py-3 bg-dark-300 border border-dark-100 rounded-xl shadow-lg">
+            <span className="text-sm text-gray-300">
+              {undoStack[0].description}
+            </span>
+            <button
+              onClick={handleUndo}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Undo2 size={14} />
+              되돌리기
+            </button>
+            <button
+              onClick={() => { setShowUndo(false); setUndoStack([]); }}
+              className="p-1 hover:bg-dark-200 rounded text-gray-400"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

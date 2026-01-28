@@ -54,3 +54,19 @@ body {
   background-size: 200% 100%;
   animation: progress-shine 2s infinite;
 }
+
+/* Fade in animation for undo toast */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in-up 0.3s ease-out;
+}
