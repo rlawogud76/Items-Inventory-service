@@ -340,6 +340,21 @@ async function loadInventory() {
 // 아이템 수량 원자적 업데이트
 async function updateItemQuantity(type, category, itemName, delta, userName, action, details) {
   try {
+    // 먼저 현재 수량 확인 (차감 시 음수 방지)
+    if (delta < 0) {
+      const currentItem = await Item.findOne({ type, category, name: itemName });
+      if (currentItem) {
+        const newQuantity = currentItem.quantity + delta;
+        if (newQuantity < 0) {
+          // 음수가 되지 않도록 현재 수량만큼만 차감
+          delta = -currentItem.quantity;
+          if (delta === 0) {
+            return true; // 이미 0이면 아무것도 안 함
+          }
+        }
+      }
+    }
+    
     const result = await Item.findOneAndUpdate(
       { type, category, name: itemName },
       { $inc: { quantity: delta } },
