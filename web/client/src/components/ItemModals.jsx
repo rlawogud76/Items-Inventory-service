@@ -1,12 +1,36 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Plus, Trash2 } from 'lucide-react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import api from '../services/api'
 import { DiscordText } from '../utils/discordEmoji'
 
+// 수량 계산 상수
+const ITEMS_PER_SET = 64
+const ITEMS_PER_BOX = 64 * 54 // 3456
+
+// 분리된 수량을 총 수량으로 변환
+function calculateTotal(items, sets, boxes) {
+  return (parseInt(items) || 0) + (parseInt(sets) || 0) * ITEMS_PER_SET + (parseInt(boxes) || 0) * ITEMS_PER_BOX
+}
+
+// 총 수량을 분리된 수량으로 변환
+function splitQuantity(total) {
+  const boxes = Math.floor(total / ITEMS_PER_BOX)
+  const remaining = total % ITEMS_PER_BOX
+  const sets = Math.floor(remaining / ITEMS_PER_SET)
+  const items = remaining % ITEMS_PER_SET
+  return { items, sets, boxes }
+}
+
 export function ItemModal({ isOpen, onClose, type, categories = [], item = null }) {
   const queryClient = useQueryClient()
   const isEdit = !!item
+  
+  // itemType 정규화 (normal -> material)
+  const normalizeItemType = (itemType) => {
+    if (itemType === 'normal' || !itemType) return 'material'
+    return itemType
+  }
   
   const [formData, setFormData] = useState({
     name: item?.name || '',
@@ -16,8 +40,41 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
     emoji: item?.emoji || '',
     quantity: item?.quantity || 0,
     required: item?.required || 0,
-    itemType: item?.itemType || 'normal'
+    itemType: normalizeItemType(item?.itemType)
   })
+  
+  // 분리된 수량 입력 상태
+  const [quantityParts, setQuantityParts] = useState({ items: 0, sets: 0, boxes: 0 })
+  const [requiredParts, setRequiredParts] = useState({ items: 0, sets: 0, boxes: 0 })
+  
+  // 초기값 설정
+  useEffect(() => {
+    if (isOpen) {
+      setQuantityParts(splitQuantity(item?.quantity || 0))
+      setRequiredParts(splitQuantity(item?.required || 0))
+      // formData도 업데이트
+      setFormData({
+        name: item?.name || '',
+        category: item?.category || categories[0] || '',
+        newCategory: '',
+        useNewCategory: false,
+        emoji: item?.emoji || '',
+        quantity: item?.quantity || 0,
+        required: item?.required || 0,
+        itemType: normalizeItemType(item?.itemType)
+      })
+      setError('')
+    }
+  }, [isOpen, item])
+  
+  // 분리된 수량이 변경되면 총 수량 업데이트
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      quantity: calculateTotal(quantityParts.items, quantityParts.sets, quantityParts.boxes),
+      required: calculateTotal(requiredParts.items, requiredParts.sets, requiredParts.boxes)
+    }))
+  }, [quantityParts, requiredParts])
   
   const [error, setError] = useState('')
 
@@ -175,26 +232,83 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
           
           {/* 수량 - 추가 시에만 */}
           {!isEdit && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">현재 수량</label>
-                <input
-                  type="number"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
-                  min="0"
-                />
+                <label className="block text-sm text-gray-400 mb-2">현재 수량</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">상자</label>
+                    <input
+                      type="number"
+                      value={quantityParts.boxes}
+                      onChange={(e) => setQuantityParts({ ...quantityParts, boxes: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">세트</label>
+                    <input
+                      type="number"
+                      value={quantityParts.sets}
+                      onChange={(e) => setQuantityParts({ ...quantityParts, sets: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">낱개</label>
+                    <input
+                      type="number"
+                      value={quantityParts.items}
+                      onChange={(e) => setQuantityParts({ ...quantityParts, items: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      min="0"
+                    />
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500 mt-1 text-right">
+                  = 총 {formData.quantity.toLocaleString()}개
+                </div>
               </div>
+              
               <div>
-                <label className="block text-sm text-gray-400 mb-1">목표 수량</label>
-                <input
-                  type="number"
-                  value={formData.required}
-                  onChange={(e) => setFormData({ ...formData, required: e.target.value })}
-                  className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
-                  min="0"
-                />
+                <label className="block text-sm text-gray-400 mb-2">목표 수량</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">상자</label>
+                    <input
+                      type="number"
+                      value={requiredParts.boxes}
+                      onChange={(e) => setRequiredParts({ ...requiredParts, boxes: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">세트</label>
+                    <input
+                      type="number"
+                      value={requiredParts.sets}
+                      onChange={(e) => setRequiredParts({ ...requiredParts, sets: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">낱개</label>
+                    <input
+                      type="number"
+                      value={requiredParts.items}
+                      onChange={(e) => setRequiredParts({ ...requiredParts, items: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      min="0"
+                    />
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500 mt-1 text-right">
+                  = 총 {formData.required.toLocaleString()}개
+                </div>
               </div>
             </div>
           )}
@@ -202,14 +316,42 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
           {/* 목표 수량 - 수정 시 */}
           {isEdit && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">목표 수량</label>
-              <input
-                type="number"
-                value={formData.required}
-                onChange={(e) => setFormData({ ...formData, required: e.target.value })}
-                className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
-                min="0"
-              />
+              <label className="block text-sm text-gray-400 mb-2">목표 수량</label>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">상자</label>
+                  <input
+                    type="number"
+                    value={requiredParts.boxes}
+                    onChange={(e) => setRequiredParts({ ...requiredParts, boxes: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">세트</label>
+                  <input
+                    type="number"
+                    value={requiredParts.sets}
+                    onChange={(e) => setRequiredParts({ ...requiredParts, sets: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">낱개</label>
+                  <input
+                    type="number"
+                    value={requiredParts.items}
+                    onChange={(e) => setRequiredParts({ ...requiredParts, items: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                    min="0"
+                  />
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 mt-1 text-right">
+                = 총 {formData.required.toLocaleString()}개
+              </div>
             </div>
           )}
           
@@ -221,9 +363,15 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
               onChange={(e) => setFormData({ ...formData, itemType: e.target.value })}
               className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
             >
-              <option value="normal">일반</option>
-              <option value="intermediate">중간재</option>
+              <option value="material">재료</option>
+              <option value="intermediate">중간재료</option>
+              <option value="finished">완성품</option>
             </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.itemType === 'material' && '기본 재료입니다.'}
+              {formData.itemType === 'intermediate' && '제작 시 재료가 자동 차감됩니다.'}
+              {formData.itemType === 'finished' && '제작 시 재료가 자동 차감됩니다.'}
+            </p>
           </div>
           
           {/* 버튼 */}

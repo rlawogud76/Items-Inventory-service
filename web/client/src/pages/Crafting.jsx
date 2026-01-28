@@ -11,7 +11,8 @@ import {
   Search,
   BookOpen,
   RotateCcw,
-  Undo2
+  Undo2,
+  ArrowUpDown
 } from 'lucide-react'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -162,8 +163,15 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit
           <div className="flex items-center gap-2 flex-wrap">
             <DiscordText className="text-lg">{item.emoji || '⭐'}</DiscordText>
             <DiscordText className="font-medium">{item.name}</DiscordText>
+            {/* 아이템 타입 배지 */}
+            {(item.itemType === 'material' || item.itemType === 'normal' || !item.itemType) && (
+              <span className="text-xs px-2 py-0.5 bg-gray-500/20 text-gray-400 rounded whitespace-nowrap">재료</span>
+            )}
             {item.itemType === 'intermediate' && (
-              <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded whitespace-nowrap">중간재</span>
+              <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded whitespace-nowrap">중간재료</span>
+            )}
+            {item.itemType === 'finished' && (
+              <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded whitespace-nowrap">완성품</span>
             )}
             {/* 작업자 상태 */}
             {item.worker?.userId ? (
@@ -533,6 +541,7 @@ function Crafting() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState('default') // 'default', 'name', 'tag', 'quantity', 'progress'
   
   // 되돌리기 기능
   const [undoStack, setUndoStack] = useState([])
@@ -569,6 +578,13 @@ function Crafting() {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['items', 'crafting', category],
     queryFn: () => api.get(`/items/crafting${category ? `?category=${category}` : ''}`).then(res => res.data),
+  })
+
+  // 태그 데이터 조회 (카테고리 선택 시)
+  const { data: tags = [] } = useQuery({
+    queryKey: ['tags', 'crafting', category],
+    queryFn: () => api.get(`/tags/crafting/${encodeURIComponent(category)}`).then(res => res.data),
+    enabled: !!category,
   })
 
   // 레시피 조회
@@ -798,17 +814,78 @@ function Crafting() {
     return acc
   }, {})
 
+  // 아이템의 태그 찾기
+  const getItemTag = (itemName) => {
+    for (const tag of tags) {
+      if (tag.items?.includes(itemName)) {
+        return tag.name
+      }
+    }
+    return null
+  }
+
+  // 정렬 함수
+  const sortItems = (itemList) => {
+    const sorted = [...itemList]
+    
+    // 아이템 타입 순서: 재료 -> 중간재료 -> 완성품
+    const typeOrder = { 'material': 0, 'normal': 0, 'intermediate': 1, 'finished': 2 }
+    const getTypeOrder = (item) => typeOrder[item.itemType] ?? 0
+    
+    switch (sortBy) {
+      case 'name':
+        sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+        break
+      case 'tag':
+        sorted.sort((a, b) => {
+          const tagA = getItemTag(a.name) || 'zzz'
+          const tagB = getItemTag(b.name) || 'zzz'
+          if (tagA === tagB) return a.name.localeCompare(b.name, 'ko')
+          return tagA.localeCompare(tagB, 'ko')
+        })
+        break
+      case 'type':
+        // 타입순 (재료 -> 중간재료 -> 완성품)
+        sorted.sort((a, b) => {
+          const typeA = getTypeOrder(a)
+          const typeB = getTypeOrder(b)
+          if (typeA !== typeB) return typeA - typeB
+          return a.name.localeCompare(b.name, 'ko')
+        })
+        break
+      case 'quantity':
+        sorted.sort((a, b) => b.quantity - a.quantity)
+        break
+      case 'progress':
+        sorted.sort((a, b) => {
+          const progressA = a.required > 0 ? a.quantity / a.required : 1
+          const progressB = b.required > 0 ? b.quantity / b.required : 1
+          return progressA - progressB
+        })
+        break
+      default:
+        sorted.sort((a, b) => (a.order || 0) - (b.order || 0))
+    }
+    
+    return sorted
+  }
+
   // 검색 필터링
   const filteredItems = items.filter(item => 
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // 카테고리별 그룹핑
+  // 카테고리별 그룹핑 + 정렬 적용
   const groupedItems = category 
-    ? { [category]: filteredItems }
-    : filteredItems.reduce((acc, item) => {
-        if (!acc[item.category]) acc[item.category] = []
-        acc[item.category].push(item)
+    ? { [category]: sortItems(filteredItems) }
+    : Object.entries(
+        filteredItems.reduce((acc, item) => {
+          if (!acc[item.category]) acc[item.category] = []
+          acc[item.category].push(item)
+          return acc
+        }, {})
+      ).reduce((acc, [cat, catItems]) => {
+        acc[cat] = sortItems(catItems)
         return acc
       }, {})
 
@@ -891,6 +968,23 @@ function Crafting() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full sm:w-64 pl-10 pr-4 py-2 bg-dark-300 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
               />
+            </div>
+            
+            {/* 정렬 */}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="appearance-none pl-9 pr-4 py-2 bg-dark-300 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 cursor-pointer"
+              >
+                <option value="default">기본순</option>
+                <option value="name">가나다순</option>
+                <option value="type">타입순</option>
+                <option value="tag">태그순</option>
+                <option value="quantity">수량순</option>
+                <option value="progress">진행률순</option>
+              </select>
+              <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
             </div>
           </div>
         </div>

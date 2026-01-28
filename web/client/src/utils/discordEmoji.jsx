@@ -4,8 +4,9 @@ import React from 'react';
  * Discord 커스텀 이모지 패턴
  * <:name:id> - 일반 이모지
  * <a:name:id> - 애니메이션 이모지
+ * <:name:id:> - 끝에 콜론이 붙은 형식도 지원
  */
-const EMOJI_REGEX = /<(a)?:([^:]+):(\d+)>/g;
+const EMOJI_REGEX = /<(a)?:([^:]+):(\d+):?>/g;
 
 /**
  * Discord 이모지 ID로 CDN URL 생성

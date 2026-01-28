@@ -87,17 +87,69 @@ router.post('/', authenticate, requireFeature('manage'), async (req, res, next) 
   }
 });
 
-// 수량 업데이트 (원자적 연산)
+// 수량 업데이트 (원자적 연산) + 레시피 재료 연동 + 분야 간 연동
 router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('quantity'), async (req, res, next) => {
   try {
     const { type, category, name } = req.params;
-    const { delta, action = 'update_quantity' } = req.body;
+    const { delta, action = 'update_quantity', syncMaterials = true, syncLinked = true } = req.body;
     
     if (typeof delta !== 'number') {
       return res.status(400).json({ error: 'delta는 숫자여야 합니다.' });
     }
     
     const actionText = delta > 0 ? `추가: +${delta}개` : `차감: ${delta}개`;
+    
+    // 아이템 정보 조회 (레시피 연동 여부 확인)
+    const items = await db.getItems(type);
+    const item = items.find(i => i.name === name && i.category === category);
+    
+    if (!item) {
+      return res.status(404).json({ error: '아이템을 찾을 수 없습니다.' });
+    }
+    
+    // 중간재료/완성품이고 레시피가 있으면 재료 연동
+    if (syncMaterials && (item.itemType === 'intermediate' || item.itemType === 'finished') && delta !== 0) {
+      const recipes = await db.getRecipes(category);
+      const recipe = recipes.find(r => r.resultName === name);
+      
+      if (recipe && recipe.materials && recipe.materials.length > 0) {
+        // 수량 증가 시 재료 차감, 수량 감소 시 재료 복구
+        for (const material of recipe.materials) {
+          const materialDelta = -(delta * material.quantity); // 역방향
+          
+          // 재료는 inventory 타입에서 찾기
+          await db.updateItemQuantity(
+            'inventory',
+            material.category,
+            material.name,
+            materialDelta,
+            req.user.username,
+            'recipe_sync',
+            `[레시피 연동] ${name} ${delta > 0 ? '제작' : '취소'}: ${materialDelta > 0 ? '+' : ''}${materialDelta}개`
+          );
+        }
+      }
+    }
+    
+    // 분야 간 연동 (inventory <-> crafting)
+    if (syncLinked && delta !== 0) {
+      const otherType = type === 'inventory' ? 'crafting' : 'inventory';
+      const otherItems = await db.getItems(otherType);
+      const linkedItem = otherItems.find(i => i.name === name && i.category === category);
+      
+      if (linkedItem) {
+        // 연동된 아이템 수량도 같이 변경 (무한 루프 방지를 위해 syncLinked: false)
+        await db.updateItemQuantity(
+          otherType,
+          category,
+          name,
+          delta,
+          req.user.username,
+          'linked_sync',
+          `[분야 연동] ${type === 'inventory' ? '재고' : '제작'}→${otherType === 'inventory' ? '재고' : '제작'}: ${delta > 0 ? '+' : ''}${delta}개`
+        );
+      }
+    }
     
     const success = await db.updateItemQuantity(
       type, 
@@ -119,14 +171,66 @@ router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('qu
   }
 });
 
-// 수량 직접 설정 (절대값으로 설정)
+// 수량 직접 설정 (절대값으로 설정) + 레시피 재료 연동 + 분야 간 연동
 router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature('quantity'), async (req, res, next) => {
   try {
     const { type, category, name } = req.params;
-    const { value } = req.body;
+    const { value, syncMaterials = true, syncLinked = true } = req.body;
     
     if (typeof value !== 'number' || value < 0) {
       return res.status(400).json({ error: 'value는 0 이상의 숫자여야 합니다.' });
+    }
+    
+    // 아이템 정보 조회 (레시피 연동 여부 확인)
+    const items = await db.getItems(type);
+    const item = items.find(i => i.name === name && i.category === category);
+    
+    if (!item) {
+      return res.status(404).json({ error: '아이템을 찾을 수 없습니다.' });
+    }
+    
+    const delta = value - item.quantity; // 변화량 계산
+    
+    // 중간재료/완성품이고 레시피가 있으면 재료 연동
+    if (syncMaterials && (item.itemType === 'intermediate' || item.itemType === 'finished') && delta !== 0) {
+      const recipes = await db.getRecipes(category);
+      const recipe = recipes.find(r => r.resultName === name);
+      
+      if (recipe && recipe.materials && recipe.materials.length > 0) {
+        for (const material of recipe.materials) {
+          const materialDelta = -(delta * material.quantity);
+          
+          await db.updateItemQuantity(
+            'inventory',
+            material.category,
+            material.name,
+            materialDelta,
+            req.user.username,
+            'recipe_sync',
+            `[레시피 연동] ${name} ${delta > 0 ? '제작' : '취소'}: ${materialDelta > 0 ? '+' : ''}${materialDelta}개`
+          );
+        }
+      }
+    }
+    
+    // 분야 간 연동 (inventory <-> crafting)
+    if (syncLinked && delta !== 0) {
+      const otherType = type === 'inventory' ? 'crafting' : 'inventory';
+      const otherItems = await db.getItems(otherType);
+      const linkedItem = otherItems.find(i => i.name === name && i.category === category);
+      
+      if (linkedItem) {
+        // 연동된 아이템도 같은 값으로 설정
+        await db.setItemQuantity(
+          otherType,
+          category,
+          name,
+          value,
+          req.user.username,
+          'linked_sync',
+          `[분야 연동] ${type === 'inventory' ? '재고' : '제작'}→${otherType === 'inventory' ? '재고' : '제작'}: ${value}개로 설정`
+        );
+      }
     }
     
     const success = await db.setItemQuantity(
