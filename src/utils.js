@@ -9,10 +9,38 @@ import { STACK, LIMITS, UI, EMOJIS } from './constants.js';
  * @returns {string} - 표시할 이름
  */
 export function getDisplayName(interaction) {
-  // interaction.member?.displayName: 서버 닉네임 (guild에서만 사용 가능)
-  // interaction.user.displayName: 전역 표시 이름
+  // 디버그 로그
+  console.log('🔍 getDisplayName 디버그:', {
+    memberNickname: interaction.member?.nickname,
+    memberDisplayName: interaction.member?.displayName,
+    userGlobalName: interaction.user?.globalName,
+    userDisplayName: interaction.user?.displayName,
+    userUsername: interaction.user?.username,
+    hasMember: !!interaction.member
+  });
+  
+  // interaction.member?.nickname: 순수 서버 닉네임 (설정 안됐으면 null)
+  // interaction.member?.displayName: 서버 닉네임 또는 유저 표시이름
+  // interaction.user.globalName: 전역 표시 이름
   // interaction.user.username: 기본 유저네임
-  return interaction.member?.displayName || interaction.user.displayName || interaction.user.username;
+  
+  // 서버 닉네임이 있으면 우선 사용
+  if (interaction.member?.nickname) {
+    return interaction.member.nickname;
+  }
+  
+  // 서버 멤버의 displayName 확인 (닉네임 또는 전역 표시이름)
+  if (interaction.member?.displayName) {
+    return interaction.member.displayName;
+  }
+  
+  // 유저의 전역 표시 이름 (Discord 프로필에 설정된 이름)
+  if (interaction.user.globalName) {
+    return interaction.user.globalName;
+  }
+  
+  // 최종 폴백: 유저네임
+  return interaction.user.username;
 }
 
 /**
