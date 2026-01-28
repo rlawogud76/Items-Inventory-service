@@ -101,7 +101,7 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit
 
   const handlePresetClick = (value) => {
     onQuantityChange(item, value)
-    setShowPresets(false)
+    // 드롭다운 유지 - 연속 증감 가능
   }
 
   const percentage = item.required > 0 
