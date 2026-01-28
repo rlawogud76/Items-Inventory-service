@@ -1,11 +1,12 @@
 // 권한 설정 셀렉트 핸들러
 
 import { updateSettings } from '../../database.js';
-import { isServerOwner, replyNoPermission } from '../../utils.js';
+import { isAdmin, isServerOwner, replyNoPermission } from '../../utils.js';
 
 export async function handlePermissionMemberSelect(interaction) {
-  if (!(await isServerOwner(interaction))) {
-    return await replyNoPermission(interaction, '서버장만 멤버 권한을 설정할 수 있습니다');
+  // 관리자 또는 서버장만 멤버 권한 설정 가능
+  if (!(await isAdmin(interaction)) && !(await isServerOwner(interaction))) {
+    return await replyNoPermission(interaction, '관리자 또는 서버장만 멤버 권한을 설정할 수 있습니다');
   }
 
   const selected = interaction.values || [];

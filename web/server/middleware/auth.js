@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const db = require('shared/database');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const SERVER_OWNER_ID = process.env.SERVER_OWNER_ID; // 서버장 Discord ID
 
 // 인증 미들웨어
 async function authenticate(req, res, next) {
@@ -17,6 +18,7 @@ async function authenticate(req, res, next) {
     // 관리자 여부 확인
     const settings = await db.getSettings();
     decoded.isAdmin = settings?.adminUserIds?.includes(decoded.id) || false;
+    decoded.isServerOwner = decoded.id === SERVER_OWNER_ID || decoded.id === settings?.serverOwnerId;
     decoded.adminAllowedFeatures = settings?.adminAllowedFeatureKeys || ['*'];
     decoded.memberAllowedFeatures = settings?.memberAllowedFeatureKeys || ['*'];
     
@@ -47,8 +49,16 @@ async function optionalAuth(req, res, next) {
 
 // 관리자 전용
 function requireAdmin(req, res, next) {
-  if (!req.user?.isAdmin) {
+  if (!req.user?.isAdmin && !req.user?.isServerOwner) {
     return res.status(403).json({ error: '관리자 권한이 필요합니다.' });
+  }
+  next();
+}
+
+// 서버장 전용
+function requireServerOwner(req, res, next) {
+  if (!req.user?.isServerOwner) {
+    return res.status(403).json({ error: '서버장만 접근할 수 있습니다.' });
   }
   next();
 }
@@ -77,5 +87,6 @@ module.exports = {
   authenticate,
   optionalAuth,
   requireAdmin,
+  requireServerOwner,
   requireFeature
 };

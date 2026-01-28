@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('shared/database');
-const { authenticate, requireAdmin, requireFeature } = require('../middleware/auth');
+const { authenticate, requireAdmin, requireServerOwner, requireFeature } = require('../middleware/auth');
 
 // 설정 조회
 router.get('/', async (req, res, next) => {
@@ -60,11 +60,20 @@ router.get('/permissions', authenticate, requireAdmin, async (req, res, next) =>
   }
 });
 
-// 권한 설정 수정 (관리자 전용)
+// 권한 설정 수정 
+// - 관리자 목록, 관리자 권한: 서버장만 가능
+// - 멤버 권한: 관리자 또는 서버장 가능
 router.patch('/permissions', authenticate, requireAdmin, async (req, res, next) => {
   try {
     const { adminUserIds, adminAllowedFeatureKeys, memberAllowedFeatureKeys } = req.body;
     const updates = {};
+    
+    // 관리자 목록 및 관리자 권한 변경은 서버장만 가능
+    if (adminUserIds !== undefined || adminAllowedFeatureKeys !== undefined) {
+      if (!req.user?.isServerOwner) {
+        return res.status(403).json({ error: '관리자 설정은 서버장만 변경할 수 있습니다.' });
+      }
+    }
     
     if (adminUserIds !== undefined) {
       updates.adminUserIds = adminUserIds;

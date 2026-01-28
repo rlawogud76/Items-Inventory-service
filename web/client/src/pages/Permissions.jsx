@@ -35,7 +35,7 @@ function Permissions() {
   const { data: permissions, isLoading, error } = useQuery({
     queryKey: ['permissions'],
     queryFn: () => api.get('/settings/permissions').then(res => res.data),
-    enabled: !!user?.isAdmin,
+    enabled: !!(user?.isAdmin || user?.isServerOwner),
   })
 
   useEffect(() => {
@@ -128,10 +128,16 @@ function Permissions() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    mutation.mutate(formData)
+    
+    // 서버장이 아닌 경우 멤버 권한만 수정
+    if (!user?.isServerOwner) {
+      mutation.mutate({ memberAllowedFeatureKeys: formData.memberAllowedFeatureKeys })
+    } else {
+      mutation.mutate(formData)
+    }
   }
 
-  if (!user?.isAdmin) {
+  if (!user?.isAdmin && !user?.isServerOwner) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center text-gray-400">
@@ -170,14 +176,18 @@ function Permissions() {
       </h1>
 
       <p className="text-gray-400 text-sm">
-        Discord 봇의 권한을 설정합니다. 웹 대시보드의 권한은 Discord 로그인 정보를 기반으로 합니다.
+        Discord 봇의 권한을 설정합니다.
+        {user?.isServerOwner 
+          ? ' 서버장으로 모든 권한을 수정할 수 있습니다.' 
+          : ' 관리자는 멤버 권한만 수정할 수 있습니다.'}
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 관리자 목록 */}
-        <div className="bg-dark-300 rounded-xl p-6 border border-dark-100">
+        {/* 관리자 목록 - 서버장만 수정 가능 */}
+        <div className={`bg-dark-300 rounded-xl p-6 border border-dark-100 ${!user?.isServerOwner ? 'opacity-60' : ''}`}>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             👑 관리자 목록
+            {!user?.isServerOwner && <span className="text-xs text-yellow-500">(서버장만 수정 가능)</span>}
           </h2>
           <p className="text-sm text-gray-400 mb-4">
             Discord 사용자 ID를 입력하여 관리자를 추가합니다.
@@ -190,12 +200,14 @@ function Permissions() {
               value={newAdminId}
               onChange={(e) => setNewAdminId(e.target.value)}
               placeholder="Discord 사용자 ID (예: 123456789012345678)"
-              className="flex-1 px-4 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
+              disabled={!user?.isServerOwner}
+              className="flex-1 px-4 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 disabled:opacity-50"
             />
             <button
               type="button"
               onClick={handleAddAdmin}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg"
+              disabled={!user?.isServerOwner}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <UserPlus size={18} />
               추가
@@ -209,23 +221,26 @@ function Permissions() {
               formData.adminUserIds.map(id => (
                 <div key={id} className="flex items-center justify-between py-2 px-3 bg-dark-200 rounded-lg">
                   <span className="font-mono text-sm">{id}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveAdmin(id)}
-                    className="p-1 hover:bg-dark-100 rounded text-red-400 hover:text-red-300"
-                  >
-                    <X size={16} />
-                  </button>
+                  {user?.isServerOwner && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAdmin(id)}
+                      className="p-1 hover:bg-dark-100 rounded text-red-400 hover:text-red-300"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
                 </div>
               ))
             )}
           </div>
         </div>
 
-        {/* 관리자 권한 범위 */}
-        <div className="bg-dark-300 rounded-xl p-6 border border-dark-100">
+        {/* 관리자 권한 범위 - 서버장만 수정 가능 */}
+        <div className={`bg-dark-300 rounded-xl p-6 border border-dark-100 ${!user?.isServerOwner ? 'opacity-60' : ''}`}>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             🛡️ 관리자 권한 범위
+            {!user?.isServerOwner && <span className="text-xs text-yellow-500">(서버장만 수정 가능)</span>}
           </h2>
           <p className="text-sm text-gray-400 mb-4">
             관리자가 사용할 수 있는 기능을 선택합니다.
@@ -233,12 +248,13 @@ function Permissions() {
           
           <div className="space-y-3">
             {/* 모든 권한 */}
-            <label className="flex items-center gap-3 p-3 bg-dark-200 rounded-lg cursor-pointer hover:bg-dark-100">
+            <label className={`flex items-center gap-3 p-3 bg-dark-200 rounded-lg ${user?.isServerOwner ? 'cursor-pointer hover:bg-dark-100' : 'cursor-not-allowed'}`}>
               <input
                 type="checkbox"
                 checked={formData.adminAllowedFeatureKeys.includes('*')}
                 onChange={() => toggleFeatureKey('admin', '*')}
-                className="w-5 h-5 rounded border-dark-100 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 bg-dark-100"
+                disabled={!user?.isServerOwner}
+                className="w-5 h-5 rounded border-dark-100 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 bg-dark-100 disabled:opacity-50"
               />
               <div className="flex-1">
                 <span className="font-medium">모든 권한</span>
@@ -254,13 +270,13 @@ function Permissions() {
               {FEATURE_KEYS.map(feature => (
                 <label
                   key={feature.key}
-                  className="flex items-center gap-3 p-3 bg-dark-200 rounded-lg cursor-pointer hover:bg-dark-100"
+                  className={`flex items-center gap-3 p-3 bg-dark-200 rounded-lg ${user?.isServerOwner && !formData.adminAllowedFeatureKeys.includes('*') ? 'cursor-pointer hover:bg-dark-100' : 'cursor-not-allowed'}`}
                 >
                   <input
                     type="checkbox"
                     checked={isFeatureSelected('admin', feature.key)}
                     onChange={() => toggleFeatureKey('admin', feature.key)}
-                    disabled={formData.adminAllowedFeatureKeys.includes('*')}
+                    disabled={!user?.isServerOwner || formData.adminAllowedFeatureKeys.includes('*')}
                     className="w-4 h-4 rounded border-dark-100 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 bg-dark-100 disabled:opacity-50"
                   />
                   <div className="flex-1">
@@ -273,10 +289,11 @@ function Permissions() {
           </div>
         </div>
 
-        {/* 멤버 권한 범위 */}
+        {/* 멤버 권한 범위 - 관리자도 수정 가능 */}
         <div className="bg-dark-300 rounded-xl p-6 border border-dark-100">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             👤 멤버 권한 범위
+            <span className="text-xs text-green-500">(관리자도 수정 가능)</span>
           </h2>
           <p className="text-sm text-gray-400 mb-4">
             일반 멤버가 사용할 수 있는 기능을 선택합니다.

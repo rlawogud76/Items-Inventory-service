@@ -92,17 +92,20 @@ router.get('/me', async (req, res) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // 관리자 여부 확인
+    // 관리자/서버장 여부 확인
     const db = require('shared/database');
     const settings = await db.getSettings();
     const isAdmin = settings?.adminUserIds?.includes(decoded.id) || false;
+    const SERVER_OWNER_ID = process.env.SERVER_OWNER_ID;
+    const isServerOwner = decoded.id === SERVER_OWNER_ID || decoded.id === settings?.serverOwnerId;
     
     res.json({
       id: decoded.id,
       username: decoded.username,
       discriminator: decoded.discriminator,
       avatar: decoded.avatar,
-      isAdmin
+      isAdmin,
+      isServerOwner
     });
   } catch (error) {
     res.status(401).json({ error: '유효하지 않은 토큰' });

@@ -58,7 +58,7 @@ function Layout() {
           {/* 가운데: 네비게이션 (데스크톱) */}
           <nav className="hidden lg:flex items-center gap-1">
             {navItems
-              .filter(item => !item.adminOnly || user?.isAdmin)
+              .filter(item => !item.adminOnly || user?.isAdmin || user?.isServerOwner)
               .map((item) => (
               <NavLink
                 key={item.path}
@@ -136,7 +136,7 @@ function Layout() {
       >
         <nav className="p-4 flex flex-col gap-2">
           {navItems
-            .filter(item => !item.adminOnly || user?.isAdmin)
+            .filter(item => !item.adminOnly || user?.isAdmin || user?.isServerOwner)
             .map((item) => (
             <NavLink
               key={item.path}
