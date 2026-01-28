@@ -12,13 +12,31 @@ import {
   BookOpen,
   RotateCcw,
   Undo2,
-  ArrowUpDown
+  ArrowUpDown,
+  Tag,
+  Filter
 } from 'lucide-react'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { DiscordText } from '../utils/discordEmoji'
 import { ItemModal, DeleteConfirmModal, ResetConfirmModal, RecipeModal } from '../components/ItemModals'
 import clsx from 'clsx'
+
+// 태그 색상 정의
+const TAG_COLORS = {
+  default: { bg: 'bg-gray-600', text: 'text-gray-300', dot: 'bg-gray-400' },
+  red: { bg: 'bg-red-600/20', text: 'text-red-400', dot: 'bg-red-500' },
+  orange: { bg: 'bg-orange-600/20', text: 'text-orange-400', dot: 'bg-orange-500' },
+  yellow: { bg: 'bg-yellow-600/20', text: 'text-yellow-400', dot: 'bg-yellow-500' },
+  green: { bg: 'bg-green-600/20', text: 'text-green-400', dot: 'bg-green-500' },
+  blue: { bg: 'bg-blue-600/20', text: 'text-blue-400', dot: 'bg-blue-500' },
+  purple: { bg: 'bg-purple-600/20', text: 'text-purple-400', dot: 'bg-purple-500' },
+  pink: { bg: 'bg-pink-600/20', text: 'text-pink-400', dot: 'bg-pink-500' },
+}
+
+function getTagColor(color) {
+  return TAG_COLORS[color] || TAG_COLORS.default
+}
 
 function ProgressBar({ current, target }) {
   const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0
@@ -76,7 +94,7 @@ function decomposeQuantity(total) {
   return { boxes, sets, items }
 }
 
-function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit, onDelete, onWorkerToggle, onRecipeEdit }) {
+function CraftingItemRow({ item, recipe, itemTag, onQuantityChange, onQuantitySet, onEdit, onDelete, onWorkerToggle, onRecipeEdit }) {
   const { user } = useAuth()
   const [editMode, setEditMode] = useState(null) // null, 'delta', 'set'
   
@@ -172,6 +190,17 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit
             )}
             {item.itemType === 'finished' && (
               <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded whitespace-nowrap">완성품</span>
+            )}
+            {/* 태그 배지 */}
+            {itemTag && (
+              <span className={clsx(
+                'text-xs px-2 py-0.5 rounded whitespace-nowrap flex items-center gap-1',
+                getTagColor(itemTag.color).bg,
+                getTagColor(itemTag.color).text
+              )}>
+                <span className={clsx('w-2 h-2 rounded-full', getTagColor(itemTag.color).dot)} />
+                {itemTag.name}
+              </span>
             )}
             {/* 작업자 상태 */}
             {item.worker?.userId ? (
@@ -541,7 +570,8 @@ function Crafting() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortBy, setSortBy] = useState('default') // 'default', 'name', 'tag', 'quantity', 'progress'
+  const [sortBy, setSortBy] = useState('default') // 'default', 'name', 'type', 'tag', 'quantity', 'progress'
+  const [filterTag, setFilterTag] = useState('') // 태그 필터링
   
   // 되돌리기 기능
   const [undoStack, setUndoStack] = useState([])
@@ -824,6 +854,21 @@ function Crafting() {
     return null
   }
 
+  // 태그 조회 함수
+  const getItemTagInfo = (itemName) => {
+    for (const tag of tags) {
+      if (tag.items?.includes(itemName)) {
+        return tag
+      }
+    }
+    return null
+  }
+
+  const getItemTag = (itemName) => {
+    const tag = getItemTagInfo(itemName)
+    return tag ? tag.name : null
+  }
+
   // 정렬 함수
   const sortItems = (itemList) => {
     const sorted = [...itemList]
@@ -870,10 +915,41 @@ function Crafting() {
     return sorted
   }
 
-  // 검색 필터링
-  const filteredItems = items.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // 검색 + 태그 필터링
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesTag = !filterTag || getItemTag(item.name) === filterTag
+    return matchesSearch && matchesTag
+  })
+
+  // 태그별 그룹핑 함수
+  const groupByTag = (itemList) => {
+    const grouped = {}
+    const noTag = []
+    
+    for (const item of itemList) {
+      const tag = getItemTagInfo(item.name)
+      if (tag) {
+        if (!grouped[tag.name]) {
+          grouped[tag.name] = { tag, items: [] }
+        }
+        grouped[tag.name].items.push(item)
+      } else {
+        noTag.push(item)
+      }
+    }
+    
+    // 태그별로 정렬된 결과 반환
+    const result = Object.values(grouped).sort((a, b) => 
+      a.tag.name.localeCompare(b.tag.name, 'ko')
+    )
+    
+    if (noTag.length > 0) {
+      result.push({ tag: { name: '태그 없음', color: 'default' }, items: noTag })
+    }
+    
+    return result
+  }
 
   // 카테고리별 그룹핑 + 정렬 적용
   const groupedItems = category 
@@ -888,6 +964,9 @@ function Crafting() {
         acc[cat] = sortItems(catItems)
         return acc
       }, {})
+
+  // 태그순 정렬일 때 태그별 그룹
+  const tagGroupedItems = sortBy === 'tag' && category ? groupByTag(filteredItems) : null
 
   return (
     <div className="flex gap-6">
@@ -986,6 +1065,23 @@ function Crafting() {
               </select>
               <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
             </div>
+
+            {/* 태그 필터 */}
+            {category && tags.length > 0 && (
+              <div className="relative">
+                <select
+                  value={filterTag}
+                  onChange={(e) => setFilterTag(e.target.value)}
+                  className="appearance-none pl-9 pr-4 py-2 bg-dark-300 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 cursor-pointer"
+                >
+                  <option value="">모든 태그</option>
+                  {tags.map((tag) => (
+                    <option key={tag.name} value={tag.name}>{tag.name}</option>
+                  ))}
+                </select>
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+              </div>
+            )}
           </div>
         </div>
 
@@ -1011,6 +1107,40 @@ function Crafting() {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
           </div>
+        ) : tagGroupedItems ? (
+          /* 태그순 정렬 - 태그별 그룹 표시 */
+          <div className="space-y-6">
+            {tagGroupedItems.map(({ tag, items: tagItems }) => (
+              <div key={tag.name}>
+                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <span 
+                    className={clsx(
+                      'w-3 h-3 rounded-full',
+                      getTagColor(tag.color).dot
+                    )}
+                  />
+                  <span>{tag.name}</span>
+                  <span className="text-sm text-gray-400">({tagItems.length})</span>
+                </h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {tagItems.map((item) => (
+                    <CraftingItemRow
+                      key={`${item.category}-${item.name}`}
+                      item={item}
+                      recipe={recipeMap[`${item.category}-${item.name}`]}
+                      itemTag={getItemTagInfo(item.name)}
+                      onQuantityChange={handleQuantityChange}
+                      onQuantitySet={handleQuantitySet}
+                      onEdit={handleEditItem}
+                      onDelete={handleDeleteItem}
+                      onWorkerToggle={handleWorkerToggle}
+                      onRecipeEdit={handleRecipeEdit}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : Object.keys(groupedItems).length > 0 ? (
           <div className="space-y-6">
             {Object.entries(groupedItems).map(([cat, catItems]) => (
@@ -1027,6 +1157,7 @@ function Crafting() {
                       key={`${item.category}-${item.name}`}
                       item={item}
                       recipe={recipeMap[`${item.category}-${item.name}`]}
+                      itemTag={getItemTagInfo(item.name)}
                       onQuantityChange={handleQuantityChange}
                       onQuantitySet={handleQuantitySet}
                       onEdit={handleEditItem}

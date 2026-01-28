@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { io } from 'socket.io-client'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -17,7 +17,24 @@ const getSocketUrl = () => {
 export function SocketProvider({ children }) {
   const [socket, setSocket] = useState(null)
   const [connected, setConnected] = useState(false)
+  const [toasts, setToasts] = useState([])
   const queryClient = useQueryClient()
+
+  // 토스트 추가 함수
+  const addToast = useCallback((toast) => {
+    const id = Date.now() + Math.random()
+    setToasts(prev => [...prev, { ...toast, id }])
+    
+    // 5초 후 자동 제거
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id))
+    }, 5000)
+  }, [])
+
+  // 토스트 제거 함수
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }, [])
 
   useEffect(() => {
     const socketInstance = io(getSocketUrl(), {
@@ -44,15 +61,53 @@ export function SocketProvider({ children }) {
       queryClient.invalidateQueries({ queryKey: ['history'] })
     })
 
+    // 활동 알림 (수량 변경, 작업자 변경)
+    socketInstance.on('activity', (data) => {
+      console.log('📢 활동 알림:', data)
+      
+      let message = ''
+      let icon = ''
+      
+      if (data.type === 'quantity') {
+        if (data.action === 'add') {
+          message = `${data.userName}님이 ${data.itemName}에 ${Math.abs(data.delta)}개 추가`
+          icon = '➕'
+        } else if (data.action === 'subtract') {
+          message = `${data.userName}님이 ${data.itemName}에서 ${Math.abs(data.delta)}개 차감`
+          icon = '➖'
+        } else if (data.action === 'set') {
+          message = `${data.userName}님이 ${data.itemName}을 ${data.value}개로 설정`
+          icon = '📝'
+        }
+      } else if (data.type === 'worker') {
+        if (data.action === 'start') {
+          message = `${data.userName}님이 ${data.itemName} 작업 시작`
+          icon = '🔨'
+        } else if (data.action === 'stop') {
+          message = `${data.userName}님이 ${data.itemName} 작업 완료`
+          icon = '✅'
+        }
+      }
+      
+      if (message) {
+        addToast({
+          message,
+          icon,
+          type: data.type,
+          action: data.action
+        })
+      }
+    })
+
     setSocket(socketInstance)
 
     return () => {
       socketInstance.disconnect()
     }
-  }, [queryClient])
+  }, [queryClient, addToast])
 
   return (
-    <SocketContext.Provider value={{ socket, connected }}>
+    <SocketContext.Provider value={{ socket, connected, toasts, removeToast }}>
       {children}
     </SocketContext.Provider>
   )

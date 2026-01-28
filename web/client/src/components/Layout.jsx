@@ -1,4 +1,5 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { 
   Package, 
   Hammer, 
@@ -14,17 +15,21 @@ import {
   Star,
   Shield,
   Tag,
-  Users
+  Users,
+  Calendar,
+  Bell
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useSocket } from '../contexts/SocketContext'
+import api from '../services/api'
 import clsx from 'clsx'
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: '대시보드' },
   { path: '/inventory', icon: Package, label: '재고' },
   { path: '/crafting', icon: Hammer, label: '제작' },
+  { path: '/calendar', icon: Calendar, label: '일정' },
   { path: '/tags', icon: Tag, label: '태그' },
   { path: '/contributions', icon: Trophy, label: '기여도', featureKey: 'contribution' },
   { path: '/history', icon: History, label: '수정내역', featureKey: 'history' },
@@ -36,9 +41,30 @@ const navItems = [
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [notificationOpen, setNotificationOpen] = useState(false)
+  const notificationRef = useRef(null)
   const { user, logout, hasFeature, getRoleName } = useAuth()
-  const { connected } = useSocket()
+  const { connected, toasts, removeToast } = useSocket()
   const location = useLocation()
+
+  // 다가오는 이벤트 조회 (알림용)
+  const { data: upcomingEvents = [] } = useQuery({
+    queryKey: ['events', 'upcoming'],
+    queryFn: () => api.get('/events/upcoming').then(res => res.data),
+    enabled: !!user,
+    refetchInterval: 5 * 60 * 1000, // 5분마다 리페치
+  })
+
+  // 외부 클릭 감지
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setNotificationOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // 메뉴 필터링: 관리자 전용 + 권한 체크
   const filteredNavItems = navItems.filter(item => {
@@ -90,8 +116,77 @@ function Layout() {
             ))}
           </nav>
 
-          {/* 오른쪽: 상태 + 유저 */}
+          {/* 오른쪽: 알림 + 상태 + 유저 */}
           <div className="flex items-center gap-4">
+            {/* 알림 벨 */}
+            {user && (
+              <div className="relative" ref={notificationRef}>
+                <button
+                  onClick={() => setNotificationOpen(!notificationOpen)}
+                  className="relative p-2 hover:bg-dark-200 rounded-lg text-gray-400 hover:text-white"
+                >
+                  <Bell size={20} />
+                  {upcomingEvents.length > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                  )}
+                </button>
+
+                {/* 알림 드롭다운 */}
+                {notificationOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-dark-300 border border-dark-100 rounded-xl shadow-xl z-50">
+                    <div className="p-3 border-b border-dark-100">
+                      <h3 className="font-medium">다가오는 일정</h3>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {upcomingEvents.length > 0 ? (
+                        upcomingEvents.map((event, idx) => {
+                          const eventDate = new Date(event._instanceDate || event.startDate)
+                          const isToday = eventDate.toDateString() === new Date().toDateString()
+                          return (
+                            <NavLink
+                              key={idx}
+                              to="/calendar"
+                              onClick={() => setNotificationOpen(false)}
+                              className="block px-3 py-2 hover:bg-dark-200 transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={clsx(
+                                  'w-2 h-2 rounded-full flex-shrink-0',
+                                  event.color === 'red' && 'bg-red-500',
+                                  event.color === 'orange' && 'bg-orange-500',
+                                  event.color === 'yellow' && 'bg-yellow-500',
+                                  event.color === 'green' && 'bg-green-500',
+                                  event.color === 'blue' && 'bg-blue-500',
+                                  event.color === 'purple' && 'bg-purple-500',
+                                  event.color === 'pink' && 'bg-pink-500',
+                                  (!event.color || event.color === 'default') && 'bg-gray-400'
+                                )} />
+                                <span className="font-medium text-sm truncate">{event.title}</span>
+                              </div>
+                              <div className="text-xs text-gray-400 mt-0.5 ml-4">
+                                {isToday ? '오늘' : '내일'} · {eventDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                              </div>
+                            </NavLink>
+                          )
+                        })
+                      ) : (
+                        <div className="p-4 text-center text-gray-500 text-sm">
+                          예정된 일정이 없습니다
+                        </div>
+                      )}
+                    </div>
+                    <NavLink
+                      to="/calendar"
+                      onClick={() => setNotificationOpen(false)}
+                      className="block p-2 text-center text-sm text-primary-400 hover:bg-dark-200 border-t border-dark-100"
+                    >
+                      캘린더 보기
+                    </NavLink>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 연결 상태 */}
             <div className="flex items-center gap-2 text-sm">
               {connected ? (
@@ -177,6 +272,28 @@ function Layout() {
           <Outlet />
         </div>
       </main>
+
+      {/* 활동 토스트 알림 (왼쪽 아래) */}
+      <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2 max-w-sm">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={clsx(
+              'flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg animate-fade-in',
+              'bg-dark-300 border border-dark-100 text-white'
+            )}
+          >
+            <span className="text-lg">{toast.icon}</span>
+            <span className="text-sm flex-1">{toast.message}</span>
+            <button
+              onClick={() => removeToast(toast.id)}
+              className="text-gray-400 hover:text-white text-lg leading-none"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

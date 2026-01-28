@@ -18,6 +18,7 @@ const tagRoutes = require('./routes/tags');
 const contributionRoutes = require('./routes/contributions');
 const historyRoutes = require('./routes/history');
 const settingRoutes = require('./routes/settings');
+const eventRoutes = require('./routes/events');
 
 const app = express();
 const server = http.createServer(app);
@@ -76,6 +77,9 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// io 객체를 app에 첨부 (라우트에서 접근 가능)
+app.set('io', io);
+
 // 테스트용 루트 엔드포인트
 app.get('/test', (req, res) => {
   res.json({ message: 'Server is working!' });
@@ -89,6 +93,7 @@ app.use('/api/tags', tagRoutes);
 app.use('/api/contributions', contributionRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/settings', settingRoutes);
+app.use('/api/events', eventRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

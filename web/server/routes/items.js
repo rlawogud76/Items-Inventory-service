@@ -165,6 +165,21 @@ router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('qu
       return res.status(404).json({ error: '아이템을 찾을 수 없습니다.' });
     }
     
+    // 소켓으로 알림 브로드캐스트
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('activity', {
+        type: 'quantity',
+        action: delta > 0 ? 'add' : 'subtract',
+        itemName: name,
+        category,
+        itemType: type,
+        delta,
+        userName: req.user.username || req.user.globalName || '알 수 없음',
+        timestamp: Date.now()
+      });
+    }
+    
     res.json({ success: true });
   } catch (error) {
     next(error);
@@ -245,6 +260,21 @@ router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature
     
     if (!success) {
       return res.status(404).json({ error: '아이템을 찾을 수 없습니다.' });
+    }
+    
+    // 소켓으로 알림 브로드캐스트
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('activity', {
+        type: 'quantity',
+        action: 'set',
+        itemName: name,
+        category,
+        itemType: type,
+        value,
+        userName: req.user.username || req.user.globalName || '알 수 없음',
+        timestamp: Date.now()
+      });
     }
     
     res.json({ success: true });
@@ -353,6 +383,20 @@ router.patch('/:type/:category/:name/worker', authenticate, requireFeature('work
     
     if (!success) {
       return res.status(404).json({ error: '아이템을 찾을 수 없습니다.' });
+    }
+    
+    // 소켓으로 알림 브로드캐스트
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('activity', {
+        type: 'worker',
+        action: action, // 'start' or 'stop'
+        itemName: name,
+        category,
+        itemType: type,
+        userName: req.user.username || req.user.globalName || '알 수 없음',
+        timestamp: Date.now()
+      });
     }
     
     res.json({ success: true });

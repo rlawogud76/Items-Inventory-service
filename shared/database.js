@@ -3,6 +3,7 @@ const { Item } = require('./models/Item');
 const { Recipe } = require('./models/Recipe');
 const { Setting } = require('./models/Setting');
 const { User } = require('./models/User');
+const { Event } = require('./models/Event');
 const { DB_CONFIG } = require('./constants');
 
 // 변경 감지 관련
@@ -762,6 +763,124 @@ async function getRegisteredUsers() {
   }
 }
 
+// ========== 이벤트 관련 함수 ==========
+
+// 반복 이벤트 확장 헬퍼
+function expandRepeatingEvents(events, rangeStart, rangeEnd) {
+  const expanded = [];
+  
+  for (const event of events) {
+    if (event.repeat === 'none') {
+      expanded.push(event);
+      continue;
+    }
+    
+    // 반복 이벤트 인스턴스 생성
+    const eventStart = new Date(event.startDate);
+    const repeatEnd = event.repeatEndDate ? new Date(event.repeatEndDate) : rangeEnd;
+    let current = new Date(eventStart);
+    
+    while (current <= repeatEnd && current <= rangeEnd) {
+      if (current >= rangeStart || (event.endDate && new Date(event.endDate) >= rangeStart)) {
+        expanded.push({
+          ...event,
+          _instanceDate: new Date(current),
+          isInstance: true,
+          originalId: event._id
+        });
+      }
+      
+      // 다음 반복 날짜 계산
+      if (event.repeat === 'daily') {
+        current.setDate(current.getDate() + 1);
+      } else if (event.repeat === 'weekly') {
+        current.setDate(current.getDate() + 7);
+      } else if (event.repeat === 'monthly') {
+        current.setMonth(current.getMonth() + 1);
+      }
+    }
+  }
+  
+  return expanded;
+}
+
+// 이벤트 조회 (날짜 범위)
+async function getEvents(startDate, endDate) {
+  try {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    const events = await Event.find({
+      $or: [
+        // 단일 이벤트: 시작일이 범위 내
+        { repeat: 'none', startDate: { $gte: start, $lte: end } },
+        // 단일 이벤트: 종료일이 범위 내
+        { repeat: 'none', endDate: { $gte: start, $lte: end } },
+        // 단일 이벤트: 범위를 포함하는 경우
+        { repeat: 'none', startDate: { $lte: start }, endDate: { $gte: end } },
+        // 반복 이벤트: 시작일이 범위 이전이고 반복종료일이 없거나 범위 이후
+        { repeat: { $ne: 'none' }, startDate: { $lte: end }, $or: [
+          { repeatEndDate: null },
+          { repeatEndDate: { $gte: start } }
+        ]}
+      ]
+    }).sort({ startDate: 1 }).lean();
+    
+    return expandRepeatingEvents(events, start, end);
+  } catch (error) {
+    console.error('❌ 이벤트 조회 실패:', error);
+    return [];
+  }
+}
+
+// 다가오는 이벤트 조회 (알림용)
+async function getUpcomingEvents(days = 2) {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const end = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+  return getEvents(now, end);
+}
+
+// 이벤트 생성
+async function createEvent(data) {
+  try {
+    const event = await Event.create(data);
+    console.log('✅ 이벤트 생성:', event.title);
+    return event;
+  } catch (error) {
+    console.error('❌ 이벤트 생성 실패:', error);
+    throw error;
+  }
+}
+
+// 이벤트 수정
+async function updateEvent(id, data) {
+  try {
+    const event = await Event.findByIdAndUpdate(id, data, { new: true });
+    if (event) {
+      console.log('✅ 이벤트 수정:', event.title);
+    }
+    return event;
+  } catch (error) {
+    console.error('❌ 이벤트 수정 실패:', error);
+    throw error;
+  }
+}
+
+// 이벤트 삭제
+async function deleteEvent(id) {
+  try {
+    const event = await Event.findByIdAndDelete(id);
+    if (event) {
+      console.log('✅ 이벤트 삭제:', event.title);
+    }
+    return event;
+  } catch (error) {
+    console.error('❌ 이벤트 삭제 실패:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   // 연결
   connectDatabase,
@@ -813,9 +932,17 @@ module.exports = {
   registerUser,
   getRegisteredUsers,
   
+  // 이벤트
+  getEvents,
+  getUpcomingEvents,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  
   // 모델 (직접 접근용)
   Item,
   Recipe,
   Setting,
-  History
+  History,
+  Event
 };
