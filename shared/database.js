@@ -717,27 +717,40 @@ async function getCategories(type) {
 async function registerUser(userData) {
   try {
     console.log('📝 유저 등록/업데이트:', userData.username, userData.id);
-    const settings = await getSettings();
-    const registeredUsers = settings?.registeredUsers || [];
     
-    // 기존 유저 찾기
-    const existingIndex = registeredUsers.findIndex(u => u.id === userData.id);
+    // 먼저 기존 유저가 있는지 확인하고 업데이트 시도
+    const updateResult = await Setting.findOneAndUpdate(
+      { _id: 'global', 'registeredUsers.id': userData.id },
+      { 
+        $set: { 
+          'registeredUsers.$': userData 
+        } 
+      },
+      { new: true }
+    );
     
-    if (existingIndex >= 0) {
-      // 업데이트
-      registeredUsers[existingIndex] = {
-        ...registeredUsers[existingIndex],
-        ...userData
-      };
+    if (updateResult) {
+      // 기존 유저 업데이트 성공
       console.log('✅ 유저 업데이트 완료:', userData.username);
-    } else {
-      // 새 유저 추가
-      registeredUsers.push(userData);
-      console.log('✅ 새 유저 추가:', userData.username);
+      const count = updateResult.registeredUsers?.length || 0;
+      console.log('📊 현재 등록된 유저 수:', count);
+      notifyChangeListeners();
+      return true;
     }
     
-    await updateSettings({ registeredUsers });
-    console.log('📊 현재 등록된 유저 수:', registeredUsers.length);
+    // 기존 유저가 없으면 새로 추가 (atomic push)
+    const pushResult = await Setting.findByIdAndUpdate(
+      'global',
+      { 
+        $push: { registeredUsers: userData } 
+      },
+      { new: true, upsert: true }
+    );
+    
+    console.log('✅ 새 유저 추가:', userData.username);
+    const count = pushResult.registeredUsers?.length || 0;
+    console.log('📊 현재 등록된 유저 수:', count);
+    notifyChangeListeners();
     return true;
   } catch (error) {
     console.error('❌ 유저 등록 실패:', error);
