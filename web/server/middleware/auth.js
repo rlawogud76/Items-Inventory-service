@@ -4,6 +4,8 @@ const db = require('shared/database');
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const SERVER_OWNER_ID = process.env.SERVER_OWNER_ID; // 서버장 Discord ID
 
+console.log('🔐 SERVER_OWNER_ID 환경변수:', SERVER_OWNER_ID || '(설정되지 않음)');
+
 // 인증 미들웨어
 async function authenticate(req, res, next) {
   const token = req.cookies.token;
@@ -21,6 +23,13 @@ async function authenticate(req, res, next) {
     decoded.isServerOwner = decoded.id === SERVER_OWNER_ID || decoded.id === settings?.serverOwnerId;
     decoded.adminAllowedFeatures = settings?.adminAllowedFeatureKeys || ['*'];
     decoded.memberAllowedFeatures = settings?.memberAllowedFeatureKeys || ['*'];
+    
+    console.log('🔍 인증 체크:', {
+      userId: decoded.id,
+      SERVER_OWNER_ID,
+      settingsOwnerId: settings?.serverOwnerId,
+      isServerOwner: decoded.isServerOwner
+    });
     
     req.user = decoded;
     next();
