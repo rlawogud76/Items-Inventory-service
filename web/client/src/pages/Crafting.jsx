@@ -844,16 +844,6 @@ function Crafting() {
     return acc
   }, {})
 
-  // 아이템의 태그 찾기
-  const getItemTag = (itemName) => {
-    for (const tag of tags) {
-      if (tag.items?.includes(itemName)) {
-        return tag.name
-      }
-    }
-    return null
-  }
-
   // 태그 조회 함수
   const getItemTagInfo = (itemName) => {
     for (const tag of tags) {
