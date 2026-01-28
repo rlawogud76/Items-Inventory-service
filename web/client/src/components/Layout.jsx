@@ -13,7 +13,8 @@ import {
   LayoutDashboard,
   Star,
   Shield,
-  Tag
+  Tag,
+  Users
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
@@ -25,18 +26,28 @@ const navItems = [
   { path: '/inventory', icon: Package, label: '재고' },
   { path: '/crafting', icon: Hammer, label: '제작' },
   { path: '/tags', icon: Tag, label: '태그' },
-  { path: '/contributions', icon: Trophy, label: '기여도' },
-  { path: '/history', icon: History, label: '수정내역' },
+  { path: '/contributions', icon: Trophy, label: '기여도', featureKey: 'contribution' },
+  { path: '/history', icon: History, label: '수정내역', featureKey: 'history' },
   { path: '/settings', icon: Settings, label: '설정' },
   { path: '/points', icon: Star, label: '배점', adminOnly: true },
   { path: '/permissions', icon: Shield, label: '권한', adminOnly: true },
+  { path: '/users', icon: Users, label: '유저', adminOnly: true },
 ]
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { user, logout } = useAuth()
+  const { user, logout, hasFeature, getRoleName } = useAuth()
   const { connected } = useSocket()
   const location = useLocation()
+
+  // 메뉴 필터링: 관리자 전용 + 권한 체크
+  const filteredNavItems = navItems.filter(item => {
+    // 관리자 전용 메뉴
+    if (item.adminOnly && !(user?.isAdmin || user?.isServerOwner)) return false
+    // 기능 권한 체크
+    if (item.featureKey && !hasFeature(item.featureKey)) return false
+    return true
+  })
 
   return (
     <div className="min-h-screen bg-dark-400">
@@ -59,9 +70,7 @@ function Layout() {
 
           {/* 가운데: 네비게이션 (데스크톱) */}
           <nav className="hidden lg:flex items-center gap-1">
-            {navItems
-              .filter(item => !item.adminOnly || user?.isAdmin || user?.isServerOwner)
-              .map((item) => (
+            {filteredNavItems.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
@@ -97,9 +106,12 @@ function Layout() {
               <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-300 hidden sm:block">
                   {user.username}
-                  {user.isAdmin && (
-                    <span className="ml-1 text-xs text-primary-400">(관리자)</span>
-                  )}
+                  <span className={clsx(
+                    'ml-1 text-xs',
+                    user.isServerOwner ? 'text-yellow-400' : user.isAdmin ? 'text-primary-400' : 'text-gray-500'
+                  )}>
+                    ({getRoleName()})
+                  </span>
                 </span>
                 <button
                   onClick={logout}
@@ -137,9 +149,7 @@ function Layout() {
         )}
       >
         <nav className="p-4 flex flex-col gap-2">
-          {navItems
-            .filter(item => !item.adminOnly || user?.isAdmin || user?.isServerOwner)
-            .map((item) => (
+          {filteredNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}

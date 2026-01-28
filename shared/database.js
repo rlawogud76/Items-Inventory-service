@@ -713,6 +713,34 @@ async function getCategories(type) {
   }
 }
 
+// 유저 등록/업데이트
+async function registerUser(userData) {
+  try {
+    const settings = await getSettings();
+    const registeredUsers = settings?.registeredUsers || [];
+    
+    // 기존 유저 찾기
+    const existingIndex = registeredUsers.findIndex(u => u.id === userData.id);
+    
+    if (existingIndex >= 0) {
+      // 업데이트
+      registeredUsers[existingIndex] = {
+        ...registeredUsers[existingIndex],
+        ...userData
+      };
+    } else {
+      // 새 유저 추가
+      registeredUsers.push(userData);
+    }
+    
+    await updateSettings({ registeredUsers });
+    return true;
+  } catch (error) {
+    console.error('❌ 유저 등록 실패:', error);
+    return false;
+  }
+}
+
 module.exports = {
   // 연결
   connectDatabase,
@@ -759,6 +787,9 @@ module.exports = {
   getHistory,
   getHistoryCount,
   clearHistory,
+  
+  // 유저
+  registerUser,
   
   // 모델 (직접 접근용)
   Item,

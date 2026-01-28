@@ -160,4 +160,34 @@ router.post('/points/reset', authenticate, requireAdmin, async (req, res, next) 
   }
 });
 
+// 유저 목록 조회 (관리자 전용)
+router.get('/users', authenticate, requireAdmin, async (req, res, next) => {
+  try {
+    const settings = await db.getSettings();
+    const registeredUsers = settings?.registeredUsers || [];
+    const adminUserIds = settings?.adminUserIds || [];
+    const serverOwnerId = settings?.serverOwnerId || process.env.SERVER_OWNER_ID;
+    
+    // 역할 부여
+    const usersWithRoles = registeredUsers.map(user => ({
+      ...user,
+      role: user.id === serverOwnerId 
+        ? 'owner' 
+        : adminUserIds.includes(user.id) 
+          ? 'admin' 
+          : 'member'
+    }));
+    
+    // 서버장 > 관리자 > 멤버 순으로 정렬
+    usersWithRoles.sort((a, b) => {
+      const order = { owner: 0, admin: 1, member: 2 };
+      return order[a.role] - order[b.role];
+    });
+    
+    res.json({ users: usersWithRoles });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

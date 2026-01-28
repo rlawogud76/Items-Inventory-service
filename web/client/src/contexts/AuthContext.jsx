@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import api from '../services/api'
 
 const AuthContext = createContext(null)
@@ -42,8 +42,25 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // 특정 기능에 대한 권한 확인
+  const hasFeature = useCallback((featureKey) => {
+    if (!user) return false
+    if (user.isServerOwner) return true
+    if (!user.allowedFeatures) return true // 기본적으로 허용
+    if (user.allowedFeatures.includes('*')) return true
+    return user.allowedFeatures.includes(featureKey)
+  }, [user])
+
+  // 역할 이름 반환
+  const getRoleName = useCallback(() => {
+    if (!user) return null
+    if (user.role === 'owner') return '서버장'
+    if (user.role === 'admin') return '관리자'
+    return '멤버'
+  }, [user])
+
   return (
-    <AuthContext.Provider value={{ user, loading, logout, devLogin, checkAuth }}>
+    <AuthContext.Provider value={{ user, loading, logout, devLogin, checkAuth, hasFeature, getRoleName }}>
       {children}
     </AuthContext.Provider>
   )

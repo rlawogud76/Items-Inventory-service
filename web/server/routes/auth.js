@@ -99,13 +99,36 @@ router.get('/me', async (req, res) => {
     const SERVER_OWNER_ID = process.env.SERVER_OWNER_ID;
     const isServerOwner = decoded.id === SERVER_OWNER_ID || decoded.id === settings?.serverOwnerId;
     
+    // 역할 결정
+    let role = 'member';
+    if (isServerOwner) role = 'owner';
+    else if (isAdmin) role = 'admin';
+    
+    // 허용된 기능 키
+    const allowedFeatures = isServerOwner 
+      ? ['*']
+      : isAdmin 
+        ? (settings?.adminAllowedFeatureKeys || ['*'])
+        : (settings?.memberAllowedFeatureKeys || ['*']);
+    
+    // 유저 정보 저장/업데이트
+    await db.registerUser({
+      id: decoded.id,
+      username: decoded.username,
+      discriminator: decoded.discriminator,
+      avatar: decoded.avatar,
+      lastSeen: new Date()
+    });
+    
     res.json({
       id: decoded.id,
       username: decoded.username,
       discriminator: decoded.discriminator,
       avatar: decoded.avatar,
       isAdmin,
-      isServerOwner
+      isServerOwner,
+      role,
+      allowedFeatures
     });
   } catch (error) {
     res.status(401).json({ error: '유효하지 않은 토큰' });

@@ -1,10 +1,25 @@
 const express = require('express');
 const router = express.Router();
 const db = require('shared/database');
+const { authenticate, optionalAuth, requireFeature } = require('../middleware/auth');
 
-// 히스토리 조회
-router.get('/', async (req, res, next) => {
+// 히스토리 조회 - 권한 체크 추가
+router.get('/', optionalAuth, async (req, res, next) => {
   try {
+    // 권한 체크
+    if (req.user) {
+      const allowedFeatures = req.user.isAdmin || req.user.isServerOwner
+        ? req.user.adminAllowedFeatures 
+        : req.user.memberAllowedFeatures;
+      
+      if (!allowedFeatures.includes('*') && !allowedFeatures.includes('history')) {
+        return res.status(403).json({ error: '수정내역 조회 권한이 없습니다.' });
+      }
+    } else {
+      // 비로그인 사용자는 기본적으로 차단
+      return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+
     const { 
       limit = 20, 
       page = 1, 
