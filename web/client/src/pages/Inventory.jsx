@@ -154,9 +154,24 @@ function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete
 
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm">
-          <span className="text-gray-300">{formatQuantity(item.quantity)}</span>
-          <span className="text-gray-500"> / </span>
-          <span className="text-gray-400">{formatQuantity(item.required)}</span>
+          {/* 수량 클릭 시 직접 설정 모드 */}
+          {user && !editingQuantity && !settingQuantity ? (
+            <button
+              onClick={() => { setSettingQuantity(true); setQuantityValue(String(item.quantity)); }}
+              className="hover:bg-dark-300 px-1.5 py-0.5 rounded transition-colors cursor-pointer group/qty"
+              title="클릭하여 수량 직접 설정"
+            >
+              <span className="text-gray-300 group-hover/qty:text-blue-400">{formatQuantity(item.quantity)}</span>
+              <span className="text-gray-500"> / </span>
+              <span className="text-gray-400">{formatQuantity(item.required)}</span>
+            </button>
+          ) : (
+            <>
+              <span className="text-gray-300">{formatQuantity(item.quantity)}</span>
+              <span className="text-gray-500"> / </span>
+              <span className="text-gray-400">{formatQuantity(item.required)}</span>
+            </>
+          )}
         </div>
 
         {/* 수량 조절 버튼 */}
@@ -284,13 +299,13 @@ function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete
                   )}
                 </div>
                 
-                {/* 직접 입력 버튼 */}
+                {/* 직접 수량 설정 버튼 */}
                 <button
-                  onClick={() => setEditingQuantity(true)}
-                  className="p-1 hover:bg-dark-300 rounded text-gray-400"
-                  title="증감 입력"
+                  onClick={() => { setSettingQuantity(true); setQuantityValue(String(item.quantity)); }}
+                  className="px-1.5 py-0.5 hover:bg-blue-600/20 rounded text-blue-400 text-xs font-medium border border-blue-500/30"
+                  title="수량 직접 설정"
                 >
-                  <Edit size={16} />
+                  설정
                 </button>
               </>
             )}
