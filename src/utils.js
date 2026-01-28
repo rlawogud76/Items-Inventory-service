@@ -3,6 +3,19 @@ import { addHistoryEntry, updateItemQuantity, getSettings } from './database.js'
 import { STACK, LIMITS, UI, EMOJIS } from './constants.js';
 
 /**
+ * 서버 닉네임(또는 표시 이름) 가져오기
+ * 우선순위: 서버 닉네임 > 전역 표시 이름 > 유저네임
+ * @param {Interaction} interaction - Discord 인터랙션
+ * @returns {string} - 표시할 이름
+ */
+export function getDisplayName(interaction) {
+  // interaction.member?.displayName: 서버 닉네임 (guild에서만 사용 가능)
+  // interaction.user.displayName: 전역 표시 이름
+  // interaction.user.username: 기본 유저네임
+  return interaction.member?.displayName || interaction.user.displayName || interaction.user.username;
+}
+
+/**
  * 이모지 검증 함수 - Select Menu는 유니코드 이모지만 허용
  * 커스텀 Discord 이모지나 잘못된 형식은 기본 이모지로 대체
  * @param {string} emoji - 검증할 이모지

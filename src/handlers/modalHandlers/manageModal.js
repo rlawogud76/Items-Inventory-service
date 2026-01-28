@@ -1,7 +1,7 @@
 // 관리(추가/수정) modal 핸들러
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, addItem, updateItemDetails } from '../../database.js';
-import { formatQuantity, getItemIcon, addHistory, sanitizeInput, sanitizeNumber, isValidName, getTimeoutSettings, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
+import { formatQuantity, getItemIcon, addHistory, sanitizeInput, sanitizeNumber, isValidName, getTimeoutSettings, encodeCustomIdPart, decodeCustomIdPart, getDisplayName } from '../../utils.js';
 import { STACK, LIMITS } from '../../constants.js';
 
 /**
@@ -169,7 +169,7 @@ export async function handleAddItemModalStep2(interaction) {
         
         await addHistory('inventory', category, itemName, 'add',
           `초기: ${initialTotal}개, 목표: ${requiredTotal}개, 유형: ${itemType}`,
-          interaction.user.displayName || interaction.user.username);
+          getDisplayName(interaction));
           
       } catch (error) {
         if (error.message.includes('이미 존재')) {
@@ -209,7 +209,7 @@ export async function handleAddItemModalStep2(interaction) {
         
         await addHistory('crafting', category, itemName, 'add',
           `초기: ${initialTotal}개, 목표: ${requiredTotal}개, 유형: ${itemType}`,
-          interaction.user.displayName || interaction.user.username);
+          getDisplayName(interaction));
           
       } catch (error) {
         if (error.message.includes('이미 존재')) {
@@ -329,7 +329,7 @@ export async function handleEditNameModal(interaction) {
 
     await addHistory(type, category, newName, 'rename',
       `"${oldName}" → "${newName}"${recipeUpdated ? ' (레시피 포함)' : ''}`,
-      interaction.user.displayName || interaction.user.username);
+      getDisplayName(interaction));
     
     const successEmbed = new EmbedBuilder()
       .setColor(0x57F287)
@@ -587,8 +587,8 @@ export async function handleMovePositionModal(interaction) {
     await updateItemsOrder(type, category, itemsToUpdate);
     
     // 히스토리 기록
-    const { addHistory } = await import('../../utils.js');
-    await addHistory(type, category, selectedItem, 'reorder', `지정 위치로 이동 (${currentIndex + 1} → ${newIndex + 1})`, interaction.user.username);
+    const { addHistory, getDisplayName } = await import('../../utils.js');
+    await addHistory(type, category, selectedItem, 'reorder', `지정 위치로 이동 (${currentIndex + 1} → ${newIndex + 1})`, getDisplayName(interaction));
     
     // 성공 메시지
     let successMessage = `✅ **${selectedItem}**을(를) **${targetPosition}번 위치**로 이동했습니다!\n`;

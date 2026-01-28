@@ -3,7 +3,7 @@
 import { EmbedBuilder } from 'discord.js';
 import { createCraftingEmbed, createButtons } from '../../embeds.js';
 import { loadInventory, getItemPoints, addItem, removeItem, saveRecipe } from '../../database.js';
-import { getItemIcon, addHistory, sendTemporaryReply } from '../../utils.js';
+import { getItemIcon, addHistory, sendTemporaryReply, getDisplayName } from '../../utils.js';
 
 /**
  * /제작 커맨드 처리
@@ -168,7 +168,7 @@ export async function handleCraftingAddCommand(interaction) {
   // 수정 내역 추가
   await addHistory('crafting', category, itemName, 'add',
     `초기: ${initialQuantity}개, 목표: ${requiredQuantity}개, 레시피: ${materials.map(m => `${m.name} x${m.quantity}`).join(', ')}`,
-    interaction.user.displayName || interaction.user.username);
+    getDisplayName(interaction));
   
   // 레시피 표시
   const recipeText = materials.map(m => {
@@ -206,7 +206,7 @@ export async function handleCraftingRemoveCommand(interaction) {
   // 수정 내역 추가
   await addHistory('crafting', category, itemName, 'remove',
     `수량: ${itemData.quantity}/${itemData.required}`,
-    interaction.user.displayName || interaction.user.username);
+    getDisplayName(interaction));
   
   const successEmbed = new EmbedBuilder()
     .setColor(0xED4245)

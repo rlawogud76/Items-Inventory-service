@@ -1,6 +1,6 @@
 // 작업(수집/제작) select 핸들러
 import { loadInventory, updateItemWorker } from '../../database.js';
-import { getItemIcon, getItemsByTag, getTimeoutSettings } from '../../utils.js';
+import { getItemIcon, getItemsByTag, getTimeoutSettings, getDisplayName } from '../../utils.js';
 
 /**
  * 작업 항목 선택 핸들러
@@ -13,7 +13,7 @@ export async function handleWorkItemSelect(interaction) {
     const category = parts.slice(1).join('_');
     const selectedValue = interaction.values[0];
     const userId = interaction.user.id;
-    const userName = interaction.user.displayName || interaction.user.username;
+    const userName = getDisplayName(interaction);
     
     console.log('🔍 Work Select Debug:', {
       customId: interaction.customId,

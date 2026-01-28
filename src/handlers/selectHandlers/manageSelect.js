@@ -1,7 +1,7 @@
 // 관리(삭제/수정/순서변경) select 핸들러
 import { EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { loadInventory, removeItem, updateItemsOrder } from '../../database.js';
-import { formatQuantity, getTimeoutSettings, addHistory, encodeCustomIdPart, decodeCustomIdPart, getItemTag } from '../../utils.js';
+import { formatQuantity, getTimeoutSettings, addHistory, encodeCustomIdPart, decodeCustomIdPart, getItemTag, getDisplayName } from '../../utils.js';
 
 /**
  * 삭제 항목 선택 핸들러
@@ -38,8 +38,8 @@ export async function handleRemoveSelect(interaction) {
       selectedItem,
       'remove',
       `수량: ${itemData.quantity}/${itemData.required}${recipeDeleted ? ' (레시피 포함)' : ''}`,
-      interaction.user.username,
-      interaction.user.displayName || interaction.user.username
+      getDisplayName(interaction),
+      getDisplayName(interaction)
     );
 
     const successEmbed = new EmbedBuilder()
@@ -289,7 +289,7 @@ export async function handleReorderSecondSelect(interaction) {
       movedItem.name,
       'reorder',
       `${firstIndex + 1}번 → ${secondIndex + 1}번 위치로 이동`,
-      interaction.user.username
+      getDisplayName(interaction)
     );
     
     const successEmbed = new EmbedBuilder()
@@ -511,7 +511,7 @@ export async function handleSortOptionSelect(interaction) {
         'category_asc': '카테고리별 (가나다)',
         'category_desc': '카테고리별 (역순)'
       };
-      await addHistory(type, '전체', null, 'reorder', `자동 정렬: ${sortNames[sortOption]}`, interaction.user.username);
+      await addHistory(type, '전체', null, 'reorder', `자동 정렬: ${sortNames[sortOption]}`, getDisplayName(interaction));
       
       let successMessage = `✅ **${type === 'inventory' ? '재고' : '제작'} 전체 카테고리**가 **${sortNames[sortOption]}**으로 정렬되었습니다!\n\n**카테고리 순서:**\n`;
       sortedCategories.slice(0, 15).forEach((catName, idx) => {
@@ -604,7 +604,7 @@ export async function handleSortOptionSelect(interaction) {
       'required_desc': '목표 수량순 (많은순)',
       'required_asc': '목표 수량순 (적은순)'
     };
-    await addHistory(type, category, null, 'reorder', `자동 정렬: ${sortNames[sortOption]}`, interaction.user.username);
+        await addHistory(type, category, null, 'reorder', `자동 정렬: ${sortNames[sortOption]}`, getDisplayName(interaction));
     
     // 성공 메시지
     let successMessage = `✅ **${category}** 카테고리가 **${sortNames[sortOption]}**으로 정렬되었습니다!\n\n**새로운 순서:**\n`;
@@ -814,7 +814,7 @@ export async function handleReorderTagSecondSelect(interaction) {
       'move_to_bottom': '맨 아래로'
     }[selection] || `"${selection.replace('move_after_', '')}" 뒤로`;
     
-    await addHistory(type, category, null, 'reorder', `태그 이동: ${sourceTagName} → ${directionText}`, interaction.user.username);
+    await addHistory(type, category, null, 'reorder', `태그 이동: ${sourceTagName} → ${directionText}`, getDisplayName(interaction));
     
     let successMessage = `✅ **${sourceTagName}** 태그 묶음(${sourceItems.length}개)을 **${directionText}** 이동했습니다!\n\n**새로운 순서:**\n`;
     

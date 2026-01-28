@@ -1,7 +1,7 @@
 // 물품/품목 관리 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { loadInventory, updateItemsOrder } from '../../database.js';
-import { formatQuantity, getItemIcon, getTimeoutSettings, addHistory, safeDeleteReply, safeErrorReply, encodeCustomIdPart, decodeCustomIdPart } from '../../utils.js';
+import { formatQuantity, getItemIcon, getTimeoutSettings, addHistory, safeDeleteReply, safeErrorReply, encodeCustomIdPart, decodeCustomIdPart, getDisplayName } from '../../utils.js';
 
 /**
  * 관리 메인 버튼 핸들러
@@ -1410,7 +1410,7 @@ export async function handleMoveItemButton(interaction) {
       'down5': '아래로 5칸',
       'bottom': '맨 아래로'
     };
-    await addHistory(type, category, selectedItem, 'reorder', `${directionNames[direction]} (${currentIndex + 1} → ${newIndex + 1})`, interaction.user.username);
+    await addHistory(type, category, selectedItem, 'reorder', `${directionNames[direction]} (${currentIndex + 1} → ${newIndex + 1})`, getDisplayName(interaction));
     
     // 성공 메시지
     let successMessage = `✅ **${selectedItem}**을(를) **${directionNames[direction]}** 이동했습니다!\n`;

@@ -1,7 +1,7 @@
 // 초기화 select 핸들러
 import { EmbedBuilder } from 'discord.js';
 import { loadInventory, updateItemQuantity } from '../../database.js';
-import { getItemIcon, getTimeoutSettings } from '../../utils.js';
+import { getItemIcon, getTimeoutSettings, getDisplayName } from '../../utils.js';
 
 /**
  * 초기화 항목 선택 핸들러
@@ -35,7 +35,7 @@ export async function handleResetSelect(interaction) {
     
     // DB 저장 (새 스키마)
     await updateItemQuantity(type, category, selectedItem, -oldQuantity, 
-      interaction.user.displayName || interaction.user.username, 
+      getDisplayName(interaction), 
       'reset', 
       `${oldQuantity}개 → 0개`
     );

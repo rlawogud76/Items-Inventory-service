@@ -1,6 +1,6 @@
 // 수량 관리 modal 핸들러
 import { loadInventory, updateMultipleItems } from '../../database.js';
-import { sanitizeNumber, getTimeoutSettings, safeErrorReply, safeDeleteReply, decodeCustomIdPart } from '../../utils.js';
+import { sanitizeNumber, getTimeoutSettings, safeErrorReply, safeDeleteReply, decodeCustomIdPart, getDisplayName } from '../../utils.js';
 import { consumeRecipeMaterials, returnRecipeMaterials, adjustRecipeMaterials } from '../../recipeService.js';
 import { STACK, LIMITS } from '../../constants.js';
 
@@ -74,7 +74,7 @@ export async function handleQuantityModal(interaction) {
     const itemData = targetData.categories[category][itemName];
     const oldQuantity = itemData.quantity;
     const oldRequired = itemData.required;
-    const userName = interaction.user.displayName || interaction.user.username;
+    const userName = getDisplayName(interaction);
     
     console.log('  - 변경량:', changeAmount);
     console.log('  - 기존 수량:', oldQuantity);
