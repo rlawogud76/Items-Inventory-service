@@ -272,48 +272,54 @@ function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete
                       className="fixed inset-0 z-40" 
                       onClick={() => setShowPresets(false)}
                     />
-                    <div className="absolute right-0 top-full mt-1 bg-dark-300 border border-dark-100 rounded-lg shadow-lg z-50 min-w-[160px]">
-                      <div className="p-1">
-                        <div className="text-xs text-gray-500 px-2 py-1">추가</div>
+                    <div className="absolute right-0 bottom-full mb-1 bg-dark-300 border border-dark-100 rounded-lg shadow-lg z-50 p-3 w-[280px]">
+                      {/* 추가 버튼 그리드 */}
+                      <div className="text-xs text-gray-500 mb-1">추가</div>
+                      <div className="flex flex-wrap gap-1 mb-2">
                         {PRESETS.filter(p => p.value > 0).map(preset => (
                           <button
                             key={preset.value}
                             onClick={() => handlePresetClick(preset.value)}
-                            className={`w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm whitespace-nowrap ${preset.color}`}
+                            className="px-2 py-1.5 bg-green-600/20 hover:bg-green-600/40 text-green-400 rounded text-xs font-medium whitespace-nowrap"
                           >
                             {preset.label}
                           </button>
                         ))}
-                        <div className="border-t border-dark-100 my-1" />
-                        <div className="text-xs text-gray-500 px-2 py-1">차감</div>
+                      </div>
+                      
+                      {/* 차감 버튼 그리드 */}
+                      <div className="text-xs text-gray-500 mb-1">차감</div>
+                      <div className="flex flex-wrap gap-1 mb-3">
                         {PRESETS.filter(p => p.value < 0).map(preset => (
                           <button
                             key={preset.value}
                             onClick={() => handlePresetClick(preset.value)}
-                            className={`w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm whitespace-nowrap ${preset.color}`}
+                            className="px-2 py-1.5 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded text-xs font-medium whitespace-nowrap"
                           >
                             {preset.label}
                           </button>
                         ))}
-                        <div className="border-t border-dark-100 my-1" />
-                        <div className="text-xs text-gray-500 px-2 py-1">직접 입력</div>
+                      </div>
+                      
+                      {/* 직접 입력 버튼 */}
+                      <div className="border-t border-dark-100 pt-2 flex gap-1">
                         <button
                           onClick={() => { startDeltaMode(true); setShowPresets(false); }}
-                          className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-green-400 whitespace-nowrap"
+                          className="flex-1 px-2 py-1.5 bg-green-600/30 hover:bg-green-600/50 text-green-400 rounded text-xs font-medium"
                         >
                           ➕ 추가
                         </button>
                         <button
                           onClick={() => { startDeltaMode(false); setShowPresets(false); }}
-                          className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-red-400 whitespace-nowrap"
+                          className="flex-1 px-2 py-1.5 bg-red-600/30 hover:bg-red-600/50 text-red-400 rounded text-xs font-medium"
                         >
                           ➖ 차감
                         </button>
                         <button
                           onClick={() => { startSetMode(); setShowPresets(false); }}
-                          className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-blue-400 whitespace-nowrap"
+                          className="flex-1 px-2 py-1.5 bg-blue-600/30 hover:bg-blue-600/50 text-blue-400 rounded text-xs font-medium"
                         >
-                          📝 직접 설정
+                          📝 설정
                         </button>
                       </div>
                     </div>

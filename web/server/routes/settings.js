@@ -98,8 +98,8 @@ router.get('/points', async (req, res, next) => {
     // 저장된 배점과 실제 아이템 목록을 함께 조회
     const [savedPoints, inventoryItems, craftingItems] = await Promise.all([
       db.getItemPoints(),
-      db.loadInventory('inventory'),
-      db.loadInventory('crafting')
+      db.getItems('inventory'),
+      db.getItems('crafting')
     ]);
     
     // 배열이 아닌 경우 빈 배열로 처리
