@@ -38,6 +38,9 @@ async function optionalAuth(req, res, next) {
       const decoded = jwt.verify(token, JWT_SECRET);
       const settings = await db.getSettings();
       decoded.isAdmin = settings?.adminUserIds?.includes(decoded.id) || false;
+      decoded.isServerOwner = decoded.id === SERVER_OWNER_ID || decoded.id === settings?.serverOwnerId;
+      decoded.adminAllowedFeatures = settings?.adminAllowedFeatureKeys || ['*'];
+      decoded.memberAllowedFeatures = settings?.memberAllowedFeatureKeys || ['*'];
       req.user = decoded;
     } catch (error) {
       // 토큰이 유효하지 않아도 계속 진행
@@ -70,9 +73,14 @@ function requireFeature(featureKey) {
       return res.status(401).json({ error: '인증이 필요합니다.' });
     }
     
+    // 서버장은 모든 권한 허용
+    if (req.user.isServerOwner) {
+      return next();
+    }
+    
     const allowedFeatures = req.user.isAdmin 
-      ? req.user.adminAllowedFeatures 
-      : req.user.memberAllowedFeatures;
+      ? (req.user.adminAllowedFeatures || ['*'])
+      : (req.user.memberAllowedFeatures || []);
     
     // '*' 포함 시 모든 기능 허용
     if (allowedFeatures.includes('*') || allowedFeatures.includes(featureKey)) {

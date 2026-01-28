@@ -2,11 +2,27 @@ const express = require('express');
 const router = express.Router();
 const db = require('shared/database');
 const contributionService = require('shared/services/contributionService');
-const { authenticate, requireAdmin } = require('../middleware/auth');
+const { authenticate, requireAdmin, optionalAuth } = require('../middleware/auth');
 
-// 기여도 조회
-router.get('/', async (req, res, next) => {
+// 기여도 조회 - 권한 체크 추가
+router.get('/', optionalAuth, async (req, res, next) => {
   try {
+    // 권한 체크
+    if (req.user) {
+      // 서버장은 모든 권한
+      if (!req.user.isServerOwner) {
+        const allowedFeatures = req.user.isAdmin
+          ? (req.user.adminAllowedFeatures || ['*'])
+          : (req.user.memberAllowedFeatures || []);
+        
+        if (!allowedFeatures.includes('*') && !allowedFeatures.includes('contribution')) {
+          return res.status(403).json({ error: '기여도 조회 권한이 없습니다.' });
+        }
+      }
+    } else {
+      return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+
     const { type = 'all', limit = 10 } = req.query;
     
     // 전체 히스토리 조회 (최대 1000개)
@@ -33,9 +49,24 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// 특정 사용자 기여도
-router.get('/user/:username', async (req, res, next) => {
+// 특정 사용자 기여도 - 권한 체크 추가
+router.get('/user/:username', optionalAuth, async (req, res, next) => {
   try {
+    // 권한 체크
+    if (req.user) {
+      if (!req.user.isServerOwner) {
+        const allowedFeatures = req.user.isAdmin
+          ? (req.user.adminAllowedFeatures || ['*'])
+          : (req.user.memberAllowedFeatures || []);
+        
+        if (!allowedFeatures.includes('*') && !allowedFeatures.includes('contribution')) {
+          return res.status(403).json({ error: '기여도 조회 권한이 없습니다.' });
+        }
+      }
+    } else {
+      return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+
     const { username } = req.params;
     
     const history = await db.getHistory(1000, 0);

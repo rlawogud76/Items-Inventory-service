@@ -1,7 +1,8 @@
 // 기여도 계산 서비스
 
 /**
- * 히스토리 details에서 수량 파싱
+ * 히스토리 details에서 수량 파싱 (부호 포함)
+ * 추가는 양수, 차감은 음수 반환
  */
 function parseQuantityFromDetails(action, details) {
   try {
@@ -15,37 +16,42 @@ function parseQuantityFromDetails(action, details) {
     }
     
     if (action === 'update_quantity' || action === 'update_required' || action === 'edit_required') {
+      // 추가는 양수
       const addPlusMatch = details.match(/추가:\s*\+(\d+)개/);
       if (addPlusMatch) return parseInt(addPlusMatch[1]);
       
+      // 차감은 음수
       const subtractMinusMatch = details.match(/차감:\s*-(\d+)개/);
-      if (subtractMinusMatch) return parseInt(subtractMinusMatch[1]);
+      if (subtractMinusMatch) return -parseInt(subtractMinusMatch[1]);
       
+      // 수정은 변화량 (증가면 양수, 감소면 음수)
       const editUnicodeMatch = details.match(/수정:\s*(\d+)개?\s*→\s*(\d+)개?/);
       if (editUnicodeMatch) {
-        return Math.abs(parseInt(editUnicodeMatch[2]) - parseInt(editUnicodeMatch[1]));
+        return parseInt(editUnicodeMatch[2]) - parseInt(editUnicodeMatch[1]);
       }
       
       const targetEditMatch = details.match(/목표\s*수정:\s*(\d+)개?\s*→\s*(\d+)개?/);
       if (targetEditMatch) {
-        return Math.abs(parseInt(targetEditMatch[2]) - parseInt(targetEditMatch[1]));
+        return parseInt(targetEditMatch[2]) - parseInt(targetEditMatch[1]);
       }
       
       const parenUnicodeMatch = details.match(/\((\d+)\s*→\s*(\d+)\)/);
       if (parenUnicodeMatch) {
-        return Math.abs(parseInt(parenUnicodeMatch[2]) - parseInt(parenUnicodeMatch[1]));
+        return parseInt(parenUnicodeMatch[2]) - parseInt(parenUnicodeMatch[1]);
       }
       
       const arrowMatch = details.match(/(\d+)\s*->\s*(\d+)/);
       if (arrowMatch) {
-        return Math.abs(parseInt(arrowMatch[2]) - parseInt(arrowMatch[1]));
+        return parseInt(arrowMatch[2]) - parseInt(arrowMatch[1]);
       }
       
+      // 추가는 양수
       const addMatch = details.match(/(\d+)개\s*추가/);
       if (addMatch) return parseInt(addMatch[1]);
       
+      // 차감은 음수
       const subtractMatch = details.match(/(\d+)개\s*차감/);
-      if (subtractMatch) return parseInt(subtractMatch[1]);
+      if (subtractMatch) return -parseInt(subtractMatch[1]);
     }
     
     if (action === 'craft') {
@@ -53,9 +59,15 @@ function parseQuantityFromDetails(action, details) {
       return match ? parseInt(match[1]) : 0;
     }
     
-    if (details.includes('소모') || details.includes('반환')) {
-      const consumeMatch = details.match(/(\d+)개\s*(소모|반환)/);
-      if (consumeMatch) return parseInt(consumeMatch[1]);
+    // 소모는 음수, 반환은 양수
+    if (details.includes('소모')) {
+      const consumeMatch = details.match(/(\d+)개\s*소모/);
+      if (consumeMatch) return -parseInt(consumeMatch[1]);
+    }
+    
+    if (details.includes('반환')) {
+      const returnMatch = details.match(/(\d+)개\s*반환/);
+      if (returnMatch) return parseInt(returnMatch[1]);
     }
     
     return 0;
