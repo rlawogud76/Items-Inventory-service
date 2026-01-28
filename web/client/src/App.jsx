@@ -7,6 +7,8 @@ import Crafting from './pages/Crafting'
 import Contributions from './pages/Contributions'
 import History from './pages/History'
 import Settings from './pages/Settings'
+import Points from './pages/Points'
+import Permissions from './pages/Permissions'
 import Login from './pages/Login'
 import AuthCallback from './pages/AuthCallback'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -41,6 +43,8 @@ function AppRoutes() {
         <Route path="contributions" element={<Contributions />} />
         <Route path="history" element={<History />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="points" element={<Points />} />
+        <Route path="permissions" element={<Permissions />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

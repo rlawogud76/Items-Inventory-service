@@ -10,7 +10,9 @@ import {
   X,
   Wifi,
   WifiOff,
-  LayoutDashboard
+  LayoutDashboard,
+  Star,
+  Shield
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
@@ -24,6 +26,8 @@ const navItems = [
   { path: '/contributions', icon: Trophy, label: '기여도' },
   { path: '/history', icon: History, label: '수정내역' },
   { path: '/settings', icon: Settings, label: '설정' },
+  { path: '/points', icon: Star, label: '배점', adminOnly: true },
+  { path: '/permissions', icon: Shield, label: '권한', adminOnly: true },
 ]
 
 function Layout() {
@@ -53,7 +57,9 @@ function Layout() {
 
           {/* 가운데: 네비게이션 (데스크톱) */}
           <nav className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => (
+            {navItems
+              .filter(item => !item.adminOnly || user?.isAdmin)
+              .map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
@@ -129,7 +135,9 @@ function Layout() {
         )}
       >
         <nav className="p-4 flex flex-col gap-2">
-          {navItems.map((item) => (
+          {navItems
+            .filter(item => !item.adminOnly || user?.isAdmin)
+            .map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
