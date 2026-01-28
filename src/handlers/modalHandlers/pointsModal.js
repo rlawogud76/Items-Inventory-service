@@ -1,12 +1,18 @@
 // 배점 관리 모달 핸들러
 
 import { getItemPoints, updateItemPoints } from '../../database.js';
-import { getTimeoutSettings, decodeCustomIdPart } from '../../utils.js';
+import { getTimeoutSettings, decodeCustomIdPart, isAdmin, safeErrorReply } from '../../utils.js';
 
 /**
  * 배점 입력 모달 처리 (재고/제작 설정용)
  */
 export async function handlePointsModal(interaction, parts) {
+  // 관리자/서버장만 배점 설정 가능
+  const adminCheck = await isAdmin(interaction);
+  if (!adminCheck) {
+    return await safeErrorReply(interaction, '❌ 배점 설정은 관리자 또는 서버장만 사용할 수 있습니다.', true);
+  }
+
   const type = parts[2];
   const category = parts[3];
   const itemName = decodeCustomIdPart(parts.slice(4).join('_')); // 아이템 이름 (언더스코어 포함 가능)
@@ -69,6 +75,12 @@ export async function handlePointsModal(interaction, parts) {
  * 기여도 배점 입력 모달 처리
  */
 export async function handleContributionPointsModal(interaction, parts) {
+  // 관리자/서버장만 배점 설정 가능
+  const adminCheck = await isAdmin(interaction);
+  if (!adminCheck) {
+    return await safeErrorReply(interaction, '❌ 배점 설정은 관리자 또는 서버장만 사용할 수 있습니다.', true);
+  }
+
   // customId: contribution_modal_points_inventory_해양_산호
   const type = parts[3];
   const category = parts[4];

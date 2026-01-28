@@ -2,12 +2,18 @@
 
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
 import { getItemPoints } from '../../database.js';
-import { encodeCustomIdPart } from '../../utils.js';
+import { encodeCustomIdPart, isAdmin, safeErrorReply } from '../../utils.js';
 
 /**
  * 아이템 선택 - 배점 입력 모달 표시 (재고/제작 설정용)
  */
 export async function handlePointsItemSelect(interaction, parts) {
+  // 관리자/서버장만 배점 설정 가능
+  const adminCheck = await isAdmin(interaction);
+  if (!adminCheck) {
+    return await safeErrorReply(interaction, '❌ 배점 설정은 관리자 또는 서버장만 사용할 수 있습니다.', true);
+  }
+
   const type = parts[3];
   const category = parts[4];
   const page = parts[5];
@@ -42,6 +48,12 @@ export async function handlePointsItemSelect(interaction, parts) {
  * 기여도 배점 아이템 선택 - 배점 입력 모달 표시
  */
 export async function handleContributionPointsItemSelect(interaction) {
+  // 관리자/서버장만 배점 설정 가능
+  const adminCheck = await isAdmin(interaction);
+  if (!adminCheck) {
+    return await safeErrorReply(interaction, '❌ 배점 설정은 관리자 또는 서버장만 사용할 수 있습니다.', true);
+  }
+
   // customId: contribution_select_points_inventory_해양_0
   const parts = interaction.customId.split('_');
   const type = parts[3];

@@ -2,7 +2,7 @@
 
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
 import { loadInventory, getItemPoints, resetAllItemPoints } from '../../database.js';
-import { getTimeoutSettings } from '../../utils.js';
+import { getTimeoutSettings, isAdmin, safeErrorReply } from '../../utils.js';
 
 // 활성 타이머 저장소 (messageId -> timerId)
 const activeTimers = new Map();
@@ -32,6 +32,12 @@ function setMessageTimer(messageId, callback, delay) {
  */
 export async function handlePointsManageButton(interaction, isBackButton = false) {
   try {
+    // 관리자/서버장만 배점 설정 가능
+    const adminCheck = await isAdmin(interaction);
+    if (!adminCheck) {
+      return await safeErrorReply(interaction, '❌ 배점 설정은 관리자 또는 서버장만 사용할 수 있습니다.', true);
+    }
+
     console.log('⭐ 배점 관리 버튼 핸들러 시작, isBackButton:', isBackButton);
     
     // getTimeoutSettingsAsync() 사용 (DB에서 로드)
@@ -118,6 +124,12 @@ export async function handlePointsManageButton(interaction, isBackButton = false
  */
 export async function handlePointsTypeButton(interaction, parts) {
   try {
+    // 관리자/서버장만 배점 설정 가능
+    const adminCheck = await isAdmin(interaction);
+    if (!adminCheck) {
+      return await safeErrorReply(interaction, '❌ 배점 설정은 관리자 또는 서버장만 사용할 수 있습니다.', true);
+    }
+
     const type = parts[2]; // 'inventory' or 'crafting'
     const typeLabel = type === 'inventory' ? '📦 재고' : '🔨 제작';
     
@@ -213,6 +225,12 @@ export async function handlePointsTypeButton(interaction, parts) {
  */
 export async function handlePointsCategoryButton(interaction, parts) {
   try {
+    // 관리자/서버장만 배점 설정 가능
+    const adminCheck = await isAdmin(interaction);
+    if (!adminCheck) {
+      return await safeErrorReply(interaction, '❌ 배점 설정은 관리자 또는 서버장만 사용할 수 있습니다.', true);
+    }
+
     const type = parts[2];
     const category = parts[3];
     const page = parseInt(parts[4]) || 0;
@@ -353,6 +371,12 @@ export async function handlePointsCategoryButton(interaction, parts) {
  */
 export async function handlePointsResetButton(interaction) {
   try {
+    // 관리자/서버장만 초기화 가능
+    const adminCheck = await isAdmin(interaction);
+    if (!adminCheck) {
+      return await safeErrorReply(interaction, '❌ 배점 초기화는 관리자 또는 서버장만 사용할 수 있습니다.', true);
+    }
+
     await resetAllItemPoints();
     
     const inventory = await loadInventory();
