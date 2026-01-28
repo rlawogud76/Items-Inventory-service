@@ -383,6 +383,37 @@ async function updateItemQuantity(type, category, itemName, delta, userName, act
   }
 }
 
+// 아이템 수량 직접 설정 (절대값)
+async function setItemQuantity(type, category, itemName, value, userName, action, details) {
+  try {
+    const result = await Item.findOneAndUpdate(
+      { type, category, name: itemName },
+      { $set: { quantity: Math.max(0, value) } },
+      { new: true }
+    );
+    
+    if (result) {
+      if (action && details) {
+        await addHistoryEntry({
+          timestamp: new Date().toISOString(),
+          type,
+          category,
+          itemName,
+          action,
+          details,
+          userName
+        });
+      }
+      notifyChangeListeners();
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('❌ 아이템 수량 설정 에러:', error);
+    throw error;
+  }
+}
+
 // 여러 아이템 일괄 업데이트
 async function updateMultipleItems(updates, historyEntries) {
   try {
@@ -704,6 +735,7 @@ module.exports = {
   removeItem,
   updateItemDetails,
   updateItemQuantity,
+  setItemQuantity,
   updateMultipleItems,
   updateItemWorker,
   updateItemsOrder,

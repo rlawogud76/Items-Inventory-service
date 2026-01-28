@@ -55,10 +55,12 @@ function formatQuantity(quantity) {
   return `${quantity}개`
 }
 
-function ItemRow({ item, type, onQuantityChange, onEdit, onDelete }) {
+function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete }) {
   const { user } = useAuth()
   const [editingQuantity, setEditingQuantity] = useState(false)
+  const [settingQuantity, setSettingQuantity] = useState(false)
   const [quantityDelta, setQuantityDelta] = useState('')
+  const [quantityValue, setQuantityValue] = useState('')
   const [showPresets, setShowPresets] = useState(false)
 
   // 프리셋 수량 정의
@@ -83,6 +85,16 @@ function ItemRow({ item, type, onQuantityChange, onEdit, onDelete }) {
     }
     setEditingQuantity(false)
     setQuantityDelta('')
+  }
+
+  const handleQuantitySetSubmit = (e) => {
+    e.preventDefault()
+    const value = parseInt(quantityValue)
+    if (!isNaN(value) && value >= 0) {
+      onQuantitySet(item, value)
+    }
+    setSettingQuantity(false)
+    setQuantityValue('')
   }
 
   const handlePresetClick = (value) => {
@@ -174,6 +186,32 @@ function ItemRow({ item, type, onQuantityChange, onEdit, onDelete }) {
                   취소
                 </button>
               </form>
+            ) : settingQuantity ? (
+              <form onSubmit={handleQuantitySetSubmit} className="flex items-center gap-1">
+                <span className="text-xs text-gray-400">→</span>
+                <input
+                  type="number"
+                  value={quantityValue}
+                  onChange={(e) => setQuantityValue(e.target.value)}
+                  placeholder="수량"
+                  min="0"
+                  className="w-20 px-2 py-1 bg-dark-300 border border-dark-100 rounded text-sm"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+                >
+                  설정
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingQuantity(false)}
+                  className="px-2 py-1 bg-dark-100 hover:bg-dark-200 rounded text-sm"
+                >
+                  취소
+                </button>
+              </form>
             ) : (
               <>
                 {/* 빠른 조절 버튼 */}
@@ -233,6 +271,13 @@ function ItemRow({ item, type, onQuantityChange, onEdit, onDelete }) {
                               {preset.label}
                             </button>
                           ))}
+                          <div className="border-t border-dark-100 my-1" />
+                          <button
+                            onClick={() => { setSettingQuantity(true); setQuantityValue(String(item.quantity)); setShowPresets(false); }}
+                            className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-blue-400"
+                          >
+                            📝 수량 직접 설정
+                          </button>
                         </div>
                       </div>
                     </>
@@ -243,7 +288,7 @@ function ItemRow({ item, type, onQuantityChange, onEdit, onDelete }) {
                 <button
                   onClick={() => setEditingQuantity(true)}
                   className="p-1 hover:bg-dark-300 rounded text-gray-400"
-                  title="직접 입력"
+                  title="증감 입력"
                 >
                   <Edit size={16} />
                 </button>
@@ -319,6 +364,35 @@ function Inventory() {
     },
   })
 
+  // 수량 직접 설정 뮤테이션 (Optimistic Update)
+  const quantitySetMutation = useMutation({
+    mutationFn: ({ item, value }) => 
+      api.patch(`/items/${item.type}/${item.category}/${item.name}/quantity/set`, { value }),
+    onMutate: async ({ item, value }) => {
+      await queryClient.cancelQueries({ queryKey: ['items', 'inventory', category] })
+      const previousItems = queryClient.getQueryData(['items', 'inventory', category])
+      
+      queryClient.setQueryData(['items', 'inventory', category], (old) => {
+        if (!old) return old
+        return old.map(i => 
+          i.name === item.name && i.category === item.category
+            ? { ...i, quantity: Math.max(0, value) }
+            : i
+        )
+      })
+      
+      return { previousItems }
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousItems) {
+        queryClient.setQueryData(['items', 'inventory', category], context.previousItems)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
+    },
+  })
+
   // 삭제 뮤테이션
   const deleteMutation = useMutation({
     mutationFn: (item) => api.delete(`/items/inventory/${item.category}/${item.name}`),
@@ -340,6 +414,10 @@ function Inventory() {
 
   const handleQuantityChange = (item, delta) => {
     quantityMutation.mutate({ item, delta })
+  }
+
+  const handleQuantitySet = (item, value) => {
+    quantitySetMutation.mutate({ item, value })
   }
 
   const handleAddItem = () => {
@@ -505,6 +583,7 @@ function Inventory() {
                       item={item}
                       type="inventory"
                       onQuantityChange={handleQuantityChange}
+                      onQuantitySet={handleQuantitySet}
                       onEdit={handleEditItem}
                       onDelete={handleDeleteItem}
                     />
