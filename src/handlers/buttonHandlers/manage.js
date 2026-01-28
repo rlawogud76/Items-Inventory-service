@@ -1397,7 +1397,7 @@ export async function handleMoveItemButton(interaction) {
     const itemsToUpdate = items.map((itemName, index) => ({
       name: itemName,
       order: index
-    }));
+    })); 
     
     await updateItemsOrder(type, category, itemsToUpdate);
     
