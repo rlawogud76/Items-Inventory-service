@@ -278,37 +278,37 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit
                 <span className={`text-sm font-medium shrink-0 ${isAdding ? 'text-green-400' : 'text-red-400'}`}>
                   {isAdding ? '+' : '-'}
                 </span>
-                <div className="flex items-center gap-0.5 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <input
                     type="number"
                     value={deltaUnits.boxes || ''}
                     onChange={(e) => setDeltaUnits({...deltaUnits, boxes: e.target.value})}
                     placeholder="0"
                     min="0"
-                    className="w-10 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    className="w-12 px-2 py-1.5 bg-dark-300 border border-dark-100 rounded text-sm text-center focus:border-primary-500 focus:outline-none"
                     autoFocus
                   />
                   <span className="text-xs text-gray-400 whitespace-nowrap">상</span>
                 </div>
-                <div className="flex items-center gap-0.5 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <input
                     type="number"
                     value={deltaUnits.sets || ''}
                     onChange={(e) => setDeltaUnits({...deltaUnits, sets: e.target.value})}
                     placeholder="0"
                     min="0"
-                    className="w-10 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    className="w-12 px-2 py-1.5 bg-dark-300 border border-dark-100 rounded text-sm text-center focus:border-primary-500 focus:outline-none"
                   />
                   <span className="text-xs text-gray-400 whitespace-nowrap">세</span>
                 </div>
-                <div className="flex items-center gap-0.5 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <input
                     type="number"
                     value={deltaUnits.items || ''}
                     onChange={(e) => setDeltaUnits({...deltaUnits, items: e.target.value})}
                     placeholder="0"
                     min="0"
-                    className="w-10 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    className="w-12 px-2 py-1.5 bg-dark-300 border border-dark-100 rounded text-sm text-center focus:border-primary-500 focus:outline-none"
                   />
                   <span className="text-xs text-gray-400 whitespace-nowrap">개</span>
                 </div>
@@ -330,37 +330,37 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit
               /* 직접 설정 모드 - 단위별 입력 */
               <form onSubmit={handleSetSubmit} className="flex items-center gap-1.5 flex-nowrap">
                 <span className="text-xs text-blue-400 shrink-0">→</span>
-                <div className="flex items-center gap-0.5 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <input
                     type="number"
                     value={setUnits.boxes || ''}
                     onChange={(e) => setSetUnits({...setUnits, boxes: e.target.value})}
                     placeholder="0"
                     min="0"
-                    className="w-10 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    className="w-12 px-2 py-1.5 bg-dark-300 border border-dark-100 rounded text-sm text-center focus:border-blue-500 focus:outline-none"
                     autoFocus
                   />
                   <span className="text-xs text-gray-400 whitespace-nowrap">상</span>
                 </div>
-                <div className="flex items-center gap-0.5 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <input
                     type="number"
                     value={setUnits.sets || ''}
                     onChange={(e) => setSetUnits({...setUnits, sets: e.target.value})}
                     placeholder="0"
                     min="0"
-                    className="w-10 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    className="w-12 px-2 py-1.5 bg-dark-300 border border-dark-100 rounded text-sm text-center focus:border-blue-500 focus:outline-none"
                   />
                   <span className="text-xs text-gray-400 whitespace-nowrap">세</span>
                 </div>
-                <div className="flex items-center gap-0.5 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <input
                     type="number"
                     value={setUnits.items || ''}
                     onChange={(e) => setSetUnits({...setUnits, items: e.target.value})}
                     placeholder="0"
                     min="0"
-                    className="w-10 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    className="w-12 px-2 py-1.5 bg-dark-300 border border-dark-100 rounded text-sm text-center focus:border-blue-500 focus:outline-none"
                   />
                   <span className="text-xs text-gray-400 whitespace-nowrap">개</span>
                 </div>
