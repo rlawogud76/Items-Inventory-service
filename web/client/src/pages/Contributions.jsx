@@ -1,12 +1,35 @@
-import { useQuery } from '@tanstack/react-query'
-import { Trophy, Package, Hammer } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Trophy, Package, Hammer, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
 import api from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 
 function Contributions() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+
   const { data, isLoading } = useQuery({
     queryKey: ['contributions'],
     queryFn: () => api.get('/contributions?limit=50').then(res => res.data),
   })
+
+  const resetMutation = useMutation({
+    mutationFn: () => api.delete('/contributions/reset'),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['contributions'] })
+      queryClient.invalidateQueries({ queryKey: ['history'] })
+      alert(response.data.message || '기여도가 초기화되었습니다.')
+      setShowResetConfirm(false)
+    },
+    onError: (error) => {
+      alert(error.response?.data?.error || '초기화에 실패했습니다.')
+    }
+  })
+
+  const handleReset = () => {
+    resetMutation.mutate()
+  }
 
   const getRankStyle = (index) => {
     if (index === 0) return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50'
@@ -29,10 +52,51 @@ function Contributions() {
           <Trophy className="text-yellow-500" />
           기여도 순위
         </h1>
-        <span className="text-sm text-gray-400">
-          총 {data?.totalUsers || 0}명 참여
-        </span>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-400">
+            총 {data?.totalUsers || 0}명 참여
+          </span>
+          {user?.isAdmin && (
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded-lg text-sm"
+            >
+              <RotateCcw size={14} />
+              초기화
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* 초기화 확인 모달 */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-dark-300 rounded-xl p-6 max-w-md mx-4 border border-dark-100">
+            <h2 className="text-xl font-bold text-red-400 mb-4">⚠️ 기여도 초기화</h2>
+            <p className="text-gray-300 mb-2">
+              정말로 모든 기여도를 초기화하시겠습니까?
+            </p>
+            <p className="text-gray-400 text-sm mb-6">
+              모든 수정 내역이 삭제되며, 이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="flex-1 px-4 py-2 bg-dark-200 hover:bg-dark-100 rounded-lg"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleReset}
+                disabled={resetMutation.isPending}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50"
+              >
+                {resetMutation.isPending ? '처리 중...' : '초기화'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">

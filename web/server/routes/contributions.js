@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('shared/database');
 const contributionService = require('shared/services/contributionService');
+const { authenticate, requireAdmin } = require('../middleware/auth');
 
 // 기여도 조회
 router.get('/', async (req, res, next) => {
@@ -51,6 +52,22 @@ router.get('/user/:username', async (req, res, next) => {
     res.json({
       username,
       ...userContribution
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 기여도 초기화 (수정 내역 전체 삭제) - 관리자 전용
+router.delete('/reset', authenticate, requireAdmin, async (req, res, next) => {
+  try {
+    const count = await db.getHistoryCount();
+    await db.clearHistory();
+    
+    res.json({ 
+      success: true, 
+      message: `${count}개의 수정 내역이 삭제되었습니다.`,
+      deletedCount: count
     });
   } catch (error) {
     next(error);

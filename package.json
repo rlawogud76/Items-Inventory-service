@@ -3,13 +3,11 @@
   "version": "2.0.0",
   "private": true,
   "workspaces": [
-    "bot",
     "shared",
     "web/server",
     "web/client"
   ],
   "scripts": {
-    "bot": "npm run start --workspace=bot",
     "server": "npm run start --workspace=web/server",
     "client": "npm run dev --workspace=web/client",
     "dev": "concurrently \"npm run server\" \"npm run client\"",

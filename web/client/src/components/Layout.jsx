@@ -12,7 +12,8 @@ import {
   WifiOff,
   LayoutDashboard,
   Star,
-  Shield
+  Shield,
+  Tag
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
@@ -23,6 +24,7 @@ const navItems = [
   { path: '/', icon: LayoutDashboard, label: '대시보드' },
   { path: '/inventory', icon: Package, label: '재고' },
   { path: '/crafting', icon: Hammer, label: '제작' },
+  { path: '/tags', icon: Tag, label: '태그' },
   { path: '/contributions', icon: Trophy, label: '기여도' },
   { path: '/history', icon: History, label: '수정내역' },
   { path: '/settings', icon: Settings, label: '설정' },

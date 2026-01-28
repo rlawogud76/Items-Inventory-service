@@ -164,54 +164,60 @@ function Points() {
         </div>
         
         <div className="divide-y divide-dark-100">
-          {points?.inventory && Object.keys(points.inventory).map(category => {
-            const key = `inventory:${category}`
-            const isExpanded = expandedCategories[key]
-            const items = Object.keys(points.inventory[category] || {})
-            
-            return (
-              <div key={category}>
-                <button
-                  onClick={() => toggleCategory('inventory', category)}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-dark-200 transition-colors"
-                >
-                  <span className="font-medium">{category}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-400">{items.length}개</span>
-                    {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                  </div>
-                </button>
-                
-                {isExpanded && (
-                  <div className="px-4 pb-4 space-y-2">
-                    {items.map(itemName => {
-                      const itemKey = `inventory:${category}:${itemName}`
-                      const hasChange = pendingChanges[itemKey]
-                      
-                      return (
-                        <div key={itemName} className="flex items-center justify-between py-2 px-3 bg-dark-200 rounded-lg">
-                          <span className="text-sm">{itemName}</span>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              min="1"
-                              max="100"
-                              value={getItemPoint('inventory', category, itemName)}
-                              onChange={(e) => handlePointChange('inventory', category, itemName, e.target.value)}
-                              className={`w-20 px-3 py-1 text-center bg-dark-100 border rounded text-sm focus:outline-none focus:border-primary-500 ${
-                                hasChange ? 'border-yellow-500' : 'border-dark-50'
-                              }`}
-                            />
-                            <span className="text-gray-500 text-xs">점</span>
+          {points?.inventory && Object.keys(points.inventory).length > 0 ? (
+            Object.keys(points.inventory).map(category => {
+              const key = `inventory:${category}`
+              const isExpanded = expandedCategories[key]
+              const items = Object.keys(points.inventory[category] || {})
+              
+              return (
+                <div key={category}>
+                  <button
+                    onClick={() => toggleCategory('inventory', category)}
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-dark-200 transition-colors"
+                  >
+                    <span className="font-medium">{category}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-400">{items.length}개</span>
+                      {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                    </div>
+                  </button>
+                  
+                  {isExpanded && (
+                    <div className="px-4 pb-4 space-y-2">
+                      {items.map(itemName => {
+                        const itemKey = `inventory:${category}:${itemName}`
+                        const hasChange = pendingChanges[itemKey]
+                        
+                        return (
+                          <div key={itemName} className="flex items-center justify-between py-2 px-3 bg-dark-200 rounded-lg">
+                            <span className="text-sm">{itemName}</span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={getItemPoint('inventory', category, itemName)}
+                                onChange={(e) => handlePointChange('inventory', category, itemName, e.target.value)}
+                                className={`w-20 px-3 py-1 text-center bg-dark-100 border rounded text-sm focus:outline-none focus:border-primary-500 ${
+                                  hasChange ? 'border-yellow-500' : 'border-dark-50'
+                                }`}
+                              />
+                              <span className="text-gray-500 text-xs">점</span>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          ) : (
+            <div className="p-4 text-center text-gray-500">
+              등록된 재고 아이템이 없습니다.
+            </div>
+          )}
         </div>
       </div>
 
@@ -224,54 +230,60 @@ function Points() {
         </div>
         
         <div className="divide-y divide-dark-100">
-          {points?.crafting && Object.keys(points.crafting).map(category => {
-            const key = `crafting:${category}`
-            const isExpanded = expandedCategories[key]
-            const items = Object.keys(points.crafting[category] || {})
-            
-            return (
-              <div key={category}>
-                <button
-                  onClick={() => toggleCategory('crafting', category)}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-dark-200 transition-colors"
-                >
-                  <span className="font-medium">{category}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-400">{items.length}개</span>
-                    {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                  </div>
-                </button>
-                
-                {isExpanded && (
-                  <div className="px-4 pb-4 space-y-2">
-                    {items.map(itemName => {
-                      const itemKey = `crafting:${category}:${itemName}`
-                      const hasChange = pendingChanges[itemKey]
-                      
-                      return (
-                        <div key={itemName} className="flex items-center justify-between py-2 px-3 bg-dark-200 rounded-lg">
-                          <span className="text-sm">{itemName}</span>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              min="1"
-                              max="100"
-                              value={getItemPoint('crafting', category, itemName)}
-                              onChange={(e) => handlePointChange('crafting', category, itemName, e.target.value)}
-                              className={`w-20 px-3 py-1 text-center bg-dark-100 border rounded text-sm focus:outline-none focus:border-primary-500 ${
-                                hasChange ? 'border-yellow-500' : 'border-dark-50'
-                              }`}
-                            />
-                            <span className="text-gray-500 text-xs">점</span>
+          {points?.crafting && Object.keys(points.crafting).length > 0 ? (
+            Object.keys(points.crafting).map(category => {
+              const key = `crafting:${category}`
+              const isExpanded = expandedCategories[key]
+              const items = Object.keys(points.crafting[category] || {})
+              
+              return (
+                <div key={category}>
+                  <button
+                    onClick={() => toggleCategory('crafting', category)}
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-dark-200 transition-colors"
+                  >
+                    <span className="font-medium">{category}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-400">{items.length}개</span>
+                      {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                    </div>
+                  </button>
+                  
+                  {isExpanded && (
+                    <div className="px-4 pb-4 space-y-2">
+                      {items.map(itemName => {
+                        const itemKey = `crafting:${category}:${itemName}`
+                        const hasChange = pendingChanges[itemKey]
+                        
+                        return (
+                          <div key={itemName} className="flex items-center justify-between py-2 px-3 bg-dark-200 rounded-lg">
+                            <span className="text-sm">{itemName}</span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={getItemPoint('crafting', category, itemName)}
+                                onChange={(e) => handlePointChange('crafting', category, itemName, e.target.value)}
+                                className={`w-20 px-3 py-1 text-center bg-dark-100 border rounded text-sm focus:outline-none focus:border-primary-500 ${
+                                  hasChange ? 'border-yellow-500' : 'border-dark-50'
+                                }`}
+                              />
+                              <span className="text-gray-500 text-xs">점</span>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          ) : (
+            <div className="p-4 text-center text-gray-500">
+              등록된 제작 아이템이 없습니다.
+            </div>
+          )}
         </div>
       </div>
 

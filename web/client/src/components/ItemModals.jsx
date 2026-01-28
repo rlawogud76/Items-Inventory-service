@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { X, Plus, Trash2 } from 'lucide-react'
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import api from '../services/api'
 import { DiscordText } from '../utils/discordEmoji'
 
@@ -316,6 +316,210 @@ export function ResetConfirmModal({ isOpen, onClose, onConfirm, categoryName, it
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+export function RecipeModal({ 
+  isOpen, 
+  onClose, 
+  item, 
+  recipe, 
+  onSave, 
+  onDelete,
+  isSaving,
+  isDeleting 
+}) {
+  const [materials, setMaterials] = useState(recipe?.materials || [])
+  const [showItemPicker, setShowItemPicker] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState('')
+  
+  // 재고 아이템 목록 (재료로 선택 가능)
+  const { data: inventoryItems = [] } = useQuery({
+    queryKey: ['items', 'inventory'],
+    queryFn: () => api.get('/items/inventory').then(res => res.data),
+    enabled: isOpen,
+  })
+  
+  // 카테고리 목록
+  const inventoryCategories = [...new Set(inventoryItems.map(i => i.category))]
+  
+  // 모달 열릴 때 데이터 초기화
+  useState(() => {
+    if (isOpen) {
+      setMaterials(recipe?.materials || [])
+    }
+  }, [isOpen, recipe])
+
+  const handleAddMaterial = (inventoryItem) => {
+    const exists = materials.find(m => m.name === inventoryItem.name && m.category === inventoryItem.category)
+    if (!exists) {
+      setMaterials([...materials, {
+        name: inventoryItem.name,
+        category: inventoryItem.category,
+        quantity: 1
+      }])
+    }
+    setShowItemPicker(false)
+  }
+
+  const handleRemoveMaterial = (index) => {
+    setMaterials(materials.filter((_, i) => i !== index))
+  }
+
+  const handleQuantityChange = (index, quantity) => {
+    setMaterials(materials.map((m, i) => 
+      i === index ? { ...m, quantity: parseInt(quantity) || 1 } : m
+    ))
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (materials.length === 0) return
+    
+    onSave({
+      category: item.category,
+      resultName: item.name,
+      materials
+    })
+  }
+
+  if (!isOpen || !item) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-dark-300 rounded-xl w-full max-w-lg border border-dark-100 max-h-[80vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-dark-100">
+          <h2 className="text-lg font-semibold">
+            <DiscordText>{item.emoji || '⭐'}</DiscordText>{' '}
+            <DiscordText>{item.name}</DiscordText> 레시피
+          </h2>
+          <button onClick={onClose} className="p-1 hover:bg-dark-200 rounded">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
+          {/* 재료 목록 */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">필요 재료</label>
+            
+            {materials.length > 0 ? (
+              <div className="space-y-2 mb-3">
+                {materials.map((material, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-dark-200 p-2 rounded-lg">
+                    <div className="flex-1">
+                      <DiscordText className="text-sm">{material.name}</DiscordText>
+                      <span className="text-xs text-gray-500 ml-1">({material.category})</span>
+                    </div>
+                    <input
+                      type="number"
+                      value={material.quantity}
+                      onChange={(e) => handleQuantityChange(idx, e.target.value)}
+                      min="1"
+                      className="w-20 px-2 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    />
+                    <span className="text-xs text-gray-400">개</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMaterial(idx)}
+                      className="p-1 hover:bg-dark-300 rounded text-red-400"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 mb-3">재료를 추가하세요</p>
+            )}
+            
+            {/* 재료 추가 버튼 */}
+            {!showItemPicker ? (
+              <button
+                type="button"
+                onClick={() => setShowItemPicker(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-dark-200 hover:bg-dark-100 rounded-lg text-sm text-primary-400"
+              >
+                <Plus size={16} />
+                재료 추가
+              </button>
+            ) : (
+              <div className="bg-dark-200 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400">재료 선택</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowItemPicker(false)}
+                    className="text-xs text-gray-500 hover:text-gray-300"
+                  >
+                    닫기
+                  </button>
+                </div>
+                
+                {/* 카테고리 필터 */}
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full px-2 py-1 bg-dark-300 border border-dark-100 rounded text-sm"
+                >
+                  <option value="">전체 카테고리</option>
+                  {inventoryCategories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+                
+                {/* 아이템 목록 */}
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {inventoryItems
+                    .filter(i => !selectedCategory || i.category === selectedCategory)
+                    .filter(i => !materials.find(m => m.name === i.name && m.category === i.category))
+                    .map(i => (
+                      <button
+                        key={`${i.category}-${i.name}`}
+                        type="button"
+                        onClick={() => handleAddMaterial(i)}
+                        className="w-full text-left px-2 py-1.5 hover:bg-dark-300 rounded text-sm"
+                      >
+                        <DiscordText>{i.emoji || '📦'}</DiscordText>{' '}
+                        <DiscordText>{i.name}</DiscordText>
+                        <span className="text-xs text-gray-500 ml-1">({i.category})</span>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* 버튼 */}
+          <div className="flex gap-3 pt-2">
+            {recipe && (
+              <button
+                type="button"
+                onClick={() => onDelete({ category: item.category, resultName: item.name })}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? '삭제 중...' : '삭제'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-dark-200 hover:bg-dark-100 rounded-lg transition-colors"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={materials.length === 0 || isSaving}
+              className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isSaving ? '저장 중...' : (recipe ? '수정' : '추가')}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

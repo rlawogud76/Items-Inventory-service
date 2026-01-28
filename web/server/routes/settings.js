@@ -92,11 +92,42 @@ router.patch('/permissions', authenticate, requireAdmin, async (req, res, next) 
   }
 });
 
-// 배점 조회
+// 배점 조회 (실제 아이템 목록 기반)
 router.get('/points', async (req, res, next) => {
   try {
-    const points = await db.getItemPoints();
-    res.json(points);
+    // 저장된 배점과 실제 아이템 목록을 함께 조회
+    const [savedPoints, inventoryItems, craftingItems] = await Promise.all([
+      db.getItemPoints(),
+      db.loadInventory('inventory'),
+      db.loadInventory('crafting')
+    ]);
+    
+    // 실제 아이템 기반으로 배점 구조 생성
+    const result = {
+      inventory: {},
+      crafting: {}
+    };
+    
+    // 재고 아이템
+    for (const item of inventoryItems) {
+      if (!result.inventory[item.category]) {
+        result.inventory[item.category] = {};
+      }
+      // 저장된 배점이 있으면 사용, 없으면 기본값 1
+      result.inventory[item.category][item.name] = 
+        savedPoints?.inventory?.[item.category]?.[item.name] || 1;
+    }
+    
+    // 제작 아이템
+    for (const item of craftingItems) {
+      if (!result.crafting[item.category]) {
+        result.crafting[item.category] = {};
+      }
+      result.crafting[item.category][item.name] = 
+        savedPoints?.crafting?.[item.category]?.[item.name] || 1;
+    }
+    
+    res.json(result);
   } catch (error) {
     next(error);
   }

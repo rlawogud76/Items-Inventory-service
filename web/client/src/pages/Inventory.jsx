@@ -55,12 +55,33 @@ function formatQuantity(quantity) {
   return `${quantity}개`
 }
 
-function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete }) {
+// 상수 정의
+const ITEMS_PER_SET = 64
+const ITEMS_PER_BOX = 64 * 54 // 3456
+
+// 단위별 수량을 총 개수로 변환
+function convertToTotal(boxes, sets, items) {
+  return (boxes * ITEMS_PER_BOX) + (sets * ITEMS_PER_SET) + items
+}
+
+// 총 개수를 단위별로 분해
+function decomposeQuantity(total) {
+  const boxes = Math.floor(total / ITEMS_PER_BOX)
+  const remaining = total % ITEMS_PER_BOX
+  const sets = Math.floor(remaining / ITEMS_PER_SET)
+  const items = remaining % ITEMS_PER_SET
+  return { boxes, sets, items }
+}
+
+function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete, onWorkerToggle }) {
   const { user } = useAuth()
-  const [editingQuantity, setEditingQuantity] = useState(false)
-  const [settingQuantity, setSettingQuantity] = useState(false)
-  const [quantityDelta, setQuantityDelta] = useState('')
-  const [quantityValue, setQuantityValue] = useState('')
+  const [editMode, setEditMode] = useState(null) // null, 'delta', 'set'
+  
+  // 단위별 입력값
+  const [deltaUnits, setDeltaUnits] = useState({ boxes: 0, sets: 0, items: 0 })
+  const [setUnits, setSetUnits] = useState({ boxes: 0, sets: 0, items: 0 })
+  const [isAdding, setIsAdding] = useState(true) // 증감 모드에서 추가/차감
+  
   const [showPresets, setShowPresets] = useState(false)
 
   // 프리셋 수량 정의
@@ -77,24 +98,48 @@ function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete
     { label: '-3456 (1상자)', value: -3456, color: 'text-red-400' },
   ]
 
-  const handleQuantitySubmit = (e) => {
+  // 증감 모드 제출
+  const handleDeltaSubmit = (e) => {
     e.preventDefault()
-    const delta = parseInt(quantityDelta)
-    if (!isNaN(delta) && delta !== 0) {
-      onQuantityChange(item, delta)
+    const total = convertToTotal(
+      parseInt(deltaUnits.boxes) || 0,
+      parseInt(deltaUnits.sets) || 0,
+      parseInt(deltaUnits.items) || 0
+    )
+    if (total > 0) {
+      onQuantityChange(item, isAdding ? total : -total)
     }
-    setEditingQuantity(false)
-    setQuantityDelta('')
+    setEditMode(null)
+    setDeltaUnits({ boxes: 0, sets: 0, items: 0 })
   }
 
-  const handleQuantitySetSubmit = (e) => {
+  // 직접 설정 모드 제출
+  const handleSetSubmit = (e) => {
     e.preventDefault()
-    const value = parseInt(quantityValue)
-    if (!isNaN(value) && value >= 0) {
-      onQuantitySet(item, value)
+    const total = convertToTotal(
+      parseInt(setUnits.boxes) || 0,
+      parseInt(setUnits.sets) || 0,
+      parseInt(setUnits.items) || 0
+    )
+    if (total >= 0) {
+      onQuantitySet(item, total)
     }
-    setSettingQuantity(false)
-    setQuantityValue('')
+    setEditMode(null)
+    setSetUnits({ boxes: 0, sets: 0, items: 0 })
+  }
+
+  // 직접 설정 모드 시작 시 현재 수량으로 초기화
+  const startSetMode = () => {
+    const decomposed = decomposeQuantity(item.quantity)
+    setSetUnits(decomposed)
+    setEditMode('set')
+  }
+
+  // 증감 모드 시작
+  const startDeltaMode = (adding = true) => {
+    setIsAdding(adding)
+    setDeltaUnits({ boxes: 0, sets: 0, items: 0 })
+    setEditMode('delta')
   }
 
   const handlePresetClick = (value) => {
@@ -115,10 +160,26 @@ function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete
           {item.itemType === 'intermediate' && (
             <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded">중간재</span>
           )}
-          {item.worker?.userId && (
-            <span className="text-xs px-2 py-0.5 bg-orange-500/20 text-orange-400 rounded">
+          {/* 작업자 상태 */}
+          {item.worker?.userId ? (
+            <button
+              onClick={() => user && (user.id === item.worker.userId || user.isAdmin) && onWorkerToggle(item, 'stop')}
+              className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                user && (user.id === item.worker.userId || user.isAdmin)
+                  ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 cursor-pointer'
+                  : 'bg-orange-500/20 text-orange-400 cursor-default'
+              }`}
+              title={user && (user.id === item.worker.userId || user.isAdmin) ? '클릭하여 작업 중단' : ''}
+            >
               {item.worker.userName} 작업중
-            </span>
+            </button>
+          ) : user && (
+            <button
+              onClick={() => onWorkerToggle(item, 'start')}
+              className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded transition-colors opacity-0 group-hover:opacity-100"
+            >
+              작업 시작
+            </button>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -155,9 +216,9 @@ function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm">
           {/* 수량 클릭 시 직접 설정 모드 */}
-          {user && !editingQuantity && !settingQuantity ? (
+          {user && editMode === null ? (
             <button
-              onClick={() => { setSettingQuantity(true); setQuantityValue(String(item.quantity)); }}
+              onClick={startSetMode}
               className="hover:bg-dark-300 px-1.5 py-0.5 rounded transition-colors cursor-pointer group/qty"
               title="클릭하여 수량 직접 설정"
             >
@@ -177,42 +238,98 @@ function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete
         {/* 수량 조절 버튼 */}
         {user && (
           <div className="flex items-center gap-1 relative">
-            {editingQuantity ? (
-              <form onSubmit={handleQuantitySubmit} className="flex items-center gap-1">
-                <input
-                  type="number"
-                  value={quantityDelta}
-                  onChange={(e) => setQuantityDelta(e.target.value)}
-                  placeholder="+/-"
-                  className="w-20 px-2 py-1 bg-dark-300 border border-dark-100 rounded text-sm"
-                  autoFocus
-                />
+            {editMode === 'delta' ? (
+              /* 증감 모드 - 단위별 입력 */
+              <form onSubmit={handleDeltaSubmit} className="flex items-center gap-1 flex-wrap">
+                <span className={`text-sm font-medium ${isAdding ? 'text-green-400' : 'text-red-400'}`}>
+                  {isAdding ? '+' : '-'}
+                </span>
+                <div className="flex items-center gap-0.5">
+                  <input
+                    type="number"
+                    value={deltaUnits.boxes || ''}
+                    onChange={(e) => setDeltaUnits({...deltaUnits, boxes: e.target.value})}
+                    placeholder="0"
+                    min="0"
+                    className="w-12 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    autoFocus
+                  />
+                  <span className="text-xs text-gray-400">상자</span>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <input
+                    type="number"
+                    value={deltaUnits.sets || ''}
+                    onChange={(e) => setDeltaUnits({...deltaUnits, sets: e.target.value})}
+                    placeholder="0"
+                    min="0"
+                    className="w-12 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                  />
+                  <span className="text-xs text-gray-400">세트</span>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <input
+                    type="number"
+                    value={deltaUnits.items || ''}
+                    onChange={(e) => setDeltaUnits({...deltaUnits, items: e.target.value})}
+                    placeholder="0"
+                    min="0"
+                    className="w-12 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                  />
+                  <span className="text-xs text-gray-400">개</span>
+                </div>
                 <button
                   type="submit"
-                  className="px-2 py-1 bg-primary-600 hover:bg-primary-700 rounded text-sm"
+                  className={`px-2 py-1 rounded text-sm ${isAdding ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
                 >
-                  확인
+                  적용
                 </button>
                 <button
                   type="button"
-                  onClick={() => setEditingQuantity(false)}
+                  onClick={() => setEditMode(null)}
                   className="px-2 py-1 bg-dark-100 hover:bg-dark-200 rounded text-sm"
                 >
                   취소
                 </button>
               </form>
-            ) : settingQuantity ? (
-              <form onSubmit={handleQuantitySetSubmit} className="flex items-center gap-1">
-                <span className="text-xs text-gray-400">→</span>
-                <input
-                  type="number"
-                  value={quantityValue}
-                  onChange={(e) => setQuantityValue(e.target.value)}
-                  placeholder="수량"
-                  min="0"
-                  className="w-20 px-2 py-1 bg-dark-300 border border-dark-100 rounded text-sm"
-                  autoFocus
-                />
+            ) : editMode === 'set' ? (
+              /* 직접 설정 모드 - 단위별 입력 */
+              <form onSubmit={handleSetSubmit} className="flex items-center gap-1 flex-wrap">
+                <span className="text-xs text-blue-400">→</span>
+                <div className="flex items-center gap-0.5">
+                  <input
+                    type="number"
+                    value={setUnits.boxes || ''}
+                    onChange={(e) => setSetUnits({...setUnits, boxes: e.target.value})}
+                    placeholder="0"
+                    min="0"
+                    className="w-12 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    autoFocus
+                  />
+                  <span className="text-xs text-gray-400">상자</span>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <input
+                    type="number"
+                    value={setUnits.sets || ''}
+                    onChange={(e) => setSetUnits({...setUnits, sets: e.target.value})}
+                    placeholder="0"
+                    min="0"
+                    className="w-12 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                  />
+                  <span className="text-xs text-gray-400">세트</span>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <input
+                    type="number"
+                    value={setUnits.items || ''}
+                    onChange={(e) => setSetUnits({...setUnits, items: e.target.value})}
+                    placeholder="0"
+                    min="0"
+                    className="w-12 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                  />
+                  <span className="text-xs text-gray-400">개</span>
+                </div>
                 <button
                   type="submit"
                   className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
@@ -221,7 +338,7 @@ function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSettingQuantity(false)}
+                  onClick={() => setEditMode(null)}
                   className="px-2 py-1 bg-dark-100 hover:bg-dark-200 rounded text-sm"
                 >
                   취소
@@ -287,8 +404,21 @@ function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete
                             </button>
                           ))}
                           <div className="border-t border-dark-100 my-1" />
+                          <div className="text-xs text-gray-500 px-2 py-1">단위별 입력</div>
                           <button
-                            onClick={() => { setSettingQuantity(true); setQuantityValue(String(item.quantity)); setShowPresets(false); }}
+                            onClick={() => { startDeltaMode(true); setShowPresets(false); }}
+                            className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-green-400"
+                          >
+                            ➕ 추가 (단위입력)
+                          </button>
+                          <button
+                            onClick={() => { startDeltaMode(false); setShowPresets(false); }}
+                            className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-red-400"
+                          >
+                            ➖ 차감 (단위입력)
+                          </button>
+                          <button
+                            onClick={() => { startSetMode(); setShowPresets(false); }}
                             className="w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm text-blue-400"
                           >
                             📝 수량 직접 설정
@@ -301,7 +431,7 @@ function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete
                 
                 {/* 직접 수량 설정 버튼 */}
                 <button
-                  onClick={() => { setSettingQuantity(true); setQuantityValue(String(item.quantity)); }}
+                  onClick={startSetMode}
                   className="px-1.5 py-0.5 hover:bg-blue-600/20 rounded text-blue-400 text-xs font-medium border border-blue-500/30"
                   title="수량 직접 설정"
                 >
@@ -427,12 +557,50 @@ function Inventory() {
     },
   })
 
+  // 작업자 토글 뮤테이션
+  const workerMutation = useMutation({
+    mutationFn: ({ item, action }) => 
+      api.patch(`/items/${item.type}/${item.category}/${item.name}/worker`, { action }),
+    onMutate: async ({ item, action }) => {
+      await queryClient.cancelQueries({ queryKey: ['items', 'inventory', category] })
+      const previousItems = queryClient.getQueryData(['items', 'inventory', category])
+      
+      queryClient.setQueryData(['items', 'inventory', category], (old) => {
+        if (!old) return old
+        return old.map(i => 
+          i.name === item.name && i.category === item.category
+            ? { 
+                ...i, 
+                worker: action === 'start' 
+                  ? { userId: user.id, userName: user.username, startTime: new Date() }
+                  : null 
+              }
+            : i
+        )
+      })
+      
+      return { previousItems }
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousItems) {
+        queryClient.setQueryData(['items', 'inventory', category], context.previousItems)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
+    },
+  })
+
   const handleQuantityChange = (item, delta) => {
     quantityMutation.mutate({ item, delta })
   }
 
   const handleQuantitySet = (item, value) => {
     quantitySetMutation.mutate({ item, value })
+  }
+
+  const handleWorkerToggle = (item, action) => {
+    workerMutation.mutate({ item, action })
   }
 
   const handleAddItem = () => {
@@ -601,6 +769,7 @@ function Inventory() {
                       onQuantitySet={handleQuantitySet}
                       onEdit={handleEditItem}
                       onDelete={handleDeleteItem}
+                      onWorkerToggle={handleWorkerToggle}
                     />
                   ))}
                 </div>

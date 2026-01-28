@@ -9,6 +9,7 @@ import History from './pages/History'
 import Settings from './pages/Settings'
 import Points from './pages/Points'
 import Permissions from './pages/Permissions'
+import Tags from './pages/Tags'
 import Login from './pages/Login'
 import AuthCallback from './pages/AuthCallback'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -45,6 +46,9 @@ function AppRoutes() {
         <Route path="settings" element={<Settings />} />
         <Route path="points" element={<Points />} />
         <Route path="permissions" element={<Permissions />} />
+        <Route path="tags" element={<Navigate to="/tags/inventory" replace />} />
+        <Route path="tags/:type" element={<Tags />} />
+        <Route path="tags/:type/:category" element={<Tags />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
