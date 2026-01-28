@@ -274,108 +274,108 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onQuantitySet, onEdit
           <div className="flex items-center gap-1 relative">
             {editMode === 'delta' ? (
               /* 증감 모드 - 단위별 입력 */
-              <form onSubmit={handleDeltaSubmit} className="flex items-center gap-1 flex-wrap">
-                <span className={`text-sm font-medium ${isAdding ? 'text-green-400' : 'text-red-400'}`}>
+              <form onSubmit={handleDeltaSubmit} className="flex items-center gap-1.5 flex-nowrap">
+                <span className={`text-sm font-medium shrink-0 ${isAdding ? 'text-green-400' : 'text-red-400'}`}>
                   {isAdding ? '+' : '-'}
                 </span>
-                <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5 shrink-0">
                   <input
                     type="number"
                     value={deltaUnits.boxes || ''}
                     onChange={(e) => setDeltaUnits({...deltaUnits, boxes: e.target.value})}
                     placeholder="0"
                     min="0"
-                    className="w-12 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    className="w-10 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
                     autoFocus
                   />
-                  <span className="text-xs text-gray-400">상자</span>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">상</span>
                 </div>
-                <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5 shrink-0">
                   <input
                     type="number"
                     value={deltaUnits.sets || ''}
                     onChange={(e) => setDeltaUnits({...deltaUnits, sets: e.target.value})}
                     placeholder="0"
                     min="0"
-                    className="w-12 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    className="w-10 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
                   />
-                  <span className="text-xs text-gray-400">세트</span>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">세</span>
                 </div>
-                <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5 shrink-0">
                   <input
                     type="number"
                     value={deltaUnits.items || ''}
                     onChange={(e) => setDeltaUnits({...deltaUnits, items: e.target.value})}
                     placeholder="0"
                     min="0"
-                    className="w-12 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    className="w-10 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
                   />
-                  <span className="text-xs text-gray-400">개</span>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">개</span>
                 </div>
                 <button
                   type="submit"
-                  className={`px-2 py-1 rounded text-sm ${isAdding ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+                  className={`px-2 py-1 rounded text-sm shrink-0 ${isAdding ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
                 >
-                  적용
+                  ✓
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditMode(null)}
-                  className="px-2 py-1 bg-dark-100 hover:bg-dark-200 rounded text-sm"
+                  className="px-2 py-1 bg-dark-100 hover:bg-dark-200 rounded text-sm shrink-0"
                 >
-                  취소
+                  ✕
                 </button>
               </form>
             ) : editMode === 'set' ? (
               /* 직접 설정 모드 - 단위별 입력 */
-              <form onSubmit={handleSetSubmit} className="flex items-center gap-1 flex-wrap">
-                <span className="text-xs text-blue-400">→</span>
-                <div className="flex items-center gap-0.5">
+              <form onSubmit={handleSetSubmit} className="flex items-center gap-1.5 flex-nowrap">
+                <span className="text-xs text-blue-400 shrink-0">→</span>
+                <div className="flex items-center gap-0.5 shrink-0">
                   <input
                     type="number"
                     value={setUnits.boxes || ''}
                     onChange={(e) => setSetUnits({...setUnits, boxes: e.target.value})}
                     placeholder="0"
                     min="0"
-                    className="w-12 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    className="w-10 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
                     autoFocus
                   />
-                  <span className="text-xs text-gray-400">상자</span>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">상</span>
                 </div>
-                <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5 shrink-0">
                   <input
                     type="number"
                     value={setUnits.sets || ''}
                     onChange={(e) => setSetUnits({...setUnits, sets: e.target.value})}
                     placeholder="0"
                     min="0"
-                    className="w-12 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    className="w-10 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
                   />
-                  <span className="text-xs text-gray-400">세트</span>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">세</span>
                 </div>
-                <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5 shrink-0">
                   <input
                     type="number"
                     value={setUnits.items || ''}
                     onChange={(e) => setSetUnits({...setUnits, items: e.target.value})}
                     placeholder="0"
                     min="0"
-                    className="w-12 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
+                    className="w-10 px-1 py-1 bg-dark-300 border border-dark-100 rounded text-sm text-center"
                   />
-                  <span className="text-xs text-gray-400">개</span>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">개</span>
                 </div>
                 <button
                   type="submit"
-                  className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+                  className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm shrink-0"
                 >
-                  설정
+                  ✓
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditMode(null)}
-                  className="px-2 py-1 bg-dark-100 hover:bg-dark-200 rounded text-sm"
+                  className="px-2 py-1 bg-dark-100 hover:bg-dark-200 rounded text-sm shrink-0"
                 >
-                  취소
+                  ✕
                 </button>
               </form>
             ) : (
