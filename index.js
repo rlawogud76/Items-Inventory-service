@@ -1,0 +1,312 @@
+import { Client, GatewayIntentBits } from 'discord.js';
+import dotenv from 'dotenv';
+import { connectDatabase, loadInventory, watchInventoryChanges, addChangeListener, migrateFromDataFile, initializeItemPoints, disconnectDatabase } from './src/database.js';
+import { createCraftingEmbed, createInventoryEmbed, createButtons } from './src/embeds.js';
+import { handleButtonInteraction } from './src/handlers/buttons.js';
+import { handleSelectInteraction } from './src/handlers/selects.js';
+import { handleModalInteraction } from './src/handlers/modals.js';
+import { handleCommandInteraction } from './src/handlers/commands.js';
+import { handleQuantityModal } from './src/handlers/modalHandlers/quantityModal.js';
+import { updateBotInfo, addEvent } from './src/statusLogger.js';
+import { INTERACTION_CONFIG } from './src/constants.js';
+
+// .env 파일 로드
+dotenv.config();
+
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers]
+});
+
+// 활성 메시지 추적 (변경 감지용)
+const activeMessages = new Map(); // messageId -> { interaction, category, type, page, timestamp }
+
+// 전역으로 activeMessages 노출 (다른 모듈에서 접근 가능하도록)
+global.activeMessages = activeMessages;
+
+// 그레이스풀 셧다운
+async function gracefulShutdown(signal) {
+  console.log(`봇 종료 중... (${signal || 'manual'})`);
+  try {
+    // 활성 메시지 정리
+    activeMessages.clear();
+
+    // Discord 클라이언트 종료
+    try {
+      await client.destroy();
+    } catch (err) {
+      console.warn('Discord client destroy 실패:', err?.message || err);
+    }
+
+    // DB 연결 종료
+    try {
+      await disconnectDatabase();
+    } catch (err) {
+      console.warn('DB disconnect 실패:', err?.message || err);
+    }
+
+    console.log('종료 완료.');
+    process.exit(0);
+  } catch (err) {
+    console.error('종료 중 오류:', err);
+    process.exit(1);
+  }
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+
+client.on('ready', async () => {
+  console.log(`✅ ${client.user.tag} 봇이 준비되었습니다!`);
+  
+  // 봇 상태 로깅 시작
+  updateBotInfo(client);
+  addEvent('bot_ready', { username: client.user.tag, id: client.user.id });
+  
+  // 5분마다 봇 상태 업데이트
+  setInterval(() => {
+    updateBotInfo(client);
+  }, 5 * 60 * 1000);
+  
+  // MongoDB 연결
+  const connected = await connectDatabase();
+  if (!connected) {
+    console.error('❌ MongoDB 연결 실패로 봇을 종료합니다.');
+    process.exit(1);
+  }
+  
+  // data.js에서 마이그레이션 시도
+  try {
+    const { inventoryData } = await import('./data.js');
+    await migrateFromDataFile(inventoryData);
+  } catch (error) {
+    console.log('ℹ️ data.js 파일이 없습니다. (정상 - MongoDB만 사용)');
+  }
+  
+  // 아이템 배점 초기화
+  await initializeItemPoints();
+  
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('📦 재고 관리: /재고');
+  console.log('🔨 제작 관리: /제작 (레시피는 제작 화면 버튼으로 관리)');
+  console.log('🔧 기타: /사용법, /수정내역, /기여도, /이모지설정, /기여도초기화');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  // 변경 감지 시작
+  watchInventoryChanges();
+  
+  // 변경 감지 리스너 등록 (로깅용 - 실제 새로고침은 각 메시지별 인터벌에서 처리)
+  addChangeListener(async () => {
+    console.log('🔄 데이터 변경 감지됨 - 활성 메시지들이 5초 내에 자동 업데이트됩니다');
+  });
+  
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  // 슬래시 커맨드 자동 등록
+  try {
+    console.log('슬래시 커맨드 등록 중...');
+    const { REST, Routes, SlashCommandBuilder } = await import('discord.js');
+    
+    const commands = [
+      new SlashCommandBuilder()
+        .setName('재고')
+        .setDescription('재고 현황을 확인합니다 (버튼으로 모든 기능 사용 가능)')
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('확인할 카테고리')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            )),
+      new SlashCommandBuilder()
+        .setName('제작')
+        .setDescription('제작 현황을 확인합니다 (버튼으로 모든 기능 사용 가능)')
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('확인할 카테고리')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            )),
+      new SlashCommandBuilder()
+        .setName('수정내역')
+        .setDescription('재고 및 제작 수정 내역을 확인합니다')
+        .addIntegerOption(option =>
+          option.setName('개수')
+            .setDescription('확인할 내역 개수 (기본: 10개, 최대: 25개)')
+            .setMinValue(1)
+            .setMaxValue(25)
+            .setRequired(false))
+        .addIntegerOption(option =>
+          option.setName('페이지')
+            .setDescription('확인할 페이지 번호 (기본: 1)')
+            .setMinValue(1)
+            .setRequired(false)),
+      new SlashCommandBuilder()
+        .setName('메시지닫기')
+        .setDescription('프라이빗 포함 모든 활성 메시지를 닫습니다'),
+      new SlashCommandBuilder()
+        .setName('사용법')
+        .setDescription('처음 사용하는 사람을 위한 사용법을 확인합니다'),
+      new SlashCommandBuilder()
+        .setName('기여도')
+        .setDescription('재고 및 제작 기여도 순위를 확인합니다'),
+      new SlashCommandBuilder()
+        .setName('이모지설정')
+        .setDescription('아이템의 이모지를 설정합니다')
+        .addStringOption(option =>
+          option.setName('타입')
+            .setDescription('재고 또는 제작')
+            .setRequired(true)
+            .addChoices(
+              { name: '재고', value: 'inventory' },
+              { name: '제작', value: 'crafting' }
+            ))
+        .addStringOption(option =>
+          option.setName('카테고리')
+            .setDescription('카테고리 선택')
+            .setRequired(true)
+            .addChoices(
+              { name: '해양', value: '해양' },
+              { name: '채광', value: '채광' },
+              { name: '요리', value: '요리' }
+            ))
+        .addStringOption(option =>
+          option.setName('아이템')
+            .setDescription('아이템 이름')
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('이모지')
+            .setDescription('설정할 이모지 (예: 🪵, ⚙️, 💎)')
+            .setRequired(true)),
+      new SlashCommandBuilder()
+        .setName('기여도초기화')
+        .setDescription('기여도 통계를 초기화합니다 (수정 내역 삭제)'),
+      new SlashCommandBuilder()
+        .setName('복구')
+        .setDescription('중간 제작품 연동을 복구합니다 (재고-제작 연결 수정)')
+      ,
+      new SlashCommandBuilder()
+        .setName('권한설정')
+        .setDescription('관리자/마을원 권한 범위를 설정합니다')
+      ,
+      new SlashCommandBuilder()
+        .setName('권한조회')
+        .setDescription('현재 권한 담당자와 범위를 확인합니다')
+      ,
+      new SlashCommandBuilder()
+        .setName('임베드비교')
+        .setDescription('일반 텍스트와 임베드를 비교합니다')
+    ].map(command => command.toJSON());
+
+    const rest = new REST().setToken(process.env.DISCORD_TOKEN);
+    const clientId = process.env.CLIENT_ID;
+    const guildId = process.env.GUILD_ID;
+
+    if (clientId) {
+      const route = guildId 
+        ? Routes.applicationGuildCommands(clientId, guildId)
+        : Routes.applicationCommands(clientId);
+      
+      await rest.put(route, { body: commands });
+      console.log('✅ 슬래시 커맨드 등록 완료!');
+    }
+  } catch (error) {
+    console.error('슬래시 커맨드 등록 실패:', error);
+  }
+});
+
+
+// 중복 인터랙션 방지용 Map (customId별 마지막 처리 시간 추적)
+const lastProcessedTime = new Map();
+const { DEBOUNCE_MS, DEBOUNCE_CLEANUP_INTERVAL, DEBOUNCE_MAX_AGE } = INTERACTION_CONFIG;
+
+// 주기적으로 오래된 debounce 항목 정리 (메모리 누수 방지)
+setInterval(() => {
+  const now = Date.now();
+  let cleanedCount = 0;
+  for (const [key, time] of lastProcessedTime.entries()) {
+    if (now - time > DEBOUNCE_MAX_AGE) {
+      lastProcessedTime.delete(key);
+      cleanedCount++;
+    }
+  }
+  if (cleanedCount > 0) {
+    console.log(`🧹 Debounce Map 정리: ${cleanedCount}개 항목 제거 (현재 ${lastProcessedTime.size}개)`);
+  }
+}, DEBOUNCE_CLEANUP_INTERVAL);
+
+// 슬래시 커맨드 처리
+client.on('interactionCreate', async (interaction) => {
+  const customId = interaction.customId || (interaction.commandName ? `command_${interaction.commandName}` : 'unknown');
+  const now = Date.now();
+  
+  console.log('인터랙션 수신:', interaction.type, '/ customId:', interaction.customId || 'N/A', '/ ID:', interaction.id);
+  
+  // 중복 인터랙션 체크 (같은 customId가 1초 이내에 다시 오면 무시)
+  const lastTime = lastProcessedTime.get(customId);
+  if (lastTime && (now - lastTime) < DEBOUNCE_MS) {
+    console.log('⚠️ 중복 인터랙션 감지 (디바운스), 무시:', customId, `(${now - lastTime}ms 전)`);
+    return;
+  }
+  
+  // 마지막 처리 시간 업데이트
+  lastProcessedTime.set(customId, now);
+  console.log('✅ 인터랙션 처리 시작:', customId);
+  
+  // 이벤트 로깅
+  addEvent('interaction', {
+    type: interaction.type,
+    customId: interaction.customId || 'N/A',
+    user: interaction.user.tag,
+    channelId: interaction.channelId
+  });
+  
+  if (interaction.isCommand()) {
+    return await handleCommandInteraction(interaction, activeMessages);
+  }
+
+  // 버튼 인터랙션 처리
+  if (interaction.isButton()) {
+    return await handleButtonInteraction(interaction);
+  }
+  
+  // 선택 메뉴 인터랙션 처리
+  if (interaction.isStringSelectMenu()) {
+    return await handleSelectInteraction(interaction);
+  }
+  
+  // 모달 제출 처리
+  if (interaction.isModalSubmit()) {
+    // 분리된 modal 핸들러로 처리 시도
+    const handled = await handleModalInteraction(interaction);
+    
+    // 처리되지 않은 경우 (수량 관리 등)
+    if (!handled) {
+      const modalId = interaction.customId || '';
+      if (modalId.startsWith('modal_add_') ||
+          modalId.startsWith('modal_edit_') ||
+          modalId.startsWith('modal_subtract_') ||
+          modalId.startsWith('modal_edit_required_')) {
+        return await handleQuantityModal(interaction);
+      }
+    }
+  } // isModalSubmit() 닫기
+});
+
+// 환경 변수에서 토큰 가져오기
+const token = process.env.DISCORD_TOKEN;
+if (!token) {
+  console.error('❌ DISCORD_TOKEN이 설정되지 않았습니다.');
+  console.log('.env 파일에 DISCORD_TOKEN을 설정하세요.');
+  process.exit(1);
+}
+
+client.login(token).catch(error => {
+  console.error('❌ 봇 로그인 실패:', error.message);
+  console.log('토큰을 확인하세요. Discord Developer Portal에서 새 토큰을 발급받아야 할 수 있습니다.');
+});
