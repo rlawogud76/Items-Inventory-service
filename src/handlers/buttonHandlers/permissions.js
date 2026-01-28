@@ -114,8 +114,8 @@ export async function handlePermissionAdminFeatures(interaction) {
 }
 
 export async function handlePermissionMemberEdit(interaction) {
-  if (!(await isAdmin(interaction))) {
-    return await replyNoPermission(interaction, '서버장 또는 관리자만 멤버 권한을 설정할 수 있습니다');
+  if (!(await isServerOwner(interaction))) {
+    return await replyNoPermission(interaction, '서버장만 멤버 권한을 설정할 수 있습니다');
   }
 
   const setting = await getSettings();

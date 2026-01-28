@@ -73,8 +73,9 @@ async function buildPermissionEmbed() {
  */
 export async function handlePermissionsCommand(interaction) {
   try {
-    if (!(await isAdmin(interaction))) {
-      return await replyNoPermission(interaction, '서버장 또는 관리자만 권한 설정이 가능합니다');
+    // 서버장만 권한 설정 가능
+    if (!(await isServerOwner(interaction))) {
+      return await replyNoPermission(interaction, '서버장만 권한 설정이 가능합니다');
     }
 
     const embed = await buildPermissionEmbed();
