@@ -61,6 +61,21 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onEdit, onDelete }) {
   const [editingQuantity, setEditingQuantity] = useState(false)
   const [quantityDelta, setQuantityDelta] = useState('')
   const [showRecipe, setShowRecipe] = useState(false)
+  const [showPresets, setShowPresets] = useState(false)
+
+  // 프리셋 수량 정의
+  const PRESETS = [
+    { label: '+1', value: 1, color: 'text-green-400' },
+    { label: '+32 (반세트)', value: 32, color: 'text-green-400' },
+    { label: '+64 (1세트)', value: 64, color: 'text-green-400' },
+    { label: '+1728 (반상자)', value: 1728, color: 'text-green-400' },
+    { label: '+3456 (1상자)', value: 3456, color: 'text-green-400' },
+    { label: '-1', value: -1, color: 'text-red-400' },
+    { label: '-32 (반세트)', value: -32, color: 'text-red-400' },
+    { label: '-64 (1세트)', value: -64, color: 'text-red-400' },
+    { label: '-1728 (반상자)', value: -1728, color: 'text-red-400' },
+    { label: '-3456 (1상자)', value: -3456, color: 'text-red-400' },
+  ]
 
   const handleQuantitySubmit = (e) => {
     e.preventDefault()
@@ -70,6 +85,11 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onEdit, onDelete }) {
     }
     setEditingQuantity(false)
     setQuantityDelta('')
+  }
+
+  const handlePresetClick = (value) => {
+    onQuantityChange(item, value)
+    setShowPresets(false)
   }
 
   const percentage = item.required > 0 
@@ -143,7 +163,7 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onEdit, onDelete }) {
 
         {/* 수량 조절 버튼 */}
         {user && (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 relative">
             {editingQuantity ? (
               <form onSubmit={handleQuantitySubmit} className="flex items-center gap-1">
                 <input
@@ -170,6 +190,7 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onEdit, onDelete }) {
               </form>
             ) : (
               <>
+                {/* 빠른 조절 버튼 */}
                 <button
                   onClick={() => onQuantityChange(item, -1)}
                   className="p-1 hover:bg-dark-300 rounded text-red-400"
@@ -184,6 +205,55 @@ function CraftingItemRow({ item, recipe, onQuantityChange, onEdit, onDelete }) {
                 >
                   <Plus size={16} />
                 </button>
+                
+                {/* 프리셋 버튼 */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowPresets(!showPresets)}
+                    className="px-2 py-1 hover:bg-dark-300 rounded text-gray-400 text-xs font-medium"
+                    title="프리셋 수량"
+                  >
+                    ±세트
+                  </button>
+                  
+                  {showPresets && (
+                    <>
+                      {/* 배경 클릭 시 닫기 */}
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setShowPresets(false)}
+                      />
+                      {/* 프리셋 드롭다운 */}
+                      <div className="absolute right-0 top-full mt-1 bg-dark-300 border border-dark-100 rounded-lg shadow-lg z-50 min-w-[140px]">
+                        <div className="p-1">
+                          <div className="text-xs text-gray-500 px-2 py-1">추가</div>
+                          {PRESETS.filter(p => p.value > 0).map(preset => (
+                            <button
+                              key={preset.value}
+                              onClick={() => handlePresetClick(preset.value)}
+                              className={`w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm ${preset.color}`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                          <div className="border-t border-dark-100 my-1" />
+                          <div className="text-xs text-gray-500 px-2 py-1">차감</div>
+                          {PRESETS.filter(p => p.value < 0).map(preset => (
+                            <button
+                              key={preset.value}
+                              onClick={() => handlePresetClick(preset.value)}
+                              className={`w-full text-left px-2 py-1.5 hover:bg-dark-200 rounded text-sm ${preset.color}`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+                
+                {/* 직접 입력 버튼 */}
                 <button
                   onClick={() => setEditingQuantity(true)}
                   className="p-1 hover:bg-dark-300 rounded text-gray-400"
