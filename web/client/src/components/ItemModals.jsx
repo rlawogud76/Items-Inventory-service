@@ -139,31 +139,31 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-dark-300 rounded-xl w-full max-w-md border border-dark-100">
-        <div className="flex items-center justify-between p-4 border-b border-dark-100">
+      <div className="bg-white dark:bg-dark-300 rounded-xl w-full max-w-md border border-light-300 dark:border-dark-100">
+        <div className="flex items-center justify-between p-4 border-b border-light-300 dark:border-dark-100">
           <h2 className="text-lg font-semibold">
             {isEdit ? '아이템 수정' : '아이템 추가'}
           </h2>
-          <button onClick={onClose} className="p-1 hover:bg-dark-200 rounded">
+          <button onClick={onClose} className="p-1 hover:bg-light-200 dark:hover:bg-dark-200 rounded">
             <X size={20} />
           </button>
         </div>
         
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {error && (
-            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
+            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-500 dark:text-red-400 text-sm">
               {error}
             </div>
           )}
           
           {/* 이름 */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">이름 *</label>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">이름 *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
+              className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
               placeholder="아이템 이름"
             />
           </div>
@@ -171,13 +171,13 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
           {/* 카테고리 - 수정 시 변경 불가 */}
           {!isEdit && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">카테고리 *</label>
+              <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">카테고리 *</label>
               {!formData.useNewCategory ? (
                 <div className="space-y-2">
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
+                    className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
                   >
                     <option value="">카테고리 선택</option>
                     {categories.map(cat => (
@@ -187,7 +187,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, useNewCategory: true })}
-                    className="text-sm text-primary-400 hover:text-primary-300"
+                    className="text-sm text-primary-500 hover:text-primary-400"
                   >
                     + 새 카테고리 만들기
                   </button>
@@ -198,13 +198,13 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     type="text"
                     value={formData.newCategory}
                     onChange={(e) => setFormData({ ...formData, newCategory: e.target.value })}
-                    className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
+                    className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
                     placeholder="새 카테고리 이름"
                   />
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, useNewCategory: false })}
-                    className="text-sm text-gray-400 hover:text-gray-300"
+                    className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     기존 카테고리에서 선택
                   </button>
@@ -215,16 +215,16 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
           
           {/* 이모지 */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">이모지</label>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">이모지</label>
             <input
               type="text"
               value={formData.emoji}
               onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
-              className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
+              className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
               placeholder="📦 또는 <:이름:ID>"
             />
             {formData.emoji && (
-              <div className="mt-1 text-sm text-gray-400">
+              <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 미리보기: <DiscordText>{formData.emoji}</DiscordText>
               </div>
             )}
@@ -234,7 +234,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
           {!isEdit && (
             <div className="space-y-3">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">현재 수량</label>
+                <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">현재 수량</label>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">상자</label>
@@ -242,7 +242,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                       type="number"
                       value={quantityParts.boxes}
                       onChange={(e) => setQuantityParts({ ...quantityParts, boxes: parseInt(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
                       min="0"
                     />
                   </div>
@@ -252,7 +252,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                       type="number"
                       value={quantityParts.sets}
                       onChange={(e) => setQuantityParts({ ...quantityParts, sets: parseInt(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
                       min="0"
                     />
                   </div>
@@ -262,7 +262,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                       type="number"
                       value={quantityParts.items}
                       onChange={(e) => setQuantityParts({ ...quantityParts, items: parseInt(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
                       min="0"
                     />
                   </div>
@@ -273,7 +273,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
               </div>
               
               <div>
-                <label className="block text-sm text-gray-400 mb-2">목표 수량</label>
+                <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">목표 수량</label>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">상자</label>
@@ -281,7 +281,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                       type="number"
                       value={requiredParts.boxes}
                       onChange={(e) => setRequiredParts({ ...requiredParts, boxes: parseInt(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
                       min="0"
                     />
                   </div>
@@ -291,7 +291,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                       type="number"
                       value={requiredParts.sets}
                       onChange={(e) => setRequiredParts({ ...requiredParts, sets: parseInt(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
                       min="0"
                     />
                   </div>
@@ -301,7 +301,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                       type="number"
                       value={requiredParts.items}
                       onChange={(e) => setRequiredParts({ ...requiredParts, items: parseInt(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
                       min="0"
                     />
                   </div>
@@ -316,7 +316,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
           {/* 목표 수량 - 수정 시 */}
           {isEdit && (
             <div>
-              <label className="block text-sm text-gray-400 mb-2">목표 수량</label>
+              <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">목표 수량</label>
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">상자</label>
@@ -324,7 +324,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     type="number"
                     value={requiredParts.boxes}
                     onChange={(e) => setRequiredParts({ ...requiredParts, boxes: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                    className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
                     min="0"
                   />
                 </div>
@@ -334,7 +334,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     type="number"
                     value={requiredParts.sets}
                     onChange={(e) => setRequiredParts({ ...requiredParts, sets: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                    className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
                     min="0"
                   />
                 </div>
@@ -344,7 +344,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     type="number"
                     value={requiredParts.items}
                     onChange={(e) => setRequiredParts({ ...requiredParts, items: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                    className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
                     min="0"
                   />
                 </div>
@@ -357,11 +357,11 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
           
           {/* 아이템 타입 */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">아이템 타입</label>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">아이템 타입</label>
             <select
               value={formData.itemType}
               onChange={(e) => setFormData({ ...formData, itemType: e.target.value })}
-              className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
+              className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
             >
               <option value="material">재료</option>
               <option value="intermediate">중간재료</option>
@@ -379,14 +379,14 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-dark-200 hover:bg-dark-100 rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-light-200 dark:bg-dark-200 hover:bg-light-300 dark:hover:bg-dark-100 rounded-lg transition-colors"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={addMutation.isPending || updateMutation.isPending}
-              className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50 text-white"
             >
               {addMutation.isPending || updateMutation.isPending ? '처리 중...' : (isEdit ? '수정' : '추가')}
             </button>
@@ -404,16 +404,16 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, title
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-dark-300 rounded-xl w-full max-w-sm border border-dark-100">
+      <div className="bg-white dark:bg-dark-300 rounded-xl w-full max-w-sm border border-light-300 dark:border-dark-100">
         <div className="p-6 text-center">
           <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
             <X className="text-red-500" size={24} />
           </div>
           <h3 className="text-lg font-semibold mb-2">{title || '아이템 삭제'}</h3>
-          <p className="text-gray-400 mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             {message || (
               <>
-                <DiscordText className="font-medium text-white">{itemName}</DiscordText>
+                <DiscordText className="font-medium">{itemName}</DiscordText>
                 <br />이 아이템을 삭제하시겠습니까?
               </>
             )}
@@ -421,14 +421,14 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, title
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-dark-200 hover:bg-dark-100 rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-light-200 dark:bg-dark-200 hover:bg-light-300 dark:hover:bg-dark-100 rounded-lg transition-colors"
             >
               취소
             </button>
             <button
               onClick={onConfirm}
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 text-white"
             >
               {loading ? '삭제 중...' : '삭제'}
             </button>
@@ -444,7 +444,7 @@ export function ResetConfirmModal({ isOpen, onClose, onConfirm, categoryName, it
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-dark-300 rounded-xl w-full max-w-sm border border-dark-100">
+      <div className="bg-white dark:bg-dark-300 rounded-xl w-full max-w-sm border border-light-300 dark:border-dark-100">
         <div className="p-6 text-center">
           <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">⚠️</span>
@@ -820,13 +820,13 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-dark-300 rounded-xl w-full max-w-2xl border border-dark-100 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-dark-300 rounded-xl w-full max-w-2xl border border-light-300 dark:border-dark-100 max-h-[90vh] overflow-hidden flex flex-col">
         {/* 헤더 */}
-        <div className="flex items-center justify-between p-4 border-b border-dark-200">
+        <div className="flex items-center justify-between p-4 border-b border-light-300 dark:border-dark-200">
           <h2 className="text-lg font-semibold">새 제작 계획 생성</h2>
           <button
             onClick={() => { onClose(); resetForm(); }}
-            className="p-1 hover:bg-dark-200 rounded transition-colors"
+            className="p-1 hover:bg-light-200 dark:hover:bg-dark-200 rounded transition-colors"
           >
             <X size={20} />
           </button>
@@ -834,7 +834,7 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
         
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
           {error && (
-            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
+            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-500 dark:text-red-400 text-sm">
               {error}
             </div>
           )}
@@ -869,13 +869,13 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
                 placeholder="새 카테고리 이름"
-                className="w-full px-3 py-2 bg-dark-200 rounded-lg border border-dark-100 focus:border-primary-500 outline-none"
+                className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none"
               />
             ) : (
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 bg-dark-200 rounded-lg border border-dark-100 focus:border-primary-500 outline-none"
+                className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none"
               >
                 <option value="">카테고리 선택...</option>
                 {categories.map(cat => (
@@ -891,7 +891,7 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
             <select
               value={eventId}
               onChange={(e) => setEventId(e.target.value)}
-              className="w-full px-3 py-2 bg-dark-200 rounded-lg border border-dark-100 focus:border-primary-500 outline-none"
+              className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none"
             >
               <option value="">이벤트 없음</option>
               {events.map(event => (
@@ -909,7 +909,7 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
               <button
                 type="button"
                 onClick={handleAddGoal}
-                className="flex items-center gap-1 px-2 py-1 text-xs bg-primary-600 hover:bg-primary-500 rounded transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-xs bg-primary-600 hover:bg-primary-500 rounded transition-colors text-white"
               >
                 <Plus size={14} />
                 추가
@@ -924,14 +924,14 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
                     value={goal.emoji}
                     onChange={(e) => handleGoalChange(index, 'emoji', e.target.value)}
                     placeholder="🎯"
-                    className="w-12 px-2 py-2 bg-dark-200 rounded-lg border border-dark-100 focus:border-primary-500 outline-none text-center"
+                    className="w-12 px-2 py-2 bg-light-100 dark:bg-dark-200 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none text-center"
                   />
                   <input
                     type="text"
                     value={goal.name}
                     onChange={(e) => handleGoalChange(index, 'name', e.target.value)}
                     placeholder="제작품 이름"
-                    className="flex-1 px-3 py-2 bg-dark-200 rounded-lg border border-dark-100 focus:border-primary-500 outline-none"
+                    className="flex-1 px-3 py-2 bg-light-100 dark:bg-dark-200 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none"
                     list={`recipes-${index}`}
                   />
                   <datalist id={`recipes-${index}`}>
@@ -945,7 +945,7 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
                     onChange={(e) => handleGoalChange(index, 'quantity', e.target.value)}
                     placeholder="수량"
                     min="1"
-                    className="w-24 px-3 py-2 bg-dark-200 rounded-lg border border-dark-100 focus:border-primary-500 outline-none"
+                    className="w-24 px-3 py-2 bg-light-100 dark:bg-dark-200 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none"
                   />
                   {goals.length > 1 && (
                     <button
@@ -966,27 +966,27 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
             type="button"
             onClick={handlePreview}
             disabled={previewMutation.isPending}
-            className="w-full px-4 py-2 bg-dark-200 hover:bg-dark-100 rounded-lg transition-colors disabled:opacity-50"
+            className="w-full px-4 py-2 bg-light-200 dark:bg-dark-200 hover:bg-light-300 dark:hover:bg-dark-100 rounded-lg transition-colors disabled:opacity-50"
           >
             {previewMutation.isPending ? '계산 중...' : '필요 재료 미리보기'}
           </button>
           
           {/* 미리보기 결과 */}
           {previewData && (
-            <div className="bg-dark-200 rounded-lg p-4 space-y-3">
+            <div className="bg-light-200 dark:bg-dark-200 rounded-lg p-4 space-y-3">
               <h4 className="font-medium text-sm">예상 아이템 생성 결과</h4>
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div className="text-center p-2 bg-blue-500/10 rounded-lg border border-blue-500/30">
-                  <div className="text-2xl font-bold text-blue-400">{previewData.tier1?.length || 0}</div>
-                  <div className="text-xs text-gray-400">1차 재료</div>
+                  <div className="text-2xl font-bold text-blue-500 dark:text-blue-400">{previewData.tier1?.length || 0}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">1차 재료</div>
                 </div>
                 <div className="text-center p-2 bg-purple-500/10 rounded-lg border border-purple-500/30">
-                  <div className="text-2xl font-bold text-purple-400">{previewData.tier2?.length || 0}</div>
-                  <div className="text-xs text-gray-400">2차 중간재</div>
+                  <div className="text-2xl font-bold text-purple-500 dark:text-purple-400">{previewData.tier2?.length || 0}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">2차 중간재</div>
                 </div>
                 <div className="text-center p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
-                  <div className="text-2xl font-bold text-yellow-400">{previewData.tier3?.length || 0}</div>
-                  <div className="text-xs text-gray-400">3차 완성품</div>
+                  <div className="text-2xl font-bold text-yellow-500 dark:text-yellow-400">{previewData.tier3?.length || 0}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">3차 완성품</div>
                 </div>
               </div>
               
@@ -994,9 +994,9 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
               <div className="max-h-40 overflow-y-auto text-xs space-y-2">
                 {previewData.tier3?.length > 0 && (
                   <div>
-                    <div className="font-medium text-yellow-400 mb-1">3차 완성품</div>
+                    <div className="font-medium text-yellow-600 dark:text-yellow-400 mb-1">3차 완성품</div>
                     {previewData.tier3.map(item => (
-                      <div key={item.name} className="text-gray-300">
+                      <div key={item.name} className="text-gray-600 dark:text-gray-300">
                         • {item.name}: {item.required}개
                       </div>
                     ))}
@@ -1004,9 +1004,9 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
                 )}
                 {previewData.tier2?.length > 0 && (
                   <div>
-                    <div className="font-medium text-purple-400 mb-1">2차 중간재</div>
+                    <div className="font-medium text-purple-600 dark:text-purple-400 mb-1">2차 중간재</div>
                     {previewData.tier2.map(item => (
-                      <div key={item.name} className="text-gray-300">
+                      <div key={item.name} className="text-gray-600 dark:text-gray-300">
                         • {item.name}: {item.required}개
                       </div>
                     ))}
@@ -1014,9 +1014,9 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
                 )}
                 {previewData.tier1?.length > 0 && (
                   <div>
-                    <div className="font-medium text-blue-400 mb-1">1차 재료</div>
+                    <div className="font-medium text-blue-600 dark:text-blue-400 mb-1">1차 재료</div>
                     {previewData.tier1.map(item => (
-                      <div key={item.name} className="text-gray-300">
+                      <div key={item.name} className="text-gray-600 dark:text-gray-300">
                         • {item.name}: {item.required}개
                       </div>
                     ))}
@@ -1031,14 +1031,14 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
             <button
               type="button"
               onClick={() => { onClose(); resetForm(); }}
-              className="flex-1 px-4 py-2 bg-dark-200 hover:bg-dark-100 rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-light-200 dark:bg-dark-200 hover:bg-light-300 dark:hover:bg-dark-100 rounded-lg transition-colors"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50 text-white"
             >
               {createMutation.isPending ? '생성 중...' : '제작 계획 생성'}
             </button>

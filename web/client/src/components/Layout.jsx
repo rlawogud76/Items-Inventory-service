@@ -17,11 +17,14 @@ import {
   Tag,
   Users,
   Calendar,
-  Bell
+  Bell,
+  Sun,
+  Moon
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useSocket } from '../contexts/SocketContext'
+import { useTheme } from '../contexts/ThemeContext'
 import api from '../services/api'
 import clsx from 'clsx'
 
@@ -45,6 +48,7 @@ function Layout() {
   const notificationRef = useRef(null)
   const { user, logout, hasFeature, getRoleName } = useAuth()
   const { connected, toasts, removeToast } = useSocket()
+  const { isDark, toggleTheme } = useTheme()
   const location = useLocation()
 
   // 다가오는 이벤트 조회 (알림용)
@@ -76,15 +80,15 @@ function Layout() {
   })
 
   return (
-    <div className="min-h-screen bg-dark-400">
+    <div className="min-h-screen bg-light-100 dark:bg-dark-400 transition-colors">
       {/* 상단 헤더 */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-dark-300 border-b border-dark-100 z-50">
+      <header className="fixed top-0 left-0 right-0 h-16 bg-white dark:bg-dark-300 border-b border-light-300 dark:border-dark-100 z-50 transition-colors">
         <div className="h-full px-4 flex items-center justify-between">
           {/* 왼쪽: 메뉴 버튼 + 로고 */}
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 hover:bg-dark-200 rounded-lg"
+              className="lg:hidden p-2 hover:bg-light-200 dark:hover:bg-dark-200 rounded-lg transition-colors"
             >
               {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -106,7 +110,7 @@ function Layout() {
                     'px-4 py-2 rounded-lg flex items-center gap-2 transition-colors',
                     isActive
                       ? 'bg-primary-600 text-white'
-                      : 'hover:bg-dark-200 text-gray-300'
+                      : 'hover:bg-light-200 dark:hover:bg-dark-200 text-gray-600 dark:text-gray-300'
                   )
                 }
               >
@@ -116,14 +120,23 @@ function Layout() {
             ))}
           </nav>
 
-          {/* 오른쪽: 알림 + 상태 + 유저 */}
+          {/* 오른쪽: 테마 + 알림 + 상태 + 유저 */}
           <div className="flex items-center gap-4">
+            {/* 테마 토글 */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 hover:bg-light-200 dark:hover:bg-dark-200 rounded-lg text-gray-500 dark:text-gray-400 hover:text-yellow-500 transition-colors"
+              title={isDark ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            >
+              {isDark ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
             {/* 알림 벨 */}
             {user && (
               <div className="relative" ref={notificationRef}>
                 <button
                   onClick={() => setNotificationOpen(!notificationOpen)}
-                  className="relative p-2 hover:bg-dark-200 rounded-lg text-gray-400 hover:text-white"
+                  className="relative p-2 hover:bg-light-200 dark:hover:bg-dark-200 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   <Bell size={20} />
                   {upcomingEvents.length > 0 && (
@@ -133,8 +146,8 @@ function Layout() {
 
                 {/* 알림 드롭다운 */}
                 {notificationOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-72 bg-dark-300 border border-dark-100 rounded-xl shadow-xl z-50">
-                    <div className="p-3 border-b border-dark-100">
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-dark-300 border border-light-300 dark:border-dark-100 rounded-xl shadow-xl z-50">
+                    <div className="p-3 border-b border-light-300 dark:border-dark-100">
                       <h3 className="font-medium">다가오는 일정</h3>
                     </div>
                     <div className="max-h-64 overflow-y-auto">
@@ -147,7 +160,7 @@ function Layout() {
                               key={idx}
                               to="/calendar"
                               onClick={() => setNotificationOpen(false)}
-                              className="block px-3 py-2 hover:bg-dark-200 transition-colors"
+                              className="block px-3 py-2 hover:bg-light-200 dark:hover:bg-dark-200 transition-colors"
                             >
                               <div className="flex items-center gap-2">
                                 <span className={clsx(
@@ -163,7 +176,7 @@ function Layout() {
                                 )} />
                                 <span className="font-medium text-sm truncate">{event.title}</span>
                               </div>
-                              <div className="text-xs text-gray-400 mt-0.5 ml-4">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-4">
                                 {isToday ? '오늘' : '내일'} · {eventDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
                               </div>
                             </NavLink>
@@ -178,7 +191,7 @@ function Layout() {
                     <NavLink
                       to="/calendar"
                       onClick={() => setNotificationOpen(false)}
-                      className="block p-2 text-center text-sm text-primary-400 hover:bg-dark-200 border-t border-dark-100"
+                      className="block p-2 text-center text-sm text-primary-500 hover:bg-light-200 dark:hover:bg-dark-200 border-t border-light-300 dark:border-dark-100"
                     >
                       캘린더 보기
                     </NavLink>
@@ -199,18 +212,18 @@ function Layout() {
             {/* 유저 정보 */}
             {user ? (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-300 hidden sm:block">
+                <span className="text-sm text-gray-600 dark:text-gray-300 hidden sm:block">
                   {user.username}
                   <span className={clsx(
                     'ml-1 text-xs',
-                    user.isServerOwner ? 'text-yellow-400' : user.isAdmin ? 'text-primary-400' : 'text-gray-500'
+                    user.isServerOwner ? 'text-yellow-500 dark:text-yellow-400' : user.isAdmin ? 'text-primary-500 dark:text-primary-400' : 'text-gray-500'
                   )}>
                     ({getRoleName()})
                   </span>
                 </span>
                 <button
                   onClick={logout}
-                  className="p-2 hover:bg-dark-200 rounded-lg text-gray-400 hover:text-white"
+                  className="p-2 hover:bg-light-200 dark:hover:bg-dark-200 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                   title="로그아웃"
                 >
                   <LogOut size={18} />
@@ -219,7 +232,7 @@ function Layout() {
             ) : (
               <NavLink
                 to="/login"
-                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg text-sm"
+                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg text-sm text-white"
               >
                 로그인
               </NavLink>
@@ -239,7 +252,7 @@ function Layout() {
       {/* 모바일 사이드바 */}
       <aside
         className={clsx(
-          'fixed top-16 left-0 bottom-0 w-64 bg-dark-300 border-r border-dark-100 z-40 transition-transform lg:hidden',
+          'fixed top-16 left-0 bottom-0 w-64 bg-white dark:bg-dark-300 border-r border-light-300 dark:border-dark-100 z-40 transition-transform lg:hidden',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -255,7 +268,7 @@ function Layout() {
                   'px-4 py-3 rounded-lg flex items-center gap-3 transition-colors',
                   isActive
                     ? 'bg-primary-600 text-white'
-                    : 'hover:bg-dark-200 text-gray-300'
+                    : 'hover:bg-light-200 dark:hover:bg-dark-200 text-gray-600 dark:text-gray-300'
                 )
               }
             >
@@ -280,14 +293,14 @@ function Layout() {
             key={toast.id}
             className={clsx(
               'flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg animate-fade-in',
-              'bg-dark-300 border border-dark-100 text-white'
+              'bg-white dark:bg-dark-300 border border-light-300 dark:border-dark-100'
             )}
           >
             <span className="text-lg">{toast.icon}</span>
             <span className="text-sm flex-1">{toast.message}</span>
             <button
               onClick={() => removeToast(toast.id)}
-              className="text-gray-400 hover:text-white text-lg leading-none"
+              className="text-gray-400 hover:text-gray-700 dark:hover:text-white text-lg leading-none"
             >
               ×
             </button>

@@ -23,8 +23,8 @@ function DateCard({ date, events, isToday, isCurrentMonth, onEventClick, onDateC
         isToday 
           ? 'bg-primary-600/20 border-primary-500' 
           : isCurrentMonth 
-            ? 'bg-dark-400 border-dark-300 hover:border-dark-200' 
-            : 'bg-dark-500 border-dark-400 opacity-60',
+            ? 'bg-white dark:bg-dark-400 border-light-300 dark:border-dark-300 hover:border-light-400 dark:hover:border-dark-200' 
+            : 'bg-light-200 dark:bg-dark-500 border-light-300 dark:border-dark-400 opacity-60',
         hasEvents && !isToday && 'border-l-4',
         hasEvents && events[0] && `border-l-${getEventColor(events[0].color).name}`
       )}
@@ -36,21 +36,21 @@ function DateCard({ date, events, isToday, isCurrentMonth, onEventClick, onDateC
           'text-xs font-medium',
           dayOfWeek === 0 && 'text-red-400',
           dayOfWeek === 6 && 'text-blue-400',
-          dayOfWeek !== 0 && dayOfWeek !== 6 && 'text-gray-400'
+          dayOfWeek !== 0 && dayOfWeek !== 6 && 'text-gray-500 dark:text-gray-400'
         )}>
           {dayName}
         </div>
         <div className={clsx(
           'text-2xl font-bold',
-          isToday && 'text-primary-400',
-          !isCurrentMonth && 'text-gray-600'
+          isToday && 'text-primary-500 dark:text-primary-400',
+          !isCurrentMonth && 'text-gray-400 dark:text-gray-600'
         )}>
           {date.getDate()}
         </div>
       </div>
       
       {/* 구분선 */}
-      <div className="border-t border-dark-300 my-2"></div>
+      <div className="border-t border-light-300 dark:border-dark-300 my-2"></div>
       
       {/* 이벤트 목록 */}
       <div className="space-y-1 min-h-[60px]">
@@ -350,18 +350,18 @@ function Calendar() {
       </div>
 
       {/* 네비게이션 */}
-      <div className="bg-dark-400 rounded-xl border border-dark-300 p-4 mb-6">
+      <div className="bg-white dark:bg-dark-400 rounded-xl border border-light-300 dark:border-dark-300 p-4 mb-6 shadow-sm dark:shadow-none">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
               onClick={goToPrevMonth}
-              className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+              className="p-2 hover:bg-light-200 dark:hover:bg-dark-300 rounded-lg transition-colors"
             >
               <ChevronLeft size={20} />
             </button>
             <button
               onClick={goToNextMonth}
-              className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+              className="p-2 hover:bg-light-200 dark:hover:bg-dark-300 rounded-lg transition-colors"
             >
               <ChevronRight size={20} />
             </button>
@@ -372,7 +372,7 @@ function Calendar() {
           
           <button
             onClick={goToToday}
-            className="px-4 py-2 text-sm bg-dark-300 hover:bg-dark-200 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200 rounded-lg transition-colors"
           >
             오늘
           </button>
@@ -402,8 +402,8 @@ function Calendar() {
       )}
 
       {/* 범례 */}
-      <div className="mt-8 p-4 bg-dark-400 rounded-xl border border-dark-300">
-        <div className="text-sm text-gray-400 mb-2">범례</div>
+      <div className="mt-8 p-4 bg-white dark:bg-dark-400 rounded-xl border border-light-300 dark:border-dark-300 shadow-sm dark:shadow-none">
+        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">범례</div>
         <div className="flex flex-wrap gap-4">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded bg-blue-500"></div>

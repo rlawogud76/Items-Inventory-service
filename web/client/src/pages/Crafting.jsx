@@ -65,7 +65,7 @@ function ProgressBar({ current, target, size = 'md' }) {
   const heightClass = size === 'sm' ? 'h-1.5' : 'h-2'
   
   return (
-    <div className={`w-full bg-dark-200 rounded-full ${heightClass}`}>
+    <div className={`w-full bg-light-300 dark:bg-dark-200 rounded-full ${heightClass}`}>
       <div
         className={`${barColor} ${heightClass} rounded-full transition-all duration-300`}
         style={{ width: `${percentage}%` }}
@@ -133,7 +133,7 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet }) {
       'rounded-lg border p-3 transition-all',
       isComplete 
         ? 'bg-green-500/10 border-green-500/30' 
-        : 'bg-dark-400 border-dark-300 hover:border-dark-200'
+        : 'bg-white dark:bg-dark-400 border-light-300 dark:border-dark-300 hover:border-light-400 dark:hover:border-dark-200'
     )}>
       {/* 헤더: 아이콘 + 이름 */}
       <div className="flex items-center gap-2 mb-2">
@@ -189,7 +189,7 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet }) {
           </button>
           <button
             onClick={() => setShowInput(true)}
-            className="px-2 py-1 text-xs bg-dark-300 hover:bg-dark-200 rounded transition-colors"
+            className="px-2 py-1 text-xs bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200 rounded transition-colors"
           >
             ...
           </button>
@@ -202,7 +202,7 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet }) {
               onClick={() => setInputMode('add')}
               className={clsx(
                 'flex-1 py-1 text-xs rounded transition-colors',
-                inputMode === 'add' ? 'bg-green-600 text-white' : 'bg-dark-300'
+                inputMode === 'add' ? 'bg-green-600 text-white' : 'bg-light-200 dark:bg-dark-300'
               )}
             >
               추가
@@ -212,7 +212,7 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet }) {
               onClick={() => setInputMode('subtract')}
               className={clsx(
                 'flex-1 py-1 text-xs rounded transition-colors',
-                inputMode === 'subtract' ? 'bg-red-600 text-white' : 'bg-dark-300'
+                inputMode === 'subtract' ? 'bg-red-600 text-white' : 'bg-light-200 dark:bg-dark-300'
               )}
             >
               차감
@@ -222,7 +222,7 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet }) {
               onClick={() => setInputMode('set')}
               className={clsx(
                 'flex-1 py-1 text-xs rounded transition-colors',
-                inputMode === 'set' ? 'bg-blue-600 text-white' : 'bg-dark-300'
+                inputMode === 'set' ? 'bg-blue-600 text-white' : 'bg-light-200 dark:bg-dark-300'
               )}
             >
               설정
@@ -234,20 +234,20 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet }) {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="수량"
-              className="flex-1 px-2 py-1 text-xs bg-dark-200 rounded border border-dark-100 focus:border-primary-500 outline-none"
+              className="flex-1 px-2 py-1 text-xs bg-light-200 dark:bg-dark-200 rounded border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none"
               autoFocus
               min="1"
             />
             <button
               type="submit"
-              className="px-3 py-1 text-xs bg-primary-600 hover:bg-primary-500 rounded transition-colors"
+              className="px-3 py-1 text-xs bg-primary-600 hover:bg-primary-500 rounded transition-colors text-white"
             >
               확인
             </button>
             <button
               type="button"
               onClick={() => setShowInput(false)}
-              className="px-2 py-1 text-xs bg-dark-300 hover:bg-dark-200 rounded transition-colors"
+              className="px-2 py-1 text-xs bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200 rounded transition-colors"
             >
               ✕
             </button>
@@ -274,7 +274,7 @@ function TierColumn({ tier, items, onQuantityChange, onQuantitySet }) {
       config.bgColor
     )}>
       {/* 컬럼 헤더 */}
-      <div className="p-4 border-b border-dark-300">
+      <div className="p-4 border-b border-light-300 dark:border-dark-300">
         <div className="flex items-center gap-2 mb-2">
           <div className={clsx('p-1.5 rounded-lg', config.color)}>
             <Icon className="w-4 h-4 text-white" />
@@ -282,7 +282,7 @@ function TierColumn({ tier, items, onQuantityChange, onQuantitySet }) {
           <h3 className={clsx('font-semibold', config.textColor)}>
             {config.name}
           </h3>
-          <span className="ml-auto text-sm text-gray-400">
+          <span className="ml-auto text-sm text-gray-500 dark:text-gray-400">
             {completedCount}/{totalCount}
           </span>
         </div>
@@ -318,13 +318,13 @@ function CompletedColumn({ items }) {
   return (
     <div className="flex flex-col rounded-xl border border-green-500/30 bg-green-500/5">
       {/* 컬럼 헤더 */}
-      <div className="p-4 border-b border-dark-300">
+      <div className="p-4 border-b border-light-300 dark:border-dark-300">
         <div className="flex items-center gap-2 mb-2">
           <div className="p-1.5 rounded-lg bg-green-500">
             <CheckCircle2 className="w-4 h-4 text-white" />
           </div>
           <h3 className="font-semibold text-green-400">완료</h3>
-          <span className="ml-auto text-sm text-gray-400">
+          <span className="ml-auto text-sm text-gray-500 dark:text-gray-400">
             {items.length}
           </span>
         </div>
@@ -527,7 +527,7 @@ export default function Crafting() {
               'px-4 py-2 rounded-lg whitespace-nowrap transition-colors',
               isActive 
                 ? 'bg-primary-600 text-white' 
-                : 'bg-dark-400 hover:bg-dark-300 text-gray-300'
+                : 'bg-white dark:bg-dark-400 hover:bg-light-200 dark:hover:bg-dark-300 text-gray-600 dark:text-gray-300 border border-light-300 dark:border-transparent'
             )}
           >
             전체
@@ -540,7 +540,7 @@ export default function Crafting() {
                 'px-4 py-2 rounded-lg whitespace-nowrap transition-colors',
                 isActive 
                   ? 'bg-primary-600 text-white' 
-                  : 'bg-dark-400 hover:bg-dark-300 text-gray-300'
+                  : 'bg-white dark:bg-dark-400 hover:bg-light-200 dark:hover:bg-dark-300 text-gray-600 dark:text-gray-300 border border-light-300 dark:border-transparent'
               )}
             >
               <DiscordText>{cat}</DiscordText>
@@ -551,13 +551,13 @@ export default function Crafting() {
       
       {/* 전체 진행 상황 */}
       {totalItems > 0 && (
-        <div className="bg-dark-400 rounded-xl p-4 border border-dark-300">
+        <div className="bg-white dark:bg-dark-400 rounded-xl p-4 border border-light-300 dark:border-dark-300 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className="text-2xl font-bold text-primary-400">
+              <div className="text-2xl font-bold text-primary-500 dark:text-primary-400">
                 {overallProgress}%
               </div>
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 완료 {completedCount} / {totalItems}
               </div>
             </div>
@@ -575,7 +575,7 @@ export default function Crafting() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="아이템 검색..."
-          className="w-full pl-10 pr-4 py-2 bg-dark-400 rounded-lg border border-dark-300 focus:border-primary-500 outline-none"
+          className="w-full pl-10 pr-4 py-2 bg-white dark:bg-dark-400 rounded-lg border border-light-300 dark:border-dark-300 focus:border-primary-500 outline-none"
         />
       </div>
       

@@ -80,12 +80,12 @@ export function EventModal({ isOpen, onClose, onSubmit, event, selectedDate, isP
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-dark-300 rounded-xl w-full max-w-md border border-dark-100 shadow-xl">
-        <div className="flex items-center justify-between p-4 border-b border-dark-100">
+      <div className="bg-white dark:bg-dark-300 rounded-xl w-full max-w-md border border-light-300 dark:border-dark-100 shadow-xl">
+        <div className="flex items-center justify-between p-4 border-b border-light-300 dark:border-dark-100">
           <h2 className="text-lg font-semibold">
             {event ? '일정 수정' : '새 일정'}
           </h2>
-          <button onClick={onClose} className="p-1 hover:bg-dark-200 rounded">
+          <button onClick={onClose} className="p-1 hover:bg-light-200 dark:hover:bg-dark-200 rounded">
             <X size={20} />
           </button>
         </div>
@@ -93,12 +93,12 @@ export function EventModal({ isOpen, onClose, onSubmit, event, selectedDate, isP
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* 제목 */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">제목 *</label>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">제목 *</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
+              className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
               placeholder="일정 제목"
               required
             />
@@ -106,11 +106,11 @@ export function EventModal({ isOpen, onClose, onSubmit, event, selectedDate, isP
 
           {/* 설명 */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">설명</label>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">설명</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 resize-none"
+              className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 resize-none"
               rows={3}
               placeholder="일정 설명 (선택사항)"
             />
@@ -119,29 +119,29 @@ export function EventModal({ isOpen, onClose, onSubmit, event, selectedDate, isP
           {/* 날짜 */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">시작일 *</label>
+              <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">시작일 *</label>
               <input
                 type="date"
                 value={formData.startDate}
                 onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
+                className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">종료일</label>
+              <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">종료일</label>
               <input
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
+                className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
               />
             </div>
           </div>
 
           {/* 색상 */}
           <div>
-            <label className="block text-sm text-gray-400 mb-2">색상</label>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">색상</label>
             <div className="flex gap-2 flex-wrap">
               {Object.keys(EVENT_COLORS).map((color) => (
                 <button
@@ -151,7 +151,7 @@ export function EventModal({ isOpen, onClose, onSubmit, event, selectedDate, isP
                   className={clsx(
                     'w-8 h-8 rounded-full transition-all',
                     EVENT_COLORS[color].bg,
-                    formData.color === color ? 'ring-2 ring-white ring-offset-2 ring-offset-dark-300' : 'hover:scale-110'
+                    formData.color === color ? 'ring-2 ring-gray-800 dark:ring-white ring-offset-2 ring-offset-white dark:ring-offset-dark-300' : 'hover:scale-110'
                   )}
                 />
               ))}
@@ -160,11 +160,11 @@ export function EventModal({ isOpen, onClose, onSubmit, event, selectedDate, isP
 
           {/* 반복 */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">반복</label>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">반복</label>
             <select
               value={formData.repeat}
               onChange={(e) => setFormData(prev => ({ ...prev, repeat: e.target.value }))}
-              className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
+              className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
             >
               {REPEAT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -175,12 +175,12 @@ export function EventModal({ isOpen, onClose, onSubmit, event, selectedDate, isP
           {/* 반복 종료일 */}
           {formData.repeat !== 'none' && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">반복 종료일</label>
+              <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">반복 종료일</label>
               <input
                 type="date"
                 value={formData.repeatEndDate}
                 onChange={(e) => setFormData(prev => ({ ...prev, repeatEndDate: e.target.value }))}
-                className="w-full px-3 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
+                className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
               />
             </div>
           )}
@@ -190,14 +190,14 @@ export function EventModal({ isOpen, onClose, onSubmit, event, selectedDate, isP
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-dark-100 hover:bg-dark-200 rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-light-200 dark:bg-dark-100 hover:bg-light-300 dark:hover:bg-dark-200 rounded-lg transition-colors"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors font-medium disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors font-medium disabled:opacity-50 text-white"
             >
               {isPending ? '저장 중...' : (event ? '수정' : '추가')}
             </button>
@@ -221,20 +221,20 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit, onDelete, can
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-dark-300 rounded-xl w-full max-w-md border border-dark-100 shadow-xl">
-        <div className="flex items-center justify-between p-4 border-b border-dark-100">
+      <div className="bg-white dark:bg-dark-300 rounded-xl w-full max-w-md border border-light-300 dark:border-dark-100 shadow-xl">
+        <div className="flex items-center justify-between p-4 border-b border-light-300 dark:border-dark-100">
           <div className="flex items-center gap-2">
             <span className={clsx('w-3 h-3 rounded-full', getEventColor(event.color).dot)} />
             <h2 className="text-lg font-semibold">{event.title}</h2>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-dark-200 rounded">
+          <button onClick={onClose} className="p-1 hover:bg-light-200 dark:hover:bg-dark-200 rounded">
             <X size={20} />
           </button>
         </div>
 
         <div className="p-4 space-y-4">
           {/* 날짜 */}
-          <div className="flex items-center gap-2 text-gray-300">
+          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
             <Calendar size={18} />
             <span>
               {new Date(event.startDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -246,7 +246,7 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit, onDelete, can
 
           {/* 반복 */}
           {event.repeat !== 'none' && (
-            <div className="flex items-center gap-2 text-gray-400">
+            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
               <Repeat size={18} />
               <span>{repeatLabel[event.repeat]}</span>
               {event.repeatEndDate && (
@@ -259,7 +259,7 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit, onDelete, can
 
           {/* 설명 */}
           {event.description && (
-            <div className="text-gray-300 bg-dark-200 rounded-lg p-3">
+            <div className="text-gray-600 dark:text-gray-300 bg-light-200 dark:bg-dark-200 rounded-lg p-3">
               {event.description}
             </div>
           )}
@@ -276,13 +276,13 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit, onDelete, can
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => onDelete(event)}
-                className="flex-1 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors"
+                className="flex-1 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-500 dark:text-red-400 rounded-lg transition-colors"
               >
                 삭제
               </button>
               <button
                 onClick={() => onEdit(event)}
-                className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors font-medium"
+                className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors font-medium text-white"
               >
                 수정
               </button>
@@ -300,27 +300,27 @@ export function DeleteEventModal({ isOpen, onClose, onConfirm, event, isPending 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-dark-300 rounded-xl w-full max-w-sm border border-dark-100 shadow-xl p-6">
+      <div className="bg-white dark:bg-dark-300 rounded-xl w-full max-w-sm border border-light-300 dark:border-dark-100 shadow-xl p-6">
         <h2 className="text-lg font-semibold mb-4">일정 삭제</h2>
-        <p className="text-gray-300 mb-2">
-          정말로 <span className="text-white font-medium">"{event.title}"</span> 일정을 삭제하시겠습니까?
+        <p className="text-gray-600 dark:text-gray-300 mb-2">
+          정말로 <span className="font-medium">"{event.title}"</span> 일정을 삭제하시겠습니까?
         </p>
         {event.repeat !== 'none' && (
-          <p className="text-yellow-400 text-sm mb-4">
+          <p className="text-yellow-600 dark:text-yellow-400 text-sm mb-4">
              반복 일정이 모두 삭제됩니다.
           </p>
         )}
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-dark-100 hover:bg-dark-200 rounded-lg transition-colors"
+            className="flex-1 px-4 py-2 bg-light-200 dark:bg-dark-100 hover:bg-light-300 dark:hover:bg-dark-200 rounded-lg transition-colors"
           >
             취소
           </button>
           <button
             onClick={() => onConfirm(event)}
             disabled={isPending}
-            className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors font-medium disabled:opacity-50"
+            className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors font-medium disabled:opacity-50 text-white"
           >
             {isPending ? '삭제 중...' : '삭제'}
           </button>
