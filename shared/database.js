@@ -76,7 +76,7 @@ async function connectDatabase() {
 // 히스토리 스키마
 const historySchema = new mongoose.Schema({
   timestamp: { type: String, required: true, index: true },
-  type: { type: String, required: true, enum: ['inventory', 'crafting'], index: true },
+  type: { type: String, required: true, index: true },
   category: { type: String, required: true, index: true },
   itemName: { type: String, required: true },
   action: { type: String, required: true },

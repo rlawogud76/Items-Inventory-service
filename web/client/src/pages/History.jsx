@@ -11,7 +11,7 @@ function History() {
   const { data, isLoading } = useQuery({
     queryKey: ['history', page, filter],
     queryFn: () => api.get('/history', { 
-      params: { page, limit, filter: filter === 'all' ? undefined : filter } 
+      params: { page, limit, type: filter === 'all' ? undefined : filter } 
     }).then(res => res.data),
   })
 
@@ -59,10 +59,6 @@ function History() {
     { value: 'all', label: '전체' },
     { value: 'inventory', label: '재고' },
     { value: 'crafting', label: '제작' },
-    { value: 'recipe', label: '레시피' },
-    { value: 'event', label: '이벤트' },
-    { value: 'tag', label: '태그' },
-    { value: 'settings', label: '설정' },
   ]
 
   if (isLoading) {
