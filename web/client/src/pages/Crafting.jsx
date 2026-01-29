@@ -367,7 +367,7 @@ function CompletedColumn({ items }) {
 // 메인 컴포넌트
 export default function Crafting() {
   const { category } = useParams()
-  const { hasPermission } = useAuth()
+  const { hasFeature } = useAuth()
   const queryClient = useQueryClient()
   
   const [searchQuery, setSearchQuery] = useState('')
@@ -494,7 +494,7 @@ export default function Crafting() {
         </div>
         
         <div className="flex items-center gap-2">
-          {hasPermission('manage') && (
+          {hasFeature('manage') && (
             <>
               <button
                 onClick={() => setPlanModalOpen(true)}
@@ -607,7 +607,7 @@ export default function Crafting() {
           <FolderOpen className="w-16 h-16 mb-4 opacity-50" />
           <p className="text-lg mb-2">제작 계획이 없습니다</p>
           <p className="text-sm mb-4">새 제작 계획을 생성해 시작하세요</p>
-          {hasPermission('manage') && (
+          {hasFeature('manage') && (
             <button
               onClick={() => setPlanModalOpen(true)}
               className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-500 rounded-lg transition-colors"
