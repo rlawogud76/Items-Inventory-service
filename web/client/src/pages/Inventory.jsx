@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   Search, Plus, Trash2, Edit3, RotateCcw, Undo2, 
   ArrowUpDown, Filter, ChevronDown, ChevronRight,
-  Package, CheckCircle2, AlertCircle, Minus, Users, X
+  Package, CheckCircle2, AlertCircle, Minus, Users, X, GripVertical
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '../services/api'
@@ -12,6 +12,24 @@ import { ItemModal, DeleteConfirmModal, ResetConfirmModal } from '../components/
 import { DiscordText } from '../utils/discordEmoji'
 import { ProgressBar } from '../components/ProgressBar'
 import { formatQuantity } from '../utils/formatting'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  rectSortingStrategy
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 // 태그 색상 매핑
 const getTagColor = (color) => {
@@ -295,6 +313,63 @@ const ItemRow = ({
   )
 }
 
+// 드래그 가능한 아이템 행 컴포넌트
+const SortableItemRow = ({ 
+  item, 
+  itemTag,
+  onQuantityChange, 
+  onQuantitySet,
+  onEdit, 
+  onDelete,
+  onWorkerJoin,
+  onWorkerLeave,
+  customPresets,
+  isDragMode
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: `${item.category}-${item.name}` })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 'auto'
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative">
+      {isDragMode && (
+        <div
+          {...attributes}
+          {...listeners}
+          className="absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center cursor-grab active:cursor-grabbing z-10 bg-gray-100 dark:bg-dark-200 rounded-l-xl border-r border-gray-200 dark:border-dark-100"
+        >
+          <GripVertical size={16} className="text-gray-400" />
+        </div>
+      )}
+      <div className={isDragMode ? 'pl-8' : ''}>
+        <ItemRow
+          item={item}
+          itemTag={itemTag}
+          onQuantityChange={onQuantityChange}
+          onQuantitySet={onQuantitySet}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onWorkerJoin={onWorkerJoin}
+          onWorkerLeave={onWorkerLeave}
+          customPresets={customPresets}
+        />
+      </div>
+    </div>
+  )
+}
+
 // 카테고리 섹션 컴포넌트 (모던 익스팬더)
 const CategorySection = ({ 
   category, 
@@ -311,9 +386,21 @@ const CategorySection = ({
   onWorkerJoin,
   onWorkerLeave,
   onReset,
+  onReorder,
   user,
-  customPresets
+  customPresets,
+  isDragMode
 }) => {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8
+      }
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates
+    })
+  )
   // 카테고리 통계 계산
   const stats = useMemo(() => {
     const total = items.length
@@ -408,22 +495,63 @@ const CategorySection = ({
             </div>
           )}
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {items.map((item) => (
-              <ItemRow
-                key={`${item.category}-${item.name}`}
-                item={item}
-                itemTag={getItemTagInfo(item.name)}
-                onQuantityChange={onQuantityChange}
-                onQuantitySet={onQuantitySet}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onWorkerJoin={onWorkerJoin}
-                onWorkerLeave={onWorkerLeave}
-                customPresets={customPresets}
-              />
-            ))}
-          </div>
+          {isDragMode ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(event) => {
+                const { active, over } = event
+                if (active.id !== over?.id) {
+                  const oldIndex = items.findIndex(i => `${i.category}-${i.name}` === active.id)
+                  const newIndex = items.findIndex(i => `${i.category}-${i.name}` === over?.id)
+                  if (oldIndex !== -1 && newIndex !== -1) {
+                    const newItems = arrayMove(items, oldIndex, newIndex)
+                    onReorder(category, newItems)
+                  }
+                }
+              }}
+            >
+              <SortableContext
+                items={items.map(i => `${i.category}-${i.name}`)}
+                strategy={rectSortingStrategy}
+              >
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {items.map((item) => (
+                    <SortableItemRow
+                      key={`${item.category}-${item.name}`}
+                      item={item}
+                      itemTag={getItemTagInfo(item.name)}
+                      onQuantityChange={onQuantityChange}
+                      onQuantitySet={onQuantitySet}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      onWorkerJoin={onWorkerJoin}
+                      onWorkerLeave={onWorkerLeave}
+                      customPresets={customPresets}
+                      isDragMode={isDragMode}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {items.map((item) => (
+                <ItemRow
+                  key={`${item.category}-${item.name}`}
+                  item={item}
+                  itemTag={getItemTagInfo(item.name)}
+                  onQuantityChange={onQuantityChange}
+                  onQuantitySet={onQuantitySet}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onWorkerJoin={onWorkerJoin}
+                  onWorkerLeave={onWorkerLeave}
+                  customPresets={customPresets}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -442,6 +570,7 @@ const Inventory = () => {
   const [expandedCategories, setExpandedCategories] = useState({})
   const [undoStack, setUndoStack] = useState([])
   const [showUndo, setShowUndo] = useState(false)
+  const [isDragMode, setIsDragMode] = useState(false)
   
   // 모달 상태
   const [itemModalOpen, setItemModalOpen] = useState(false)
@@ -668,6 +797,30 @@ const Inventory = () => {
       queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
     }
   })
+
+  const reorderMutation = useMutation({
+    mutationFn: async ({ category, items }) => {
+      const reorderedItems = items.map((item, idx) => ({
+        name: item.name,
+        order: idx
+      }))
+      await api.post(`/items/inventory/${encodeURIComponent(category)}/reorder`, { items: reorderedItems })
+    },
+    onMutate: async ({ category, items }) => {
+      await queryClient.cancelQueries({ queryKey: ['items', 'inventory'] })
+      
+      // 낙관적 업데이트
+      queryClient.setQueryData(['items', 'inventory', 'all'], old => {
+        if (!old) return old
+        const otherItems = old.filter(i => i.category !== category)
+        const updatedItems = items.map((item, idx) => ({ ...item, order: idx }))
+        return [...otherItems, ...updatedItems]
+      })
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
+    }
+  })
   
   // 핸들러들
   const handleQuantityChange = (item, delta) => {
@@ -710,6 +863,10 @@ const Inventory = () => {
   const handleResetCategory = (category) => {
     setResetCategory(category)
     setResetModalOpen(true)
+  }
+
+  const handleReorder = (category, newItems) => {
+    reorderMutation.mutate({ category, items: newItems })
   }
   
   const handleReset = () => {
@@ -835,6 +992,22 @@ const Inventory = () => {
               <span>아이템 추가</span>
             </button>
           )}
+
+          {/* 순서 편집 모드 토글 */}
+          {user && (
+            <button
+              onClick={() => setIsDragMode(!isDragMode)}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors font-medium',
+                isDragMode 
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                  : 'bg-gray-200 dark:bg-dark-300 hover:bg-gray-300 dark:hover:bg-dark-200 text-gray-700 dark:text-gray-300'
+              )}
+            >
+              <GripVertical size={20} />
+              <span>{isDragMode ? '편집 완료' : '순서 편집'}</span>
+            </button>
+          )}
           
           {/* 검색 */}
           <div className="relative">
@@ -907,8 +1080,10 @@ const Inventory = () => {
               onWorkerJoin={handleWorkerJoin}
               onWorkerLeave={handleWorkerLeave}
               onReset={handleResetCategory}
+              onReorder={handleReorder}
               user={user}
               customPresets={customPresets}
+              isDragMode={isDragMode}
             />
           ))}
         </div>
