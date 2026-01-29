@@ -11,6 +11,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { ItemModal, DeleteConfirmModal, ResetConfirmModal } from '../components/ItemModals'
 import { DiscordText } from '../utils/discordEmoji'
 
+// 고정 크기 상수
+const SET_SIZE = 64
+const BOX_SIZE = 3456
+
 // 프로그레스 바 컴포넌트
 const ProgressBar = ({ current, required, className }) => {
   const percentage = required > 0 ? Math.min((current / required) * 100, 100) : 0
@@ -103,17 +107,13 @@ const ItemRow = ({
   const presetButtons = useMemo(() => {
     const presets = []
     
-    // 세트 기준
-    if (item.setSize > 0) {
-      presets.push({ label: '+1세트', delta: item.setSize })
-      presets.push({ label: '-1세트', delta: -item.setSize })
-    }
+    // 세트 기준 (고정값 사용)
+    presets.push({ label: '+1세트', delta: SET_SIZE })
+    presets.push({ label: '-1세트', delta: -SET_SIZE })
     
-    // 상자 기준
-    if (item.boxSize > 0) {
-      presets.push({ label: '+1상자', delta: item.boxSize })
-      presets.push({ label: '-1상자', delta: -item.boxSize })
-    }
+    // 상자 기준 (고정값 사용)
+    presets.push({ label: '+1상자', delta: BOX_SIZE })
+    presets.push({ label: '-1상자', delta: -BOX_SIZE })
     
     // 커스텀 프리셋
     for (const p of customPresets) {
@@ -122,7 +122,7 @@ const ItemRow = ({
     }
     
     return presets
-  }, [item.boxSize, item.setSize, customPresets])
+  }, [customPresets])
 
   const handlePresetClick = (delta) => {
     onQuantityChange(item, delta)
@@ -266,13 +266,13 @@ const ItemRow = ({
                 className="font-bold text-lg text-gray-900 dark:text-white hover:text-primary-500 transition-colors"
                 title="클릭하여 직접 입력"
               >
-                {formatQuantity(item.quantity, item.boxSize, item.setSize)}
+                {formatQuantity(item.quantity, BOX_SIZE, SET_SIZE)}
               </button>
             )}
             
             {item.required > 0 && !isEditing && (
               <span className="text-gray-500 dark:text-gray-400">
-                / {formatQuantity(item.required, item.boxSize, item.setSize)}
+                / {formatQuantity(item.required, BOX_SIZE, SET_SIZE)}
               </span>
             )}
           </div>

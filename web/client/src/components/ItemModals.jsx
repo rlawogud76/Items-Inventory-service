@@ -22,6 +22,10 @@ function splitQuantity(total, setSize = 64, boxSize = 3456) {
   return { items, sets, boxes }
 }
 
+// 고정 상수
+const SET_SIZE = 64
+const BOX_SIZE = 3456
+
 export function ItemModal({ isOpen, onClose, type, categories = [], item = null }) {
   const queryClient = useQueryClient()
   const isEdit = !!item
@@ -40,9 +44,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
     emoji: item?.emoji || '',
     quantity: item?.quantity || 0,
     required: item?.required || 0,
-    itemType: normalizeItemType(item?.itemType),
-    setSize: item?.setSize || 64,
-    boxSize: item?.boxSize || 3456
+    itemType: normalizeItemType(item?.itemType)
   })
   
   // 분리된 수량 입력 상태
@@ -52,10 +54,8 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
   // 초기값 설정
   useEffect(() => {
     if (isOpen) {
-      const ss = item?.setSize || 64
-      const bs = item?.boxSize || 3456
-      setQuantityParts(splitQuantity(item?.quantity || 0, ss, bs))
-      setRequiredParts(splitQuantity(item?.required || 0, ss, bs))
+      setQuantityParts(splitQuantity(item?.quantity || 0, SET_SIZE, BOX_SIZE))
+      setRequiredParts(splitQuantity(item?.required || 0, SET_SIZE, BOX_SIZE))
       // formData도 업데이트
       setFormData({
         name: item?.name || '',
@@ -65,9 +65,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
         emoji: item?.emoji || '',
         quantity: item?.quantity || 0,
         required: item?.required || 0,
-        itemType: normalizeItemType(item?.itemType),
-        setSize: item?.setSize || 64,
-        boxSize: item?.boxSize || 3456
+        itemType: normalizeItemType(item?.itemType)
       })
       setError('')
     }
@@ -77,8 +75,8 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
   useEffect(() => {
     setFormData(prev => ({
       ...prev,
-      quantity: calculateTotal(quantityParts.items, quantityParts.sets, quantityParts.boxes, prev.setSize, prev.boxSize),
-      required: calculateTotal(requiredParts.items, requiredParts.sets, requiredParts.boxes, prev.setSize, prev.boxSize)
+      quantity: calculateTotal(quantityParts.items, quantityParts.sets, quantityParts.boxes, SET_SIZE, BOX_SIZE),
+      required: calculateTotal(requiredParts.items, requiredParts.sets, requiredParts.boxes, SET_SIZE, BOX_SIZE)
     }))
   }, [quantityParts, requiredParts])
   
@@ -126,9 +124,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
         name: formData.name,
         emoji: formData.emoji,
         required: parseInt(formData.required) || 0,
-        itemType: formData.itemType,
-        setSize: parseInt(formData.setSize) || 0,
-        boxSize: parseInt(formData.boxSize) || 0
+        itemType: formData.itemType
       })
     } else {
       addMutation.mutate({
@@ -138,9 +134,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
         emoji: formData.emoji,
         quantity: parseInt(formData.quantity) || 0,
         required: parseInt(formData.required) || 0,
-        itemType: formData.itemType,
-        setSize: parseInt(formData.setSize) || 0,
-        boxSize: parseInt(formData.boxSize) || 0
+        itemType: formData.itemType
       })
     }
   }
@@ -373,38 +367,6 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
               </div>
             </div>
           )}
-          
-          {/* 세트/상자 크기 설정 */}
-          <div>
-            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">세트/상자 크기</label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">세트 (낱개)</label>
-                <input
-                  type="number"
-                  value={formData.setSize || ''}
-                  onChange={(e) => setFormData({ ...formData, setSize: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
-                  placeholder="64"
-                  min="0"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">상자 (낱개)</label>
-                <input
-                  type="number"
-                  value={formData.boxSize || ''}
-                  onChange={(e) => setFormData({ ...formData, boxSize: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
-                  placeholder="3456"
-                  min="0"
-                />
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              0이면 기본값 (세트: 64, 상자: 3456) 사용
-            </p>
-          </div>
           
           {/* 아이템 타입 */}
           <div>
