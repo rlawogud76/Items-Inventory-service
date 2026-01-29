@@ -452,6 +452,23 @@ router.patch('/:type/:category/:name/required', authenticate, requireFeature('ma
   }
 });
 
+// 순서 업데이트 (/:type/:category/:name 보다 먼저 선언되어야 함)
+router.patch('/:type/:category/order', authenticate, requireFeature('manage'), async (req, res, next) => {
+  try {
+    const { type, category } = req.params;
+    const { items } = req.body; // [{ name, order }, ...]
+    
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ error: 'items는 배열이어야 합니다.' });
+    }
+    
+    await db.updateItemsOrder(type, category, items);
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // 아이템 정보 수정
 router.patch('/:type/:category/:name', authenticate, requireFeature('manage'), async (req, res, next) => {
   try {
@@ -663,23 +680,6 @@ router.delete('/:type/:category/:name/workers', authenticate, requireFeature('ma
     }
     
     res.json({ success: true, item: result.item });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// 순서 업데이트
-router.patch('/:type/:category/order', authenticate, requireFeature('manage'), async (req, res, next) => {
-  try {
-    const { type, category } = req.params;
-    const { items } = req.body; // [{ name, order }, ...]
-    
-    if (!Array.isArray(items)) {
-      return res.status(400).json({ error: 'items는 배열이어야 합니다.' });
-    }
-    
-    await db.updateItemsOrder(type, category, items);
-    res.json({ success: true });
   } catch (error) {
     next(error);
   }
