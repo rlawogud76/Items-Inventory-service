@@ -283,7 +283,7 @@ function Layout() {
 
       {/* 메인 콘텐츠 */}
       <main className="pt-16 min-h-screen">
-        <div className="p-4 lg:p-6">
+        <div className="p-4 lg:p-6 pb-20">
           <Outlet />
         </div>
       </main>
