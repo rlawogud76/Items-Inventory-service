@@ -19,7 +19,16 @@ router.get('/crafting/dashboard', async (req, res, next) => {
 // 제작 계획 생성 (3차 목표 기준 전체 티어 자동 생성)
 router.post('/crafting/plan', authenticate, requireFeature('manage'), async (req, res, next) => {
   try {
-    const { category, tier3Goals, eventId } = req.body;
+    const { 
+      category, 
+      tier3Goals, 
+      eventId, 
+      createEvent, 
+      eventTitle, 
+      startDate, 
+      endDate, 
+      eventColor 
+    } = req.body;
     
     if (!category || !tier3Goals || !Array.isArray(tier3Goals)) {
       return res.status(400).json({ error: '카테고리와 3차 목표가 필요합니다.' });
@@ -29,7 +38,26 @@ router.post('/crafting/plan', authenticate, requireFeature('manage'), async (req
       return res.status(400).json({ error: '최소 1개 이상의 3차 목표가 필요합니다.' });
     }
     
-    const result = await db.createCraftingPlan(category, tier3Goals, eventId);
+    let finalEventId = eventId;
+    let createdEvent = null;
+    
+    // 새 이벤트 생성이 요청된 경우
+    if (createEvent && startDate && endDate) {
+      createdEvent = await db.createEvent({
+        title: eventTitle || `${category} 제작 계획`,
+        description: `3차 목표: ${tier3Goals.map(g => `${g.name} x${g.quantity}`).join(', ')}`,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        allDay: true,
+        color: eventColor || 'blue',
+        repeat: 'none',
+        createdBy: req.user.id,
+        createdByName: req.user.username || req.user.globalName || ''
+      });
+      finalEventId = createdEvent._id;
+    }
+    
+    const result = await db.createCraftingPlan(category, tier3Goals, finalEventId);
     
     // 히스토리 기록
     await db.addHistoryEntry({
@@ -38,11 +66,14 @@ router.post('/crafting/plan', authenticate, requireFeature('manage'), async (req
       category,
       itemName: '[제작 계획]',
       action: 'create_plan',
-      details: `3차: ${result.tier3}개, 2차: ${result.tier2}개, 1차: ${result.tier1}개 (총 ${result.created}개)`,
+      details: `3차: ${result.tier3}개, 2차: ${result.tier2}개, 1차: ${result.tier1}개 (총 ${result.created}개)${createdEvent ? ` | 일정: ${createdEvent.title}` : ''}`,
       userName: req.user.username
     });
     
-    res.status(201).json(result);
+    res.status(201).json({
+      ...result,
+      event: createdEvent
+    });
   } catch (error) {
     next(error);
   }

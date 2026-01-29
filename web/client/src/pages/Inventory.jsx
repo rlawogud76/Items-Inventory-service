@@ -10,58 +10,8 @@ import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { ItemModal, DeleteConfirmModal, ResetConfirmModal } from '../components/ItemModals'
 import { DiscordText } from '../utils/discordEmoji'
-
-// 고정 크기 상수
-const SET_SIZE = 64
-const BOX_SIZE = 3456
-
-// 프로그레스 바 컴포넌트
-const ProgressBar = ({ current, required, className }) => {
-  const percentage = required > 0 ? Math.min((current / required) * 100, 100) : 0
-  const isComplete = current >= required && required > 0
-  
-  return (
-    <div className={clsx('h-2 bg-gray-200 dark:bg-dark-200 rounded-full overflow-hidden', className)}>
-      <div 
-        className={clsx(
-          'h-full transition-all duration-300',
-          isComplete ? 'bg-green-500' : percentage >= 50 ? 'bg-yellow-500' : 'bg-primary-500'
-        )}
-        style={{ width: `${percentage}%` }}
-      />
-    </div>
-  )
-}
-
-// 수량 포맷팅 (상자, 세트, 개)
-const formatQuantity = (qty, boxSize = 0, setSize = 0) => {
-  if (!boxSize && !setSize) return `${qty}개`
-  
-  const parts = []
-  let remaining = qty
-  
-  if (boxSize > 0) {
-    const boxes = Math.floor(remaining / boxSize)
-    if (boxes > 0) {
-      parts.push(`${boxes}상자`)
-      remaining = remaining % boxSize
-    }
-  }
-  
-  if (setSize > 0) {
-    const sets = Math.floor(remaining / setSize)
-    if (sets > 0) {
-      parts.push(`${sets}세트`)
-      remaining = remaining % setSize
-    }
-  }
-  
-  if (remaining > 0 || parts.length === 0) {
-    parts.push(`${remaining}개`)
-  }
-  
-  return parts.join(' ')
-}
+import { ProgressBar } from '../components/ProgressBar'
+import { formatQuantity } from '../utils/formatting'
 
 // 태그 색상 매핑
 const getTagColor = (color) => {
@@ -259,13 +209,13 @@ const ItemRow = ({
                 className="font-bold text-lg text-gray-900 dark:text-white hover:text-primary-500 transition-colors"
                 title="클릭하여 직접 입력"
               >
-                {formatQuantity(item.quantity, BOX_SIZE, SET_SIZE)}
+                {formatQuantity(item.quantity)}
               </button>
             )}
             
             {item.required > 0 && !isEditing && (
               <span className="text-gray-500 dark:text-gray-400">
-                / {formatQuantity(item.required, BOX_SIZE, SET_SIZE)}
+                / {formatQuantity(item.required)}
               </span>
             )}
           </div>
@@ -281,7 +231,7 @@ const ItemRow = ({
         </div>
         
         {item.required > 0 && (
-          <ProgressBar current={item.quantity} required={item.required} />
+          <ProgressBar current={item.quantity} target={item.required} />
         )}
       </div>
       
@@ -411,7 +361,7 @@ const CategorySection = ({
         <div className="flex items-center gap-4">
           {/* 미니 진행률 바 */}
           <div className="hidden sm:block w-32">
-            <ProgressBar current={stats.avgProgress} required={100} />
+            <ProgressBar current={stats.avgProgress} target={100} />
           </div>
           
           {/* 아이템 수 배지 */}

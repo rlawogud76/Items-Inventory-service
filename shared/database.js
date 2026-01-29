@@ -91,11 +91,15 @@ const History = mongoose.models.InventoryHistory || mongoose.model('InventoryHis
 async function addHistoryEntry(entry) {
   try {
     await History.create(entry);
-    const count = await History.countDocuments();
-    if (count > 100) {
-      const old = await History.find().sort({ timestamp: 1 }).limit(count - 100).select('_id').lean();
-      await History.deleteMany({ _id: { $in: old.map((o) => o._id) } });
-    }
+    // 최신 100개만 유지 - 단일 쿼리로 오래된 항목 삭제 (race condition 방지)
+    const keepIds = await History.find()
+      .sort({ timestamp: -1 })
+      .limit(100)
+      .select('_id')
+      .lean();
+    await History.deleteMany({ 
+      _id: { $nin: keepIds.map(h => h._id) } 
+    });
   } catch (error) {
     console.error('❌ 히스토리 추가 실패:', error.message);
   }
@@ -286,15 +290,16 @@ async function loadInventory() {
           emoji: item.emoji
         };
 
-        if (item.worker && item.worker.userId) {
+        // workers 배열에서 작업자 정보 추출
+        if (item.workers && item.workers.length > 0) {
           if (!inventory.collecting[item.category]) {
             inventory.collecting[item.category] = {};
           }
-          inventory.collecting[item.category][item.name] = {
-            userId: item.worker.userId,
-            userName: item.worker.userName,
-            startTime: item.worker.startTime
-          };
+          inventory.collecting[item.category][item.name] = item.workers.map(w => ({
+            userId: w.userId,
+            userName: w.userName,
+            startTime: w.startedAt
+          }));
         }
       } else if (item.type === 'crafting') {
         if (!inventory.crafting.categories[item.category]) {
@@ -308,15 +313,16 @@ async function loadInventory() {
           emoji: item.emoji
         };
 
-        if (item.worker && item.worker.userId) {
+        // workers 배열에서 작업자 정보 추출
+        if (item.workers && item.workers.length > 0) {
           if (!inventory.crafting.crafting[item.category]) {
             inventory.crafting.crafting[item.category] = {};
           }
-          inventory.crafting.crafting[item.category][item.name] = {
-            userId: item.worker.userId,
-            userName: item.worker.userName,
-            startTime: item.worker.startTime
-          };
+          inventory.crafting.crafting[item.category][item.name] = item.workers.map(w => ({
+            userId: w.userId,
+            userName: w.userName,
+            startTime: w.startedAt
+          }));
         }
       }
     });
@@ -830,13 +836,31 @@ async function getCraftingDashboard(category = null) {
       return acc;
     }, {});
     
+    // 연동된 이벤트 조회
+    const eventIds = [...new Set(items.filter(i => i.eventId).map(i => i.eventId.toString()))];
+    let linkedEvents = [];
+    if (eventIds.length > 0) {
+      linkedEvents = await Event.find({ _id: { $in: eventIds } }).lean();
+    }
+    const eventMap = linkedEvents.reduce((acc, e) => {
+      acc[e._id.toString()] = e;
+      return acc;
+    }, {});
+    
     const stats = {
       tier1: { items: [], total: 0, completed: 0 },
       tier2: { items: [], total: 0, completed: 0 },
       tier3: { items: [], total: 0, completed: 0 },
       overall: { total: 0, completed: 0, progress: 0 },
       recipes: recipeMap,
-      inventoryMap
+      inventoryMap,
+      linkedEvents: linkedEvents.map(e => ({
+        _id: e._id,
+        title: e.title,
+        startDate: e.startDate,
+        endDate: e.endDate,
+        color: e.color
+      }))
     };
 
     for (const item of items) {

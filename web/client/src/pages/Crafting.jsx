@@ -23,6 +23,8 @@ import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { DiscordText } from '../utils/discordEmoji'
 import { CraftingPlanModal, DeleteConfirmModal } from '../components/ItemModals'
+import { ProgressBar } from '../components/ProgressBar'
+import { formatQuantity, calculateDDay } from '../utils/formatting'
 import clsx from 'clsx'
 
 // 티어 설정
@@ -51,51 +53,6 @@ const TIER_CONFIG = {
     borderColor: 'border-yellow-500/30',
     textColor: 'text-yellow-400'
   }
-}
-
-// 진행률 바 컴포넌트
-function ProgressBar({ current, target, size = 'md' }) {
-  const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0
-  const isComplete = current >= target
-  
-  let barColor = 'bg-red-500'
-  if (isComplete) barColor = 'bg-green-500'
-  else if (percentage >= 75) barColor = 'bg-yellow-500'
-  else if (percentage >= 50) barColor = 'bg-orange-500'
-  
-  const heightClass = size === 'sm' ? 'h-1.5' : 'h-2'
-  
-  return (
-    <div className={`w-full bg-light-300 dark:bg-dark-200 rounded-full ${heightClass}`}>
-      <div
-        className={`${barColor} ${heightClass} rounded-full transition-all duration-300`}
-        style={{ width: `${percentage}%` }}
-      />
-    </div>
-  )
-}
-
-// 수량 포맷팅
-function formatQuantity(quantity) {
-  const ITEMS_PER_SET = 64
-  const ITEMS_PER_BOX = 64 * 54
-
-  if (quantity >= ITEMS_PER_BOX) {
-    const boxes = Math.floor(quantity / ITEMS_PER_BOX)
-    const remaining = quantity % ITEMS_PER_BOX
-    const sets = Math.floor(remaining / ITEMS_PER_SET)
-    const items = remaining % ITEMS_PER_SET
-    
-    let result = `${boxes}상자`
-    if (sets > 0) result += ` ${sets}세트`
-    if (items > 0) result += ` ${items}개`
-    return result
-  } else if (quantity >= ITEMS_PER_SET) {
-    const sets = Math.floor(quantity / ITEMS_PER_SET)
-    const items = quantity % ITEMS_PER_SET
-    return items > 0 ? `${sets}세트 ${items}개` : `${sets}세트`
-  }
-  return `${quantity}개`
 }
 
 // 개별 아이템 카드
@@ -547,6 +504,9 @@ export default function Crafting() {
   const totalItems = dashboard?.overall?.total || 0
   const completedCount = dashboard?.overall?.completed || 0
   
+  // 연동된 이벤트 (마감일 표시용)
+  const linkedEvents = dashboard?.linkedEvents || []
+  
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -642,7 +602,36 @@ export default function Crafting() {
                 완료 {completedCount} / {totalItems}
               </div>
             </div>
-            {/* TODO: 이벤트 마감일 표시 */}
+            
+            {/* 연동된 이벤트 마감일 표시 */}
+            {linkedEvents.length > 0 && (
+              <div className="flex items-center gap-2">
+                {linkedEvents.map(event => {
+                  const dday = calculateDDay(event.endDate)
+                  const isOverdue = dday?.startsWith('D+')
+                  const isToday = dday === 'D-Day'
+                  
+                  return (
+                    <div 
+                      key={event._id}
+                      className={clsx(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm",
+                        isOverdue ? "bg-red-500/20 text-red-400" :
+                        isToday ? "bg-yellow-500/20 text-yellow-400" :
+                        "bg-primary-500/20 text-primary-400"
+                      )}
+                    >
+                      <Calendar className="w-4 h-4" />
+                      <span className="font-medium">{event.title}</span>
+                      <span className="font-bold">{dday}</span>
+                      <span className="text-xs opacity-70">
+                        (~{new Date(event.endDate).toLocaleDateString()})
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
           <ProgressBar current={completedCount} target={totalItems} />
         </div>

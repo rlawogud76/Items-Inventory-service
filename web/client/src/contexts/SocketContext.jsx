@@ -51,14 +51,27 @@ export function SocketProvider({ children }) {
       setConnected(false)
     })
 
-    // 데이터 변경 시 캐시 무효화
+    // 데이터 변경 시 캐시 무효화 (변경된 타입에 따라 선택적 무효화)
     socketInstance.on('data-changed', (data) => {
       console.log('📡 데이터 변경 감지:', data)
-      // 모든 관련 쿼리 무효화
-      queryClient.invalidateQueries({ queryKey: ['items'] })
-      queryClient.invalidateQueries({ queryKey: ['recipes'] })
-      queryClient.invalidateQueries({ queryKey: ['contributions'] })
-      queryClient.invalidateQueries({ queryKey: ['history'] })
+      
+      // 변경 타입에 따라 선택적으로 무효화
+      if (data?.type === 'items') {
+        queryClient.invalidateQueries({ queryKey: ['items'] })
+        queryClient.invalidateQueries({ queryKey: ['crafting'] })
+      } else if (data?.type === 'recipes') {
+        queryClient.invalidateQueries({ queryKey: ['recipes'] })
+        queryClient.invalidateQueries({ queryKey: ['crafting'] })
+      } else if (data?.type === 'history') {
+        queryClient.invalidateQueries({ queryKey: ['history'] })
+        queryClient.invalidateQueries({ queryKey: ['contributions'] })
+      } else {
+        // 타입 정보 없으면 전체 무효화 (하위 호환)
+        queryClient.invalidateQueries({ queryKey: ['items'] })
+        queryClient.invalidateQueries({ queryKey: ['recipes'] })
+        queryClient.invalidateQueries({ queryKey: ['contributions'] })
+        queryClient.invalidateQueries({ queryKey: ['history'] })
+      }
     })
 
     // 활동 알림 (수량 변경, 작업자 변경)

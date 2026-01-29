@@ -9,6 +9,16 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     checkAuth()
+    
+    // 401 에러 이벤트 리스너 (api.js에서 발생)
+    const handleUnauthorized = () => {
+      setUser(null)
+    }
+    window.addEventListener('auth:unauthorized', handleUnauthorized)
+    
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized)
+    }
   }, [])
 
   async function checkAuth() {

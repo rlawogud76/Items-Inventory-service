@@ -41,16 +41,24 @@ router.get('/discord/callback', async (req, res) => {
       })
     });
     
+    if (!tokenResponse.ok) {
+      throw new Error(`토큰 교환 실패: ${tokenResponse.status}`);
+    }
+    
     const tokenData = await tokenResponse.json();
     
     if (!tokenData.access_token) {
-      throw new Error('토큰 교환 실패');
+      throw new Error('토큰 교환 실패: access_token 없음');
     }
     
     // 사용자 정보 가져오기
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` }
     });
+    
+    if (!userResponse.ok) {
+      throw new Error(`사용자 정보 조회 실패: ${userResponse.status}`);
+    }
     
     const userData = await userResponse.json();
     

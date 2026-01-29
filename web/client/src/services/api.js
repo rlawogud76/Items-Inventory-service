@@ -25,8 +25,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // 인증 에러 처리
-      console.log('인증 필요')
+      // 인증 에러 시 커스텀 이벤트 발생 (로그아웃 처리용)
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'))
     }
     return Promise.reject(error)
   }

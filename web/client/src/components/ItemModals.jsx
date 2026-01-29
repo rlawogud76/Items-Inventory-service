@@ -704,6 +704,14 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
   const [previewData, setPreviewData] = useState(null)
   const [error, setError] = useState('')
   
+  // 기간 설정 관련 상태
+  const [useSchedule, setUseSchedule] = useState(false)
+  const [scheduleMode, setScheduleMode] = useState('new') // 'new' | 'existing'
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [eventTitle, setEventTitle] = useState('')
+  const [eventColor, setEventColor] = useState('blue')
+  
   // 카테고리 목록 조회
   const { data: categories = [] } = useQuery({
     queryKey: ['items', 'inventory', 'categories'],
@@ -757,6 +765,13 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
     setEventId('')
     setPreviewData(null)
     setError('')
+    // 기간 설정 초기화
+    setUseSchedule(false)
+    setScheduleMode('new')
+    setStartDate('')
+    setEndDate('')
+    setEventTitle('')
+    setEventColor('blue')
   }
   
   useEffect(() => {
@@ -817,11 +832,39 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
       return
     }
     
-    createMutation.mutate({
+    // 기간 설정 모드인 경우 검증
+    if (useSchedule) {
+      if (scheduleMode === 'new') {
+        if (!startDate || !endDate) {
+          setError('시작일과 종료일을 입력해주세요')
+          return
+        }
+        if (new Date(startDate) > new Date(endDate)) {
+          setError('종료일은 시작일보다 이후여야 합니다')
+          return
+        }
+      } else if (scheduleMode === 'existing' && !eventId) {
+        setError('연동할 이벤트를 선택해주세요')
+        return
+      }
+    }
+    
+    const submitData = {
       category: targetCategory,
       tier3Goals: validGoals,
-      eventId: eventId || null
-    })
+      eventId: (useSchedule && scheduleMode === 'existing') ? eventId : null
+    }
+    
+    // 새 이벤트 생성 모드인 경우 일정 정보 추가
+    if (useSchedule && scheduleMode === 'new') {
+      submitData.createEvent = true
+      submitData.eventTitle = eventTitle || `${targetCategory} 제작 계획`
+      submitData.startDate = startDate
+      submitData.endDate = endDate
+      submitData.eventColor = eventColor
+    }
+    
+    createMutation.mutate(submitData)
   }
   
   // 현재 카테고리의 3차 레시피만 필터링
@@ -898,21 +941,127 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
             )}
           </div>
           
-          {/* 이벤트 연동 */}
-          <div>
-            <label className="block text-sm font-medium mb-2">이벤트 연동 (선택)</label>
-            <select
-              value={eventId}
-              onChange={(e) => setEventId(e.target.value)}
-              className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none"
-            >
-              <option value="">이벤트 없음</option>
-              {events.map(event => (
-                <option key={event._id} value={event._id}>
-                  {event.title} ({new Date(event.start).toLocaleDateString()})
-                </option>
-              ))}
-            </select>
+          {/* 기간 및 이벤트 연동 */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="useSchedule"
+                checked={useSchedule}
+                onChange={(e) => setUseSchedule(e.target.checked)}
+                className="w-4 h-4 rounded text-primary-500"
+              />
+              <label htmlFor="useSchedule" className="text-sm font-medium">기간 설정 및 일정 연동</label>
+            </div>
+            
+            {useSchedule && (
+              <div className="ml-6 space-y-3 p-3 bg-light-100 dark:bg-dark-200 rounded-lg">
+                {/* 모드 선택 */}
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      checked={scheduleMode === 'new'}
+                      onChange={() => setScheduleMode('new')}
+                      className="text-primary-500"
+                    />
+                    <span className="text-sm">새 일정 생성</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      checked={scheduleMode === 'existing'}
+                      onChange={() => setScheduleMode('existing')}
+                      className="text-primary-500"
+                    />
+                    <span className="text-sm">기존 일정 연동</span>
+                  </label>
+                </div>
+                
+                {scheduleMode === 'new' ? (
+                  <div className="space-y-2">
+                    {/* 일정 제목 */}
+                    <div>
+                      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">일정 제목</label>
+                      <input
+                        type="text"
+                        value={eventTitle}
+                        onChange={(e) => setEventTitle(e.target.value)}
+                        placeholder={`${useNewCategory ? newCategory : category || '카테고리'} 제작 계획`}
+                        className="w-full px-3 py-2 bg-white dark:bg-dark-300 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none text-sm"
+                      />
+                    </div>
+                    
+                    {/* 날짜 선택 */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">시작일</label>
+                        <input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="w-full px-3 py-2 bg-white dark:bg-dark-300 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">종료일 (마감)</label>
+                        <input
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className="w-full px-3 py-2 bg-white dark:bg-dark-300 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none text-sm"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* 색상 선택 */}
+                    <div>
+                      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">일정 색상</label>
+                      <div className="flex gap-2 flex-wrap">
+                        {['blue', 'green', 'yellow', 'red', 'purple', 'pink', 'indigo', 'cyan'].map(color => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => setEventColor(color)}
+                            className={`w-7 h-7 rounded-full transition-all ${
+                              eventColor === color ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-offset-dark-200' : ''
+                            }`}
+                            style={{ 
+                              backgroundColor: {
+                                blue: '#3b82f6',
+                                green: '#22c55e',
+                                yellow: '#eab308',
+                                red: '#ef4444',
+                                purple: '#a855f7',
+                                pink: '#ec4899',
+                                indigo: '#6366f1',
+                                cyan: '#06b6d4'
+                              }[color] 
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">연동할 이벤트</label>
+                    <select
+                      value={eventId}
+                      onChange={(e) => setEventId(e.target.value)}
+                      className="w-full px-3 py-2 bg-white dark:bg-dark-300 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none text-sm"
+                    >
+                      <option value="">이벤트 선택...</option>
+                      {events.map(event => (
+                        <option key={event._id} value={event._id}>
+                          {event.title} ({new Date(event.start).toLocaleDateString()} ~ {event.end ? new Date(event.end).toLocaleDateString() : ''})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           
           {/* 3차 제작품 목표 */}

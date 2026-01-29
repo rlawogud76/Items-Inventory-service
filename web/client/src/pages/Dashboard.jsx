@@ -2,17 +2,43 @@ import { useQuery } from '@tanstack/react-query'
 import { NavLink } from 'react-router-dom'
 import { Package, Hammer, TrendingUp, Clock } from 'lucide-react'
 import api from '../services/api'
+import { ProgressBar } from '../components/ProgressBar'
+
+// 색상 매핑 (Tailwind 동적 클래스 문제 해결)
+const colorStyles = {
+  blue: {
+    bg: 'bg-blue-500/20',
+    text: 'text-blue-500',
+    border: 'hover:border-blue-500/50'
+  },
+  green: {
+    bg: 'bg-green-500/20',
+    text: 'text-green-500',
+    border: 'hover:border-green-500/50'
+  },
+  purple: {
+    bg: 'bg-purple-500/20',
+    text: 'text-purple-500',
+    border: 'hover:border-purple-500/50'
+  },
+  yellow: {
+    bg: 'bg-yellow-500/20',
+    text: 'text-yellow-500',
+    border: 'hover:border-yellow-500/50'
+  }
+}
 
 function StatCard({ title, value, icon: Icon, color, to }) {
+  const styles = colorStyles[color] || colorStyles.blue
   const content = (
-    <div className={`bg-white dark:bg-dark-300 rounded-xl p-6 border border-light-300 dark:border-dark-100 hover:border-${color}-500/50 transition-colors shadow-sm dark:shadow-none`}>
+    <div className={`bg-white dark:bg-dark-300 rounded-xl p-6 border border-light-300 dark:border-dark-100 ${styles.border} transition-colors shadow-sm dark:shadow-none`}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-gray-500 dark:text-gray-400 text-sm">{title}</p>
           <p className="text-3xl font-bold mt-2">{value}</p>
         </div>
-        <div className={`p-3 rounded-lg bg-${color}-500/20`}>
-          <Icon className={`text-${color}-500`} size={24} />
+        <div className={`p-3 rounded-lg ${styles.bg}`}>
+          <Icon className={styles.text} size={24} />
         </div>
       </div>
     </div>
@@ -22,19 +48,6 @@ function StatCard({ title, value, icon: Icon, color, to }) {
     return <NavLink to={to}>{content}</NavLink>
   }
   return content
-}
-
-function ProgressBar({ current, target, color = 'primary' }) {
-  const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0
-  
-  return (
-    <div className="w-full bg-light-300 dark:bg-dark-200 rounded-full h-2">
-      <div
-        className={`bg-${color}-500 h-2 rounded-full transition-all duration-300`}
-        style={{ width: `${percentage}%` }}
-      />
-    </div>
-  )
 }
 
 function Dashboard() {

@@ -50,6 +50,8 @@ const itemSchema = new mongoose.Schema({
 
 // 복합 인덱스: 같은 타입, 카테고리 내에서 이름은 유일해야 함
 itemSchema.index({ type: 1, category: 1, name: 1 }, { unique: true });
+// workers 배열 내 userId 검색용 인덱스
+itemSchema.index({ 'workers.userId': 1 });
 
 const Item = mongoose.models.Item || mongoose.model('Item', itemSchema);
 
