@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Inventory from './pages/Inventory'
 import Crafting from './pages/Crafting'
+import Recipes from './pages/Recipes'
 import Contributions from './pages/Contributions'
 import History from './pages/History'
 import Settings from './pages/Settings'
@@ -43,6 +44,8 @@ function AppRoutes() {
         <Route path="inventory/:category" element={<Inventory />} />
         <Route path="crafting" element={<Crafting />} />
         <Route path="crafting/:category" element={<Crafting />} />
+        <Route path="recipes" element={<Recipes />} />
+        <Route path="recipes/:category" element={<Recipes />} />
         <Route path="contributions" element={<Contributions />} />
         <Route path="history" element={<History />} />
         <Route path="settings" element={<Settings />} />

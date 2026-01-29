@@ -19,7 +19,8 @@ import {
   Calendar,
   Bell,
   Sun,
-  Moon
+  Moon,
+  BookOpen
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
@@ -32,6 +33,7 @@ const navItems = [
   { path: '/', icon: LayoutDashboard, label: '대시보드' },
   { path: '/inventory', icon: Package, label: '재고' },
   { path: '/crafting', icon: Hammer, label: '제작' },
+  { path: '/recipes', icon: BookOpen, label: '레시피' },
   { path: '/calendar', icon: Calendar, label: '일정' },
   { path: '/tags', icon: Tag, label: '태그' },
   { path: '/contributions', icon: Trophy, label: '기여도', featureKey: 'contribution' },

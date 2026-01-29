@@ -369,6 +369,58 @@ router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature
   }
 });
 
+// 제작 아이템 목표 수량 변경 + 하위 티어 재계산
+router.patch('/:type/:category/:name/required', authenticate, requireFeature('manage'), async (req, res, next) => {
+  try {
+    const { type, category, name } = req.params;
+    const { value, recalculate = true } = req.body;
+    
+    if (type !== 'crafting') {
+      return res.status(400).json({ error: '제작 아이템만 목표 수량을 변경할 수 있습니다.' });
+    }
+    
+    if (typeof value !== 'number' || value < 0) {
+      return res.status(400).json({ error: 'value는 0 이상의 숫자여야 합니다.' });
+    }
+    
+    // 아이템 정보 조회
+    const items = await db.getItems(type, category);
+    const item = items.find(i => i.name === name);
+    
+    if (!item) {
+      return res.status(404).json({ error: '아이템을 찾을 수 없습니다.' });
+    }
+    
+    // 목표 수량 업데이트
+    const result = await db.updateItemDetails(type, category, name, { required: value });
+    
+    if (!result) {
+      return res.status(404).json({ error: '아이템을 찾을 수 없습니다.' });
+    }
+    
+    // 하위 티어 재계산 (2차, 3차 아이템만)
+    let recalcResult = { updated: 0 };
+    if (recalculate && item.tier >= 2) {
+      recalcResult = await db.recalculateCraftingRequirements(category, name, item.tier, value);
+    }
+    
+    // 히스토리 기록
+    await db.addHistoryEntry({
+      timestamp: new Date().toISOString(),
+      type,
+      category,
+      itemName: name,
+      action: 'update_required',
+      details: `목표 변경: ${item.required} → ${value}개${recalcResult.updated > 0 ? ` (하위 ${recalcResult.updated}개 재계산)` : ''}`,
+      userName: req.user.username
+    });
+    
+    res.json({ success: true, recalculated: recalcResult.updated });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // 아이템 정보 수정
 router.patch('/:type/:category/:name', authenticate, requireFeature('manage'), async (req, res, next) => {
   try {

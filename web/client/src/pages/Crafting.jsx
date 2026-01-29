@@ -7,6 +7,7 @@ import {
   Trash2,
   FolderOpen,
   ChevronRight,
+  ChevronDown,
   Search,
   Calendar,
   CheckCircle2,
@@ -98,14 +99,18 @@ function formatQuantity(quantity) {
 }
 
 // 개별 아이템 카드
-function CraftingCard({ item, onQuantityChange, onQuantitySet }) {
+function CraftingCard({ item, onQuantityChange, onQuantitySet, onRequiredChange }) {
   const [showInput, setShowInput] = useState(false)
   const [inputValue, setInputValue] = useState('')
-  const [inputMode, setInputMode] = useState('add') // 'add', 'subtract', 'set'
+  const [inputMode, setInputMode] = useState('add') // 'add', 'subtract', 'set', 'required'
+  const [showMaterials, setShowMaterials] = useState(false)
   
   const percentage = item.required > 0 ? Math.min((item.quantity / item.required) * 100, 100) : 0
   const isComplete = item.quantity >= item.required
   const remaining = Math.max(0, item.required - item.quantity)
+  
+  // 하위재료 정보
+  const hasMaterials = item.materialsWithStock && item.materialsWithStock.length > 0
   
   const handleQuickChange = (delta) => {
     onQuantityChange(item, delta)
@@ -114,12 +119,15 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet }) {
   const handleSubmit = (e) => {
     e.preventDefault()
     const value = parseInt(inputValue) || 0
-    if (value <= 0) return
+    if (value < 0) return
+    if (value === 0 && inputMode !== 'set' && inputMode !== 'required') return
     
     if (inputMode === 'set') {
       onQuantitySet(item, value)
     } else if (inputMode === 'subtract') {
       onQuantityChange(item, -value)
+    } else if (inputMode === 'required') {
+      onRequiredChange(item, value)
     } else {
       onQuantityChange(item, value)
     }
@@ -130,48 +138,49 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet }) {
   
   return (
     <div className={clsx(
-      'rounded-lg border p-3 transition-all',
+      'rounded-lg border transition-all',
       isComplete 
         ? 'bg-green-500/10 border-green-500/30' 
         : 'bg-white dark:bg-dark-400 border-light-300 dark:border-dark-300 hover:border-light-400 dark:hover:border-dark-200'
     )}>
-      {/* 헤더: 아이콘 + 이름 */}
-      <div className="flex items-center gap-2 mb-2">
-        {item.emoji && (
-          <span className="text-lg">
-            <DiscordText>{item.emoji}</DiscordText>
+      <div className="p-3">
+        {/* 헤더: 아이콘 + 이름 */}
+        <div className="flex items-center gap-2 mb-2">
+          {item.emoji && (
+            <span className="text-lg">
+              <DiscordText>{item.emoji}</DiscordText>
+            </span>
+          )}
+          <span className="font-medium text-sm truncate flex-1">
+            <DiscordText>{item.name}</DiscordText>
           </span>
-        )}
-        <span className="font-medium text-sm truncate flex-1">
-          <DiscordText>{item.name}</DiscordText>
-        </span>
-        {isComplete && <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />}
-      </div>
-      
-      {/* 진행률 바 */}
-      <ProgressBar current={item.quantity} target={item.required} size="sm" />
-      
-      {/* 수량 표시 */}
-      <div className="flex justify-between items-center mt-2 text-xs">
-        <span className={clsx(
-          'font-mono',
-          isComplete ? 'text-green-400' : 'text-gray-400'
-        )}>
-          {item.quantity} / {item.required}
-        </span>
-        {!isComplete && remaining > 0 && (
-          <span className="text-gray-500">
-            -{remaining}
+          {isComplete && <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />}
+        </div>
+        
+        {/* 진행률 바 */}
+        <ProgressBar current={item.quantity} target={item.required} size="sm" />
+        
+        {/* 수량 표시 */}
+        <div className="flex justify-between items-center mt-2 text-xs">
+          <span className={clsx(
+            'font-mono',
+            isComplete ? 'text-green-400' : 'text-gray-400'
+          )}>
+            {item.quantity} / {item.required}
           </span>
-        )}
-      </div>
-      
-      {/* 빠른 조작 버튼 */}
-      {!showInput ? (
-        <div className="flex gap-1 mt-2">
-          <button
-            onClick={() => handleQuickChange(1)}
-            className="flex-1 py-1 text-xs bg-green-600/20 hover:bg-green-600/40 text-green-400 rounded transition-colors"
+          {!isComplete && remaining > 0 && (
+            <span className="text-gray-500">
+              -{remaining}
+            </span>
+          )}
+        </div>
+        
+        {/* 빠른 조작 버튼 */}
+        {!showInput ? (
+          <div className="flex gap-1 mt-2">
+            <button
+              onClick={() => handleQuickChange(1)}
+              className="flex-1 py-1 text-xs bg-green-600/20 hover:bg-green-600/40 text-green-400 rounded transition-colors"
           >
             +1
           </button>
@@ -227,16 +236,26 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet }) {
             >
               설정
             </button>
+            <button
+              type="button"
+              onClick={() => setInputMode('required')}
+              className={clsx(
+                'flex-1 py-1 text-xs rounded transition-colors',
+                inputMode === 'required' ? 'bg-yellow-600 text-white' : 'bg-light-200 dark:bg-dark-300'
+              )}
+            >
+              목표
+            </button>
           </div>
           <div className="flex gap-1">
             <input
               type="number"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="수량"
+              placeholder={inputMode === 'required' ? '목표 수량' : '수량'}
               className="flex-1 px-2 py-1 text-xs bg-light-200 dark:bg-dark-200 rounded border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none"
               autoFocus
-              min="1"
+              min="0"
             />
             <button
               type="submit"
@@ -254,12 +273,55 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet }) {
           </div>
         </form>
       )}
+      
+      {/* 하위재료 펼치기 버튼 */}
+      {hasMaterials && (
+        <button
+          onClick={() => setShowMaterials(!showMaterials)}
+          className="w-full mt-2 py-1 text-xs text-gray-400 hover:text-gray-300 flex items-center justify-center gap-1 transition-colors"
+        >
+          {showMaterials ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+          재료 {item.materialsWithStock.length}종
+        </button>
+      )}
+      </div>
+      
+      {/* 하위재료 목록 */}
+      {hasMaterials && showMaterials && (
+        <div className="border-t border-light-300 dark:border-dark-300 p-2 bg-light-100 dark:bg-dark-300/50">
+          <div className="space-y-1.5">
+            {item.materialsWithStock.map((mat, idx) => {
+              const hasEnough = mat.stock >= mat.needed
+              const shortage = Math.max(0, mat.needed - mat.stock)
+              return (
+                <div key={idx} className="flex items-center justify-between text-xs">
+                  <span className="truncate flex-1">
+                    <DiscordText>{mat.name}</DiscordText>
+                  </span>
+                  <div className="flex items-center gap-2 ml-2">
+                    <span className="text-gray-500">x{mat.quantity}</span>
+                    <span className={clsx(
+                      'font-mono',
+                      hasEnough ? 'text-green-400' : 'text-red-400'
+                    )}>
+                      {mat.stock}
+                      {!hasEnough && shortage > 0 && (
+                        <span className="text-red-500 ml-1">(-{shortage})</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 // 티어 컬럼 컴포넌트
-function TierColumn({ tier, items, onQuantityChange, onQuantitySet }) {
+function TierColumn({ tier, items, onQuantityChange, onQuantitySet, onRequiredChange }) {
   const config = TIER_CONFIG[tier]
   const Icon = config.icon
   
@@ -305,6 +367,7 @@ function TierColumn({ tier, items, onQuantityChange, onQuantitySet }) {
               item={item}
               onQuantityChange={onQuantityChange}
               onQuantitySet={onQuantitySet}
+              onRequiredChange={onRequiredChange}
             />
           ))
         )}
@@ -410,6 +473,15 @@ export default function Crafting() {
     },
   })
   
+  // 목표 수량 변경 뮤테이션 (재계산 포함)
+  const requiredMutation = useMutation({
+    mutationFn: ({ item, value }) => 
+      api.patch(`/items/${item.type}/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}/required`, { value }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crafting', 'dashboard'] })
+    },
+  })
+  
   // 전체 삭제 뮤테이션
   const deleteAllMutation = useMutation({
     mutationFn: () => api.delete(`/items/crafting/all${category ? `?category=${category}` : ''}`),
@@ -427,6 +499,10 @@ export default function Crafting() {
   
   const handleQuantitySet = (item, value) => {
     quantitySetMutation.mutate({ item, value })
+  }
+  
+  const handleRequiredChange = (item, value) => {
+    requiredMutation.mutate({ item, value })
   }
   
   // 티어별 아이템 분류 및 필터링
@@ -587,18 +663,21 @@ export default function Crafting() {
             items={tier1Items}
             onQuantityChange={handleQuantityChange}
             onQuantitySet={handleQuantitySet}
+            onRequiredChange={handleRequiredChange}
           />
           <TierColumn
             tier={2}
             items={tier2Items}
             onQuantityChange={handleQuantityChange}
             onQuantitySet={handleQuantitySet}
+            onRequiredChange={handleRequiredChange}
           />
           <TierColumn
             tier={3}
             items={tier3Items}
             onQuantityChange={handleQuantityChange}
             onQuantitySet={handleQuantitySet}
+            onRequiredChange={handleRequiredChange}
           />
           <CompletedColumn items={completedItems} />
         </div>

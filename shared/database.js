@@ -635,6 +635,75 @@ async function calculateMaterialRequirements(category, tier3Goals) {
 }
 
 /**
+ * 제작 계획의 상위 티어 목표 변경 시 하위 티어 필요량 재계산
+ * @param {string} category - 카테고리
+ * @param {string} itemName - 변경된 아이템 이름
+ * @param {number} tier - 변경된 아이템 티어
+ * @param {number} newRequired - 새로운 목표 수량
+ */
+async function recalculateCraftingRequirements(category, itemName, tier, newRequired) {
+  try {
+    // 티어 1은 재계산 대상이 아님
+    if (tier === 1) return { success: true, updated: 0 };
+    
+    const recipes = await Recipe.find({ category }).lean();
+    const recipeMap = recipes.reduce((acc, r) => {
+      acc[r.resultName] = r;
+      return acc;
+    }, {});
+    
+    // 해당 아이템의 레시피 찾기
+    const recipe = recipeMap[itemName];
+    if (!recipe || !recipe.materials) return { success: true, updated: 0 };
+    
+    const updates = [];
+    
+    // 직접 재료 업데이트
+    for (const mat of recipe.materials) {
+      const neededPerUnit = mat.quantity;
+      const totalNeeded = neededPerUnit * newRequired;
+      
+      // 하위 티어 아이템의 required 업데이트
+      updates.push({
+        type: 'crafting',
+        category,
+        itemName: mat.name,
+        field: 'required',
+        operation: 'set',
+        value: totalNeeded
+      });
+      
+      // 2단계 하위 재료 (3차 -> 2차 -> 1차)
+      if (tier === 3) {
+        const subRecipe = recipeMap[mat.name];
+        if (subRecipe && subRecipe.materials) {
+          for (const subMat of subRecipe.materials) {
+            const subNeeded = subMat.quantity * totalNeeded;
+            updates.push({
+              type: 'crafting',
+              category,
+              itemName: subMat.name,
+              field: 'required',
+              operation: 'set',
+              value: subNeeded
+            });
+          }
+        }
+      }
+    }
+    
+    if (updates.length > 0) {
+      await updateMultipleItems(updates, []);
+    }
+    
+    return { success: true, updated: updates.length };
+  } catch (error) {
+    console.error('❌ 제작 필요량 재계산 실패:', error);
+    throw error;
+  }
+}
+
+/**
  * 제작 계획 생성 (3차 목표 기준으로 전체 티어 아이템 자동 생성)
  * @param {string} category - 카테고리
  * @param {Array} tier3Goals - [{name, quantity, emoji}]
@@ -746,16 +815,51 @@ async function getCraftingDashboard(category = null) {
 
     const items = await Item.find(query).lean();
     
+    // 레시피 조회 (하위재료 표시용)
+    const recipes = await Recipe.find(category ? { category } : {}).lean();
+    const recipeMap = recipes.reduce((acc, r) => {
+      acc[r.resultName] = r;
+      return acc;
+    }, {});
+    
+    // 인벤토리 아이템 조회 (재고 연동용)
+    const inventoryItems = await Item.find({ type: 'inventory' }).lean();
+    const inventoryMap = inventoryItems.reduce((acc, item) => {
+      const key = `${item.category}:${item.name}`;
+      acc[key] = item;
+      return acc;
+    }, {});
+    
     const stats = {
       tier1: { items: [], total: 0, completed: 0 },
       tier2: { items: [], total: 0, completed: 0 },
       tier3: { items: [], total: 0, completed: 0 },
-      overall: { total: 0, completed: 0, progress: 0 }
+      overall: { total: 0, completed: 0, progress: 0 },
+      recipes: recipeMap,
+      inventoryMap
     };
 
     for (const item of items) {
       const tierKey = `tier${item.tier || 1}`;
       const isCompleted = item.quantity >= item.required;
+      
+      // 레시피 정보 추가
+      const recipe = recipeMap[item.name];
+      if (recipe) {
+        item.recipe = recipe;
+        // 재료별 인벤토리 보유량 추가
+        if (recipe.materials) {
+          item.materialsWithStock = recipe.materials.map(mat => {
+            const invKey = `${mat.category || item.category}:${mat.name}`;
+            const invItem = inventoryMap[invKey];
+            return {
+              ...mat,
+              stock: invItem?.quantity || 0,
+              needed: mat.quantity * (item.required - item.quantity)
+            };
+          });
+        }
+      }
       
       stats[tierKey].items.push(item);
       stats[tierKey].total++;
@@ -1205,6 +1309,7 @@ module.exports = {
   
   // 제작 계획
   calculateMaterialRequirements,
+  recalculateCraftingRequirements,
   createCraftingPlan,
   deleteCraftingItems,
   getCraftingDashboard,
