@@ -25,6 +25,12 @@ const settingSchema = new mongoose.Schema({
     crafting: { type: mongoose.Schema.Types.Mixed, default: {} }
   },
 
+  // 카테고리 이모지 설정
+  categoryEmojis: {
+    inventory: { type: mongoose.Schema.Types.Mixed, default: {} },
+    crafting: { type: mongoose.Schema.Types.Mixed, default: {} }
+  },
+
   // 권한 설정
   adminUserIds: { type: [String], default: [] },
   adminAllowedFeatureKeys: { type: [String], default: ['*'] },

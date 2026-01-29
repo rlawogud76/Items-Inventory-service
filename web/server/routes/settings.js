@@ -194,4 +194,69 @@ router.get('/users', authenticate, requireFeature('users'), async (req, res, nex
   }
 });
 
+// 카테고리 이모지 조회
+router.get('/category-emojis', async (req, res, next) => {
+  try {
+    const settings = await db.getSettings();
+    res.json({
+      inventory: settings?.categoryEmojis?.inventory || {},
+      crafting: settings?.categoryEmojis?.crafting || {}
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 카테고리 이모지 수정
+router.patch('/category-emojis/:type/:category', authenticate, requireAdmin, async (req, res, next) => {
+  try {
+    const { type, category } = req.params;
+    const { emoji } = req.body;
+    
+    if (!['inventory', 'crafting'].includes(type)) {
+      return res.status(400).json({ error: '잘못된 타입입니다.' });
+    }
+    
+    if (!emoji || typeof emoji !== 'string') {
+      return res.status(400).json({ error: '이모지가 필요합니다.' });
+    }
+    
+    const settings = await db.getSettings();
+    const categoryEmojis = settings?.categoryEmojis || { inventory: {}, crafting: {} };
+    
+    if (!categoryEmojis[type]) {
+      categoryEmojis[type] = {};
+    }
+    categoryEmojis[type][category] = emoji;
+    
+    await db.updateSettings({ categoryEmojis });
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 카테고리 이모지 삭제
+router.delete('/category-emojis/:type/:category', authenticate, requireAdmin, async (req, res, next) => {
+  try {
+    const { type, category } = req.params;
+    
+    if (!['inventory', 'crafting'].includes(type)) {
+      return res.status(400).json({ error: '잘못된 타입입니다.' });
+    }
+    
+    const settings = await db.getSettings();
+    const categoryEmojis = settings?.categoryEmojis || { inventory: {}, crafting: {} };
+    
+    if (categoryEmojis[type] && categoryEmojis[type][category]) {
+      delete categoryEmojis[type][category];
+      await db.updateSettings({ categoryEmojis });
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

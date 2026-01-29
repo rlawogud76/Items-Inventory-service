@@ -1,536 +1,467 @@
+﻿import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useParams, NavLink } from 'react-router-dom'
-import { useState, useEffect, useCallback } from 'react'
 import { 
-  Plus, 
-  Minus, 
-  Edit, 
-  Trash2, 
-  FolderOpen,
-  ChevronRight,
-  Search,
-  RotateCcw,
-  Undo2,
-  ArrowUpDown,
-  Tag,
-  Filter
+  Search, Plus, Trash2, Edit3, RotateCcw, Undo2, 
+  ArrowUpDown, Filter, ChevronDown, ChevronRight,
+  Package, CheckCircle2, AlertCircle, Minus
 } from 'lucide-react'
+import clsx from 'clsx'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
-import { DiscordText } from '../utils/discordEmoji'
 import { ItemModal, DeleteConfirmModal, ResetConfirmModal } from '../components/ItemModals'
-import clsx from 'clsx'
+import DiscordText from '../utils/discordEmoji'
 
-// 태그 색상 매핑
-const TAG_COLORS = {
-  default: { bg: 'bg-gray-500/20', text: 'text-gray-400', dot: 'bg-gray-500' },
-  red: { bg: 'bg-red-500/20', text: 'text-red-400', dot: 'bg-red-500' },
-  orange: { bg: 'bg-orange-500/20', text: 'text-orange-400', dot: 'bg-orange-500' },
-  yellow: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-500' },
-  green: { bg: 'bg-green-500/20', text: 'text-green-400', dot: 'bg-green-500' },
-  blue: { bg: 'bg-blue-500/20', text: 'text-blue-400', dot: 'bg-blue-500' },
-  purple: { bg: 'bg-purple-500/20', text: 'text-purple-400', dot: 'bg-purple-500' },
-  pink: { bg: 'bg-pink-500/20', text: 'text-pink-400', dot: 'bg-pink-500' },
-}
-
-function getTagColor(colorName) {
-  return TAG_COLORS[colorName] || TAG_COLORS.default
-}
-
-function ProgressBar({ current, target }) {
-  const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0
-  let color = 'bg-red-500'
-  if (percentage >= 100) color = 'bg-green-500'
-  else if (percentage >= 50) color = 'bg-yellow-500'
+// 프로그레스 바 컴포넌트
+const ProgressBar = ({ current, required, className }) => {
+  const percentage = required > 0 ? Math.min((current / required) * 100, 100) : 0
+  const isComplete = current >= required && required > 0
   
   return (
-    <div className="w-full bg-dark-200 rounded-full h-2">
-      <div
-        className={`${color} h-2 rounded-full transition-all duration-300`}
+    <div className={clsx('h-2 bg-gray-200 dark:bg-dark-200 rounded-full overflow-hidden', className)}>
+      <div 
+        className={clsx(
+          'h-full transition-all duration-300',
+          isComplete ? 'bg-green-500' : percentage >= 50 ? 'bg-yellow-500' : 'bg-primary-500'
+        )}
         style={{ width: `${percentage}%` }}
       />
     </div>
   )
 }
 
-function formatQuantity(quantity) {
-  const ITEMS_PER_SET = 64
-  const ITEMS_PER_BOX = 64 * 54
-
-  if (quantity >= ITEMS_PER_BOX) {
-    const boxes = Math.floor(quantity / ITEMS_PER_BOX)
-    const remaining = quantity % ITEMS_PER_BOX
-    const sets = Math.floor(remaining / ITEMS_PER_SET)
-    const items = remaining % ITEMS_PER_SET
-    
-    let result = `${boxes}상자`
-    if (sets > 0) result += ` ${sets}세트`
-    if (items > 0) result += ` ${items}개`
-    return result
-  } else if (quantity >= ITEMS_PER_SET) {
-    const sets = Math.floor(quantity / ITEMS_PER_SET)
-    const items = quantity % ITEMS_PER_SET
-    return items > 0 ? `${sets}세트 ${items}개` : `${sets}세트`
+// 수량 포맷팅 (상자, 세트, 개)
+const formatQuantity = (qty, boxSize = 0, setSize = 0) => {
+  if (!boxSize && !setSize) return `${qty}개`
+  
+  const parts = []
+  let remaining = qty
+  
+  if (boxSize > 0) {
+    const boxes = Math.floor(remaining / boxSize)
+    if (boxes > 0) {
+      parts.push(`${boxes}상자`)
+      remaining = remaining % boxSize
+    }
   }
-  return `${quantity}개`
+  
+  if (setSize > 0) {
+    const sets = Math.floor(remaining / setSize)
+    if (sets > 0) {
+      parts.push(`${sets}세트`)
+      remaining = remaining % setSize
+    }
+  }
+  
+  if (remaining > 0 || parts.length === 0) {
+    parts.push(`${remaining}개`)
+  }
+  
+  return parts.join(' ')
 }
 
-// 상수 정의
-const ITEMS_PER_SET = 64
-const ITEMS_PER_BOX = 64 * 54 // 3456
-
-// 단위별 수량을 총 개수로 변환
-function convertToTotal(boxes, sets, items) {
-  return (boxes * ITEMS_PER_BOX) + (sets * ITEMS_PER_SET) + items
+// 태그 색상 매핑
+const getTagColor = (color) => {
+  const colors = {
+    red: { bg: 'bg-red-500/20 dark:bg-red-500/20', text: 'text-red-400', dot: 'bg-red-500' },
+    orange: { bg: 'bg-orange-500/20 dark:bg-orange-500/20', text: 'text-orange-400', dot: 'bg-orange-500' },
+    yellow: { bg: 'bg-yellow-500/20 dark:bg-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-500' },
+    green: { bg: 'bg-green-500/20 dark:bg-green-500/20', text: 'text-green-400', dot: 'bg-green-500' },
+    blue: { bg: 'bg-blue-500/20 dark:bg-blue-500/20', text: 'text-blue-400', dot: 'bg-blue-500' },
+    purple: { bg: 'bg-purple-500/20 dark:bg-purple-500/20', text: 'text-purple-400', dot: 'bg-purple-500' },
+    pink: { bg: 'bg-pink-500/20 dark:bg-pink-500/20', text: 'text-pink-400', dot: 'bg-pink-500' },
+    default: { bg: 'bg-gray-500/20 dark:bg-gray-500/20', text: 'text-gray-400', dot: 'bg-gray-500' }
+  }
+  return colors[color] || colors.default
 }
 
-// 총 개수를 단위별로 분해
-function decomposeQuantity(total) {
-  const boxes = Math.floor(total / ITEMS_PER_BOX)
-  const remaining = total % ITEMS_PER_BOX
-  const sets = Math.floor(remaining / ITEMS_PER_SET)
-  const items = remaining % ITEMS_PER_SET
-  return { boxes, sets, items }
-}
-
-function ItemRow({ item, type, onQuantityChange, onQuantitySet, onEdit, onDelete, onWorkerToggle, itemTag }) {
+// 아이템 행 컴포넌트
+const ItemRow = ({ 
+  item, 
+  itemTag,
+  onQuantityChange, 
+  onQuantitySet,
+  onEdit, 
+  onDelete,
+  onWorkerToggle 
+}) => {
   const { user } = useAuth()
-  const [editMode, setEditMode] = useState(null) // null, 'delta', 'set'
-  
-  // 단위별 입력값
-  const [deltaUnits, setDeltaUnits] = useState({ boxes: 0, sets: 0, items: 0 })
-  const [setUnits, setSetUnits] = useState({ boxes: 0, sets: 0, items: 0 })
-  const [isAdding, setIsAdding] = useState(true) // 증감 모드에서 추가/차감
-  
   const [showPresets, setShowPresets] = useState(false)
-
-  // 프리셋 수량 정의
-  const PRESETS = [
-    { label: '+1', value: 1, color: 'text-green-400' },
-    { label: '+32 (반세트)', value: 32, color: 'text-green-400' },
-    { label: '+64 (1세트)', value: 64, color: 'text-green-400' },
-    { label: '+1728 (반상자)', value: 1728, color: 'text-green-400' },
-    { label: '+3456 (1상자)', value: 3456, color: 'text-green-400' },
-    { label: '-1', value: -1, color: 'text-red-400' },
-    { label: '-32 (반세트)', value: -32, color: 'text-red-400' },
-    { label: '-64 (1세트)', value: -64, color: 'text-red-400' },
-    { label: '-1728 (반상자)', value: -1728, color: 'text-red-400' },
-    { label: '-3456 (1상자)', value: -3456, color: 'text-red-400' },
-  ]
-
-  // 증감 모드 제출
-  const handleDeltaSubmit = (e) => {
-    e.preventDefault()
-    const total = convertToTotal(
-      parseInt(deltaUnits.boxes) || 0,
-      parseInt(deltaUnits.sets) || 0,
-      parseInt(deltaUnits.items) || 0
-    )
-    if (total > 0) {
-      onQuantityChange(item, isAdding ? total : -total)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editValue, setEditValue] = useState('')
+  
+  const isComplete = item.required > 0 && item.quantity >= item.required
+  const progress = item.required > 0 ? Math.min((item.quantity / item.required) * 100, 100) : 0
+  const tagColor = itemTag ? getTagColor(itemTag.color) : null
+  
+  // 프리셋 버튼들
+  const presetButtons = useMemo(() => {
+    const presets = []
+    
+    // 세트 기준
+    if (item.setSize > 0) {
+      presets.push({ label: '+1세트', delta: item.setSize })
+      presets.push({ label: '-1세트', delta: -item.setSize })
     }
-    setEditMode(null)
-    setDeltaUnits({ boxes: 0, sets: 0, items: 0 })
-  }
-
-  // 직접 설정 모드 제출
-  const handleSetSubmit = (e) => {
-    e.preventDefault()
-    const total = convertToTotal(
-      parseInt(setUnits.boxes) || 0,
-      parseInt(setUnits.sets) || 0,
-      parseInt(setUnits.items) || 0
-    )
-    if (total >= 0) {
-      onQuantitySet(item, total)
+    
+    // 상자 기준
+    if (item.boxSize > 0) {
+      presets.push({ label: '+1상자', delta: item.boxSize })
+      presets.push({ label: '-1상자', delta: -item.boxSize })
     }
-    setEditMode(null)
-    setSetUnits({ boxes: 0, sets: 0, items: 0 })
+    
+    // 기본 프리셋
+    presets.push({ label: '+1', delta: 1 })
+    presets.push({ label: '+10', delta: 10 })
+    presets.push({ label: '-1', delta: -1 })
+    presets.push({ label: '-10', delta: -10 })
+    
+    return presets
+  }, [item.boxSize, item.setSize])
+
+  const handlePresetClick = (delta) => {
+    onQuantityChange(item, delta)
   }
 
-  // 직접 설정 모드 시작 시 현재 수량으로 초기화
-  const startSetMode = () => {
-    const decomposed = decomposeQuantity(item.quantity)
-    setSetUnits(decomposed)
-    setEditMode('set')
+  const handleEditSubmit = (e) => {
+    e.preventDefault()
+    const newQty = parseInt(editValue, 10)
+    if (!isNaN(newQty) && newQty >= 0) {
+      onQuantitySet(item, newQty)
+    }
+    setIsEditing(false)
   }
 
-  // 증감 모드 시작
-  const startDeltaMode = (adding = true) => {
-    setIsAdding(adding)
-    setDeltaUnits({ boxes: 0, sets: 0, items: 0 })
-    setEditMode('delta')
+  const handleStartEdit = () => {
+    setEditValue(item.quantity.toString())
+    setIsEditing(true)
   }
-
-  const handlePresetClick = (value) => {
-    onQuantityChange(item, value)
-  }
-
-  const percentage = item.required > 0 
-    ? Math.min((item.quantity / item.required) * 100, 100) 
-    : 0
 
   return (
-    <div className="bg-dark-200 rounded-lg overflow-hidden hover:bg-dark-100/50 transition-colors group">
-      {/* 메인 카드 영역 */}
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-2">
+    <div className={clsx(
+      'bg-white dark:bg-dark-300 rounded-xl p-4 border-2 transition-all duration-200',
+      isComplete 
+        ? 'border-green-500/50 dark:border-green-500/30' 
+        : 'border-gray-200 dark:border-dark-100 hover:border-primary-500/50'
+    )}>
+      {/* 헤더: 이름 + 태그 + 액션 */}
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <DiscordText className="text-lg">{item.emoji || '📦'}</DiscordText>
-            <DiscordText className="font-medium">{item.name}</DiscordText>
-            {/* 아이템 타입 배지 */}
-            {(item.itemType === 'material' || item.itemType === 'normal' || !item.itemType) && (
-              <span className="text-xs px-2 py-0.5 bg-gray-500/20 text-gray-400 rounded whitespace-nowrap">재료</span>
-            )}
-            {item.itemType === 'intermediate' && (
-              <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded whitespace-nowrap">중간재료</span>
-            )}
-            {item.itemType === 'finished' && (
-              <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded whitespace-nowrap">완성품</span>
-            )}
-            {/* 태그 배지 */}
+            <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+              <DiscordText>{item.name}</DiscordText>
+            </h3>
             {itemTag && (
-              <span className={`text-xs px-2 py-0.5 rounded whitespace-nowrap flex items-center gap-1 ${getTagColor(itemTag.color).bg} ${getTagColor(itemTag.color).text}`}>
-                <span className={`w-2 h-2 rounded-full ${getTagColor(itemTag.color).dot}`} />
+              <span className={clsx(
+                'px-2 py-0.5 rounded-full text-xs font-medium',
+                tagColor.bg, tagColor.text
+              )}>
                 {itemTag.name}
               </span>
             )}
-            {/* 작업자 상태 */}
-            {item.worker?.userId ? (
-              <button
-                onClick={() => user && (user.id === item.worker.userId || user.isAdmin) && onWorkerToggle(item, 'stop')}
-                className={`text-xs px-2 py-0.5 rounded transition-colors whitespace-nowrap ${
-                  user && (user.id === item.worker.userId || user.isAdmin)
-                    ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 cursor-pointer'
-                    : 'bg-orange-500/20 text-orange-400 cursor-default'
-                }`}
-                title={user && (user.id === item.worker.userId || user.isAdmin) ? '클릭하여 작업 중단' : ''}
-              >
-                {item.worker.userName} 작업중
-              </button>
-            ) : user && (
-              <button
-                onClick={() => onWorkerToggle(item, 'start')}
-                className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded transition-colors opacity-0 group-hover:opacity-100 whitespace-nowrap"
-              >
-                작업 시작
-              </button>
+            {item.isWorkerTarget && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
+                작업 대상
+              </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            {/* 수정/삭제 버튼 */}
-            {user && (
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => onEdit(item)}
-                  className="p-1 hover:bg-dark-300 rounded text-blue-400"
-                  title="수정"
-                >
-                  <Edit size={14} />
-                </button>
-                <button
-                  onClick={() => onDelete(item)}
-                  className="p-1 hover:bg-dark-300 rounded text-red-400"
-                  title="삭제"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            )}
-            <span className={clsx(
-              'text-sm',
-              percentage >= 100 ? 'text-green-400' : '',
-              percentage >= 50 && percentage < 100 ? 'text-yellow-400' : '',
-              percentage < 50 ? 'text-red-400' : ''
-            )}>
-              {percentage.toFixed(0)}%
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-sm">
-            {/* 수량 클릭 시 직접 설정 모드 */}
-            {user && editMode === null ? (
-              <button
-                onClick={startSetMode}
-                className="hover:bg-dark-300 px-1.5 py-0.5 rounded transition-colors cursor-pointer group/qty"
-                title="클릭하여 수량 직접 설정"
-              >
-                <span className="text-gray-300 group-hover/qty:text-blue-400">{formatQuantity(item.quantity)}</span>
-                <span className="text-gray-500"> / </span>
-                <span className="text-gray-400">{formatQuantity(item.required)}</span>
-              </button>
-            ) : (
-              <>
-                <span className="text-gray-300">{formatQuantity(item.quantity)}</span>
-                <span className="text-gray-500"> / </span>
-                <span className="text-gray-400">{formatQuantity(item.required)}</span>
-              </>
-            )}
-          </div>
-
-          {/* 수량 조절 버튼 - editMode가 null일 때만 표시 */}
-          {user && editMode === null && (
-            <div className="flex items-center gap-1 relative">
-              {/* 빠른 조절 버튼 */}
-              <button
-                onClick={() => onQuantityChange(item, -1)}
-                className="p-1 hover:bg-dark-300 rounded text-red-400"
-                title="-1"
-              >
-                <Minus size={16} />
-              </button>
-              <button
-                onClick={() => onQuantityChange(item, 1)}
-                className="p-1 hover:bg-dark-300 rounded text-green-400"
-                title="+1"
-              >
-                <Plus size={16} />
-              </button>
-              
-              {/* 프리셋 버튼 */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowPresets(!showPresets)}
-                  className="px-2 py-1 hover:bg-dark-300 rounded text-gray-400 text-xs font-medium"
-                  title="프리셋 수량"
-                >
-                  ±세트
-                </button>
-                
-                {showPresets && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40" 
-                      onClick={() => setShowPresets(false)}
-                    />
-                    <div className="absolute right-0 bottom-full mb-1 bg-dark-300 border border-dark-100 rounded-lg shadow-lg z-50 p-3 w-[280px]">
-                      {/* 추가 버튼 그리드 */}
-                      <div className="text-xs text-gray-500 mb-1">추가</div>
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {PRESETS.filter(p => p.value > 0).map(preset => (
-                          <button
-                            key={preset.value}
-                            onClick={() => handlePresetClick(preset.value)}
-                            className="px-2 py-1.5 bg-green-600/20 hover:bg-green-600/40 text-green-400 rounded text-xs font-medium whitespace-nowrap"
-                          >
-                            {preset.label}
-                          </button>
-                        ))}
-                      </div>
-                      
-                      {/* 차감 버튼 그리드 */}
-                      <div className="text-xs text-gray-500 mb-1">차감</div>
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {PRESETS.filter(p => p.value < 0).map(preset => (
-                          <button
-                            key={preset.value}
-                            onClick={() => handlePresetClick(preset.value)}
-                            className="px-2 py-1.5 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded text-xs font-medium whitespace-nowrap"
-                          >
-                            {preset.label}
-                          </button>
-                        ))}
-                      </div>
-                      
-                      {/* 직접 입력 버튼 */}
-                      <div className="border-t border-dark-100 pt-2 flex gap-1">
-                        <button
-                          onClick={() => { startDeltaMode(true); setShowPresets(false); }}
-                          className="flex-1 px-2 py-1.5 bg-green-600/30 hover:bg-green-600/50 text-green-400 rounded text-xs font-medium"
-                        >
-                          ➕ 추가
-                        </button>
-                        <button
-                          onClick={() => { startDeltaMode(false); setShowPresets(false); }}
-                          className="flex-1 px-2 py-1.5 bg-red-600/30 hover:bg-red-600/50 text-red-400 rounded text-xs font-medium"
-                        >
-                          ➖ 차감
-                        </button>
-                        <button
-                          onClick={() => { startSetMode(); setShowPresets(false); }}
-                          className="flex-1 px-2 py-1.5 bg-blue-600/30 hover:bg-blue-600/50 text-blue-400 rounded text-xs font-medium"
-                        >
-                          📝 설정
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              {/* 직접 수량 설정 버튼 */}
-              <button
-                onClick={startSetMode}
-                className="px-1.5 py-0.5 hover:bg-blue-600/20 rounded text-blue-400 text-xs font-medium border border-blue-500/30"
-                title="수량 직접 설정"
-              >
-                설정
-              </button>
-            </div>
+          {item.type && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{item.type}</p>
           )}
         </div>
-
-        <ProgressBar current={item.quantity} target={item.required} />
+        
+        {user && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onWorkerToggle(item)}
+              className={clsx(
+                'p-1.5 rounded-lg transition-colors',
+                item.isWorkerTarget 
+                  ? 'bg-blue-500/20 text-blue-400' 
+                  : 'hover:bg-gray-100 dark:hover:bg-dark-200 text-gray-400'
+              )}
+              title="작업 대상 설정"
+            >
+              <Package size={16} />
+            </button>
+            <button
+              onClick={() => onEdit(item)}
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-200 rounded-lg text-gray-400 transition-colors"
+              title="편집"
+            >
+              <Edit3 size={16} />
+            </button>
+            <button
+              onClick={() => onDelete(item)}
+              className="p-1.5 hover:bg-red-500/20 rounded-lg text-gray-400 hover:text-red-400 transition-colors"
+              title="삭제"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        )}
       </div>
-
-      {/* 인라인 확장 편집 영역 */}
-      {editMode && (
-        <div className="border-t border-dark-100 bg-dark-300/50 p-4">
-          <form onSubmit={editMode === 'delta' ? handleDeltaSubmit : handleSetSubmit}>
-            {/* 모드 표시 */}
-            <div className="flex items-center justify-between mb-3">
-              <span className={clsx(
-                'text-sm font-medium',
-                editMode === 'set' ? 'text-blue-400' :
-                isAdding ? 'text-green-400' : 'text-red-400'
-              )}>
-                {editMode === 'set' ? '📝 수량 직접 설정' :
-                 isAdding ? '➕ 수량 추가' : '➖ 수량 차감'}
+      
+      {/* 수량 정보 */}
+      <div className="mb-3">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            {isComplete ? (
+              <CheckCircle2 size={16} className="text-green-500" />
+            ) : item.required > 0 ? (
+              <AlertCircle size={16} className="text-yellow-500" />
+            ) : null}
+            
+            {isEditing ? (
+              <form onSubmit={handleEditSubmit} className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  className="w-20 px-2 py-1 text-sm bg-gray-100 dark:bg-dark-200 border border-gray-300 dark:border-dark-100 rounded focus:outline-none focus:border-primary-500"
+                  autoFocus
+                  min="0"
+                />
+                <button type="submit" className="px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700">
+                  확인
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setIsEditing(false)}
+                  className="px-2 py-1 text-xs bg-gray-200 dark:bg-dark-200 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-dark-100"
+                >
+                  취소
+                </button>
+              </form>
+            ) : (
+              <button 
+                onClick={handleStartEdit}
+                className="font-bold text-lg text-gray-900 dark:text-white hover:text-primary-500 transition-colors"
+                title="클릭하여 직접 입력"
+              >
+                {formatQuantity(item.quantity, item.boxSize, item.setSize)}
+              </button>
+            )}
+            
+            {item.required > 0 && !isEditing && (
+              <span className="text-gray-500 dark:text-gray-400">
+                / {formatQuantity(item.required, item.boxSize, item.setSize)}
               </span>
-              {editMode === 'delta' && (
+            )}
+          </div>
+          
+          {item.required > 0 && (
+            <span className={clsx(
+              'text-sm font-medium',
+              isComplete ? 'text-green-500' : 'text-gray-500 dark:text-gray-400'
+            )}>
+              {progress.toFixed(0)}%
+            </span>
+          )}
+        </div>
+        
+        {item.required > 0 && (
+          <ProgressBar current={item.quantity} required={item.required} />
+        )}
+      </div>
+      
+      {/* 수량 조절 버튼들 */}
+      {user && (
+        <div className="flex flex-wrap gap-2">
+          {/* 빠른 버튼 */}
+          <button
+            onClick={() => onQuantityChange(item, -1)}
+            className="flex items-center justify-center w-8 h-8 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors"
+          >
+            <Minus size={16} />
+          </button>
+          <button
+            onClick={() => onQuantityChange(item, 1)}
+            className="flex items-center justify-center w-8 h-8 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors"
+          >
+            <Plus size={16} />
+          </button>
+          
+          {/* 프리셋 토글 */}
+          <button
+            onClick={() => setShowPresets(!showPresets)}
+            className={clsx(
+              'px-3 h-8 text-sm rounded-lg transition-colors',
+              showPresets 
+                ? 'bg-primary-600 text-white' 
+                : 'bg-gray-100 dark:bg-dark-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-100'
+            )}
+          >
+            더보기
+          </button>
+          
+          {/* 프리셋 버튼들 */}
+          {showPresets && (
+            <div className="flex flex-wrap gap-1 w-full mt-1">
+              {presetButtons.map((preset, idx) => (
                 <button
-                  type="button"
-                  onClick={() => setIsAdding(!isAdding)}
+                  key={idx}
+                  onClick={() => handlePresetClick(preset.delta)}
                   className={clsx(
-                    'text-xs px-2 py-1 rounded',
-                    isAdding ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30' : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
+                    'px-3 py-1.5 text-sm rounded-lg transition-colors',
+                    preset.delta > 0 
+                      ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
+                      : 'bg-red-500/20 hover:bg-red-500/30 text-red-400'
                   )}
                 >
-                  {isAdding ? '차감으로 전환' : '추가로 전환'}
+                  {preset.label}
                 </button>
-              )}
+              ))}
             </div>
-
-            {/* 입력 필드 */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">상자</label>
-                <input
-                  type="number"
-                  value={editMode === 'delta' ? (deltaUnits.boxes || '') : (setUnits.boxes || '')}
-                  onChange={(e) => editMode === 'delta' 
-                    ? setDeltaUnits({...deltaUnits, boxes: e.target.value})
-                    : setSetUnits({...setUnits, boxes: e.target.value})
-                  }
-                  placeholder="0"
-                  min="0"
-                  className="w-full px-3 py-2 bg-dark-400 border border-dark-100 rounded-lg text-center text-lg focus:border-primary-500 focus:outline-none"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">세트</label>
-                <input
-                  type="number"
-                  value={editMode === 'delta' ? (deltaUnits.sets || '') : (setUnits.sets || '')}
-                  onChange={(e) => editMode === 'delta'
-                    ? setDeltaUnits({...deltaUnits, sets: e.target.value})
-                    : setSetUnits({...setUnits, sets: e.target.value})
-                  }
-                  placeholder="0"
-                  min="0"
-                  className="w-full px-3 py-2 bg-dark-400 border border-dark-100 rounded-lg text-center text-lg focus:border-primary-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">개</label>
-                <input
-                  type="number"
-                  value={editMode === 'delta' ? (deltaUnits.items || '') : (setUnits.items || '')}
-                  onChange={(e) => editMode === 'delta'
-                    ? setDeltaUnits({...deltaUnits, items: e.target.value})
-                    : setSetUnits({...setUnits, items: e.target.value})
-                  }
-                  placeholder="0"
-                  min="0"
-                  className="w-full px-3 py-2 bg-dark-400 border border-dark-100 rounded-lg text-center text-lg focus:border-primary-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* 현재 → 변경 후 미리보기 */}
-            <div className="text-sm text-gray-400 mb-4 text-center">
-              {editMode === 'set' ? (
-                <>
-                  <span className="text-gray-500">{formatQuantity(item.quantity)}</span>
-                  <span className="text-blue-400 mx-2">→</span>
-                  <span className="text-white">{formatQuantity(convertToTotal(
-                    parseInt(setUnits.boxes) || 0,
-                    parseInt(setUnits.sets) || 0,
-                    parseInt(setUnits.items) || 0
-                  ))}</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-gray-500">{formatQuantity(item.quantity)}</span>
-                  <span className={isAdding ? 'text-green-400' : 'text-red-400'}> {isAdding ? '+' : '-'} </span>
-                  <span className="text-white">{formatQuantity(convertToTotal(
-                    parseInt(deltaUnits.boxes) || 0,
-                    parseInt(deltaUnits.sets) || 0,
-                    parseInt(deltaUnits.items) || 0
-                  ))}</span>
-                  <span className="text-gray-500 mx-2">=</span>
-                  <span className="text-white">{formatQuantity(Math.max(0, item.quantity + (isAdding ? 1 : -1) * convertToTotal(
-                    parseInt(deltaUnits.boxes) || 0,
-                    parseInt(deltaUnits.sets) || 0,
-                    parseInt(deltaUnits.items) || 0
-                  )))}</span>
-                </>
-              )}
-            </div>
-
-            {/* 버튼 */}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setEditMode(null)}
-                className="flex-1 px-4 py-2 bg-dark-100 hover:bg-dark-200 rounded-lg transition-colors"
-              >
-                취소
-              </button>
-              <button
-                type="submit"
-                className={clsx(
-                  'flex-1 px-4 py-2 rounded-lg transition-colors font-medium',
-                  editMode === 'set' ? 'bg-blue-600 hover:bg-blue-700' :
-                  isAdding ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
-                )}
-              >
-                {editMode === 'set' ? '설정' : isAdding ? '추가' : '차감'}
-              </button>
-            </div>
-          </form>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-function Inventory() {
-  const { category } = useParams()
+// 카테고리 섹션 컴포넌트 (모던 익스팬더)
+const CategorySection = ({ 
+  category, 
+  emoji,
+  items, 
+  isExpanded, 
+  onToggle,
+  itemTag,
+  getItemTagInfo,
+  onQuantityChange,
+  onQuantitySet,
+  onEdit,
+  onDelete,
+  onWorkerToggle,
+  onReset,
+  user
+}) => {
+  // 카테고리 통계 계산
+  const stats = useMemo(() => {
+    const total = items.length
+    const completed = items.filter(item => item.required > 0 && item.quantity >= item.required).length
+    const totalProgress = items.reduce((acc, item) => {
+      if (item.required > 0) {
+        return acc + Math.min((item.quantity / item.required) * 100, 100)
+      }
+      return acc + 100
+    }, 0)
+    const avgProgress = total > 0 ? totalProgress / total : 0
+    
+    return { total, completed, avgProgress }
+  }, [items])
+
+  return (
+    <div className={clsx(
+      'rounded-2xl border-2 overflow-hidden transition-all duration-300',
+      isExpanded 
+        ? 'border-primary-500/50 dark:border-primary-500/30 shadow-lg shadow-primary-500/10' 
+        : 'border-gray-200 dark:border-dark-100 hover:border-gray-300 dark:hover:border-dark-50'
+    )}>
+      {/* 카테고리 헤더 - 클릭 가능 */}
+      <button
+        onClick={onToggle}
+        className={clsx(
+          'w-full px-6 py-5 flex items-center justify-between transition-colors',
+          isExpanded 
+            ? 'bg-primary-500/10 dark:bg-primary-500/10' 
+            : 'bg-gray-50 dark:bg-dark-300 hover:bg-gray-100 dark:hover:bg-dark-200'
+        )}
+      >
+        <div className="flex items-center gap-4">
+          {/* 이모지 */}
+          <span className="text-3xl">
+            {emoji ? <DiscordText>{emoji}</DiscordText> : ''}
+          </span>
+          
+          {/* 카테고리명 */}
+          <div className="text-left">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              <DiscordText>{category}</DiscordText>
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              {stats.completed}/{stats.total} 완료  평균 {stats.avgProgress.toFixed(0)}% 진행
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          {/* 미니 진행률 바 */}
+          <div className="hidden sm:block w-32">
+            <ProgressBar current={stats.avgProgress} required={100} />
+          </div>
+          
+          {/* 아이템 수 배지 */}
+          <span className={clsx(
+            'px-3 py-1 rounded-full text-sm font-semibold',
+            stats.completed === stats.total && stats.total > 0
+              ? 'bg-green-500/20 text-green-500'
+              : 'bg-gray-200 dark:bg-dark-200 text-gray-600 dark:text-gray-300'
+          )}>
+            {stats.total}개
+          </span>
+          
+          {/* 화살표 */}
+          <div className={clsx(
+            'transition-transform duration-300',
+            isExpanded ? 'rotate-180' : ''
+          )}>
+            <ChevronDown size={24} className="text-gray-400" />
+          </div>
+        </div>
+      </button>
+      
+      {/* 아이템 목록 - 애니메이션 적용 */}
+      <div className={clsx(
+        'transition-all duration-300 ease-in-out overflow-hidden',
+        isExpanded ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
+      )}>
+        <div className="p-4 bg-white dark:bg-dark-400">
+          {/* 카테고리 액션 버튼 */}
+          {user && (
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={(e) => { e.stopPropagation(); onReset(category); }}
+                className="flex items-center gap-2 px-3 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg transition-colors text-sm"
+              >
+                <RotateCcw size={16} />
+                이 카테고리 초기화
+              </button>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {items.map((item) => (
+              <ItemRow
+                key={`${item.category}-${item.name}`}
+                item={item}
+                itemTag={getItemTagInfo(item.name)}
+                onQuantityChange={onQuantityChange}
+                onQuantitySet={onQuantitySet}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onWorkerToggle={onWorkerToggle}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 메인 인벤토리 컴포넌트
+const Inventory = () => {
   const { user } = useAuth()
   const queryClient = useQueryClient()
+  
+  // 상태
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortBy, setSortBy] = useState('default') // 'default', 'name', 'type', 'tag', 'quantity', 'progress'
-  const [filterTag, setFilterTag] = useState('') // 태그 필터링
-  
-  // 되돌리기 기능
-  const [undoStack, setUndoStack] = useState([]) // { item, prevValue, newValue, type: 'delta' | 'set' }
+  const [sortBy, setSortBy] = useState('default')
+  const [filterTag, setFilterTag] = useState('')
+  const [expandedCategories, setExpandedCategories] = useState({})
+  const [undoStack, setUndoStack] = useState([])
   const [showUndo, setShowUndo] = useState(false)
-  
-  // 되돌리기 토스트 타이머
-  useEffect(() => {
-    if (undoStack.length > 0) {
-      setShowUndo(true)
-      const timer = setTimeout(() => {
-        setShowUndo(false)
-        setUndoStack([])
-      }, 5000) // 5초 후 사라짐
-      return () => clearTimeout(timer)
-    }
-  }, [undoStack])
   
   // 모달 상태
   const [itemModalOpen, setItemModalOpen] = useState(false)
@@ -538,220 +469,58 @@ function Inventory() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deletingItem, setDeletingItem] = useState(null)
   const [resetModalOpen, setResetModalOpen] = useState(false)
-
-  // 카테고리 목록 조회
+  const [resetCategory, setResetCategory] = useState(null)
+  
+  // 데이터 쿼리
   const { data: categories = [] } = useQuery({
     queryKey: ['items', 'inventory', 'categories'],
-    queryFn: () => api.get('/items/inventory/categories').then(res => res.data),
+    queryFn: async () => {
+      const res = await api.get('/items/categories?type=inventory')
+      return res.data
+    }
   })
-
-  // 선택된 카테고리의 아이템 조회
-  const { data: items = [], isLoading } = useQuery({
-    queryKey: ['items', 'inventory', category],
-    queryFn: () => api.get(`/items/inventory${category ? `?category=${category}` : ''}`).then(res => res.data),
-    enabled: true,
+  
+  const { data: allItems = [], isLoading } = useQuery({
+    queryKey: ['items', 'inventory', 'all'],
+    queryFn: async () => {
+      const res = await api.get('/items?type=inventory')
+      return res.data
+    }
   })
-
-  // 태그 데이터 조회 (카테고리 선택 시)
+  
   const { data: tags = [] } = useQuery({
-    queryKey: ['tags', 'inventory', category],
-    queryFn: () => api.get(`/tags/inventory/${encodeURIComponent(category)}`).then(res => res.data),
-    enabled: !!category,
-  })
-
-  // 수량 변경 뮤테이션 (Optimistic Update)
-  const quantityMutation = useMutation({
-    mutationFn: ({ item, delta }) => 
-      api.patch(`/items/${item.type}/${item.category}/${item.name}/quantity`, { delta }),
-    onMutate: async ({ item, delta }) => {
-      // 진행 중인 쿼리 취소
-      await queryClient.cancelQueries({ queryKey: ['items', 'inventory', category] })
-      
-      // 이전 데이터 스냅샷
-      const previousItems = queryClient.getQueryData(['items', 'inventory', category])
-      
-      // 낙관적 업데이트 - 즉시 UI 반영
-      queryClient.setQueryData(['items', 'inventory', category], (old) => {
-        if (!old) return old
-        return old.map(i => 
-          i.name === item.name && i.category === item.category
-            ? { ...i, quantity: Math.max(0, i.quantity + delta) }
-            : i
-        )
-      })
-      
-      return { previousItems }
-    },
-    onError: (err, variables, context) => {
-      // 에러 시 롤백
-      if (context?.previousItems) {
-        queryClient.setQueryData(['items', 'inventory', category], context.previousItems)
-      }
-    },
-    onSettled: () => {
-      // 완료 후 리페치 (서버와 동기화)
-      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
-    },
-  })
-
-  // 수량 직접 설정 뮤테이션 (Optimistic Update)
-  const quantitySetMutation = useMutation({
-    mutationFn: ({ item, value }) => 
-      api.patch(`/items/${item.type}/${item.category}/${item.name}/quantity/set`, { value }),
-    onMutate: async ({ item, value }) => {
-      await queryClient.cancelQueries({ queryKey: ['items', 'inventory', category] })
-      const previousItems = queryClient.getQueryData(['items', 'inventory', category])
-      
-      queryClient.setQueryData(['items', 'inventory', category], (old) => {
-        if (!old) return old
-        return old.map(i => 
-          i.name === item.name && i.category === item.category
-            ? { ...i, quantity: Math.max(0, value) }
-            : i
-        )
-      })
-      
-      return { previousItems }
-    },
-    onError: (err, variables, context) => {
-      if (context?.previousItems) {
-        queryClient.setQueryData(['items', 'inventory', category], context.previousItems)
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
-    },
-  })
-
-  // 삭제 뮤테이션
-  const deleteMutation = useMutation({
-    mutationFn: (item) => api.delete(`/items/inventory/${item.category}/${item.name}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] })
-      setDeleteModalOpen(false)
-      setDeletingItem(null)
-    },
-  })
-
-  // 초기화 뮤테이션
-  const resetMutation = useMutation({
-    mutationFn: (cat) => api.post(`/items/inventory/${cat}/reset`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] })
-      setResetModalOpen(false)
-    },
-  })
-
-  // 작업자 토글 뮤테이션
-  const workerMutation = useMutation({
-    mutationFn: ({ item, action }) => 
-      api.patch(`/items/${item.type}/${item.category}/${item.name}/worker`, { action }),
-    onMutate: async ({ item, action }) => {
-      await queryClient.cancelQueries({ queryKey: ['items', 'inventory', category] })
-      const previousItems = queryClient.getQueryData(['items', 'inventory', category])
-      
-      queryClient.setQueryData(['items', 'inventory', category], (old) => {
-        if (!old) return old
-        return old.map(i => 
-          i.name === item.name && i.category === item.category
-            ? { 
-                ...i, 
-                worker: action === 'start' 
-                  ? { userId: user.id, userName: user.username, startTime: new Date() }
-                  : null 
-              }
-            : i
-        )
-      })
-      
-      return { previousItems }
-    },
-    onError: (err, variables, context) => {
-      if (context?.previousItems) {
-        queryClient.setQueryData(['items', 'inventory', category], context.previousItems)
-      }
-      // 에러 메시지 표시
-      const errorMessage = err.response?.data?.error || '작업 상태 변경 실패'
-      alert(errorMessage)
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
-    },
-  })
-
-  const handleQuantityChange = (item, delta) => {
-    // 되돌리기용 저장
-    setUndoStack([{ 
-      item, 
-      prevValue: item.quantity, 
-      delta: -delta, // 반대로
-      type: 'delta',
-      description: `${item.name}: ${delta > 0 ? '+' : ''}${delta}`
-    }])
-    quantityMutation.mutate({ item, delta })
-  }
-
-  const handleQuantitySet = (item, value) => {
-    // 되돌리기용 저장
-    setUndoStack([{ 
-      item, 
-      prevValue: item.quantity, 
-      newValue: value,
-      type: 'set',
-      description: `${item.name}: ${item.quantity} → ${value}`
-    }])
-    quantitySetMutation.mutate({ item, value })
-  }
-
-  // 되돌리기 실행
-  const handleUndo = useCallback(() => {
-    if (undoStack.length === 0) return
-    
-    const lastAction = undoStack[0]
-    if (lastAction.type === 'delta') {
-      // 델타 되돌리기: 반대 값으로 변경
-      quantityMutation.mutate({ item: lastAction.item, delta: lastAction.delta })
-    } else if (lastAction.type === 'set') {
-      // 설정 되돌리기: 이전 값으로 복원
-      quantitySetMutation.mutate({ item: lastAction.item, value: lastAction.prevValue })
+    queryKey: ['tags', 'inventory'],
+    queryFn: async () => {
+      const res = await api.get('/tags?type=inventory')
+      return res.data
     }
-    
-    setUndoStack([])
-    setShowUndo(false)
-  }, [undoStack, quantityMutation, quantitySetMutation])
-
-  const handleWorkerToggle = (item, action) => {
-    workerMutation.mutate({ item, action })
-  }
-
-  const handleAddItem = () => {
-    setEditingItem(null)
-    setItemModalOpen(true)
-  }
-
-  const handleEditItem = (item) => {
-    setEditingItem(item)
-    setItemModalOpen(true)
-  }
-
-  const handleDeleteItem = (item) => {
-    setDeletingItem(item)
-    setDeleteModalOpen(true)
-  }
-
-  const handleConfirmDelete = () => {
-    if (deletingItem) {
-      deleteMutation.mutate(deletingItem)
+  })
+  
+  const { data: categoryEmojis = {} } = useQuery({
+    queryKey: ['settings', 'category-emojis'],
+    queryFn: async () => {
+      const res = await api.get('/settings/category-emojis')
+      return res.data.inventory || {}
     }
-  }
-
-  const handleReset = () => {
-    if (category) {
-      resetMutation.mutate(category)
+  })
+  
+  // 초기 확장 상태 설정 (첫 번째 카테고리만)
+  useEffect(() => {
+    if (categories.length > 0 && Object.keys(expandedCategories).length === 0) {
+      setExpandedCategories({ [categories[0]]: true })
     }
+  }, [categories])
+  
+  // 태그 정보 찾기
+  const getItemTag = (itemName) => {
+    for (const tag of tags) {
+      if (tag.items?.includes(itemName)) {
+        return tag.name
+      }
+    }
+    return null
   }
-
-  // 아이템의 태그 찾기 (전체 태그 객체 반환)
+  
   const getItemTagInfo = (itemName) => {
     for (const tag of tags) {
       if (tag.items?.includes(itemName)) {
@@ -761,49 +530,223 @@ function Inventory() {
     return null
   }
   
-  // 아이템의 태그 이름만 반환 (정렬용)
-  const getItemTag = (itemName) => {
-    const tag = getItemTagInfo(itemName)
-    return tag?.name || null
+  // 카테고리 토글
+  const toggleCategory = (category) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }))
   }
-
+  
+  // 뮤테이션
+  const quantityMutation = useMutation({
+    mutationFn: async ({ item, delta }) => {
+      const res = await api.patch(`/items/${item._id}/quantity`, { delta })
+      return res.data
+    },
+    onMutate: async ({ item, delta }) => {
+      await queryClient.cancelQueries({ queryKey: ['items', 'inventory'] })
+      
+      const previousItems = queryClient.getQueryData(['items', 'inventory', 'all'])
+      
+      queryClient.setQueryData(['items', 'inventory', 'all'], old => 
+        old?.map(i => i._id === item._id 
+          ? { ...i, quantity: Math.max(0, i.quantity + delta) }
+          : i
+        )
+      )
+      
+      // Undo 스택에 추가
+      setUndoStack(prev => [{
+        type: 'quantity',
+        item,
+        oldQuantity: item.quantity,
+        description: `${item.name} 수량 변경 (${delta > 0 ? '+' : ''}${delta})`
+      }, ...prev.slice(0, 4)])
+      setShowUndo(true)
+      
+      return { previousItems }
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['items', 'inventory', 'all'], context.previousItems)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
+    }
+  })
+  
+  const quantitySetMutation = useMutation({
+    mutationFn: async ({ item, quantity }) => {
+      const res = await api.patch(`/items/${item._id}/quantity`, { quantity })
+      return res.data
+    },
+    onMutate: async ({ item, quantity }) => {
+      await queryClient.cancelQueries({ queryKey: ['items', 'inventory'] })
+      
+      const previousItems = queryClient.getQueryData(['items', 'inventory', 'all'])
+      
+      queryClient.setQueryData(['items', 'inventory', 'all'], old => 
+        old?.map(i => i._id === item._id 
+          ? { ...i, quantity }
+          : i
+        )
+      )
+      
+      setUndoStack(prev => [{
+        type: 'quantity',
+        item,
+        oldQuantity: item.quantity,
+        description: `${item.name} 수량 설정 (${item.quantity}  ${quantity})`
+      }, ...prev.slice(0, 4)])
+      setShowUndo(true)
+      
+      return { previousItems }
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['items', 'inventory', 'all'], context.previousItems)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
+    }
+  })
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (item) => {
+      await api.delete(`/items/${item._id}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
+      setDeleteModalOpen(false)
+      setDeletingItem(null)
+    }
+  })
+  
+  const resetMutation = useMutation({
+    mutationFn: async (category) => {
+      await api.post('/items/reset', { type: 'inventory', category })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
+      setResetModalOpen(false)
+      setResetCategory(null)
+    }
+  })
+  
+  const workerMutation = useMutation({
+    mutationFn: async (item) => {
+      const res = await api.patch(`/items/${item._id}`, { isWorkerTarget: !item.isWorkerTarget })
+      return res.data
+    },
+    onMutate: async (item) => {
+      await queryClient.cancelQueries({ queryKey: ['items', 'inventory'] })
+      
+      queryClient.setQueryData(['items', 'inventory', 'all'], old => 
+        old?.map(i => i._id === item._id 
+          ? { ...i, isWorkerTarget: !i.isWorkerTarget }
+          : i
+        )
+      )
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
+    }
+  })
+  
+  // 핸들러들
+  const handleQuantityChange = (item, delta) => {
+    quantityMutation.mutate({ item, delta })
+  }
+  
+  const handleQuantitySet = (item, quantity) => {
+    quantitySetMutation.mutate({ item, quantity })
+  }
+  
+  const handleAddItem = () => {
+    setEditingItem(null)
+    setItemModalOpen(true)
+  }
+  
+  const handleEditItem = (item) => {
+    setEditingItem(item)
+    setItemModalOpen(true)
+  }
+  
+  const handleDeleteItem = (item) => {
+    setDeletingItem(item)
+    setDeleteModalOpen(true)
+  }
+  
+  const handleConfirmDelete = () => {
+    if (deletingItem) {
+      deleteMutation.mutate(deletingItem)
+    }
+  }
+  
+  const handleWorkerToggle = (item) => {
+    workerMutation.mutate(item)
+  }
+  
+  const handleResetCategory = (category) => {
+    setResetCategory(category)
+    setResetModalOpen(true)
+  }
+  
+  const handleReset = () => {
+    if (resetCategory) {
+      resetMutation.mutate(resetCategory)
+    }
+  }
+  
+  const handleUndo = () => {
+    if (undoStack.length === 0) return
+    
+    const lastAction = undoStack[0]
+    if (lastAction.type === 'quantity') {
+      quantitySetMutation.mutate({ 
+        item: lastAction.item, 
+        quantity: lastAction.oldQuantity 
+      })
+    }
+    
+    setUndoStack(prev => prev.slice(1))
+    if (undoStack.length <= 1) {
+      setShowUndo(false)
+    }
+  }
+  
+  // Undo 타이머
+  useEffect(() => {
+    if (showUndo) {
+      const timer = setTimeout(() => {
+        setShowUndo(false)
+        setUndoStack([])
+      }, 10000)
+      return () => clearTimeout(timer)
+    }
+  }, [showUndo, undoStack])
+  
   // 정렬 함수
   const sortItems = (itemList) => {
     const sorted = [...itemList]
     
-    // 아이템 타입 순서: 재료 -> 중간재료 -> 완성품
-    const typeOrder = { 'material': 0, 'normal': 0, 'intermediate': 1, 'finished': 2 }
-    const getTypeOrder = (item) => typeOrder[item.itemType] ?? 0
-    
     switch (sortBy) {
       case 'name':
-        // 가나다순 (한글 우선)
         sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
         break
+      case 'type':
+        sorted.sort((a, b) => (a.type || '').localeCompare(b.type || '', 'ko'))
+        break
       case 'tag':
-        // 태그순 (태그 없는 것은 마지막)
         sorted.sort((a, b) => {
           const tagA = getItemTag(a.name) || 'zzz'
           const tagB = getItemTag(b.name) || 'zzz'
-          if (tagA === tagB) return a.name.localeCompare(b.name, 'ko')
           return tagA.localeCompare(tagB, 'ko')
         })
         break
-      case 'type':
-        // 타입순 (재료 -> 중간재료 -> 완성품)
-        sorted.sort((a, b) => {
-          const typeA = getTypeOrder(a)
-          const typeB = getTypeOrder(b)
-          if (typeA !== typeB) return typeA - typeB
-          return a.name.localeCompare(b.name, 'ko')
-        })
-        break
       case 'quantity':
-        // 수량 많은 순
         sorted.sort((a, b) => b.quantity - a.quantity)
         break
       case 'progress':
-        // 진행률 낮은 순 (달성 필요한 것 먼저)
         sorted.sort((a, b) => {
           const progressA = a.required > 0 ? a.quantity / a.required : 1
           const progressB = b.required > 0 ? b.quantity / b.required : 1
@@ -811,272 +754,146 @@ function Inventory() {
         })
         break
       default:
-        // 기본 순서 (order 필드)
         sorted.sort((a, b) => (a.order || 0) - (b.order || 0))
     }
     
     return sorted
   }
-
-  // 검색 + 태그 필터링
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesTag = !filterTag || getItemTag(item.name) === filterTag
-    return matchesSearch && matchesTag
-  })
-
-  // 태그별 그룹핑 함수
-  const groupByTag = (itemList) => {
+  
+  // 필터링된 아이템
+  const filteredItems = useMemo(() => {
+    return allItems.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesTag = !filterTag || getItemTag(item.name) === filterTag
+      return matchesSearch && matchesTag
+    })
+  }, [allItems, searchQuery, filterTag, tags])
+  
+  // 카테고리별 그룹핑 + 정렬
+  const groupedItems = useMemo(() => {
     const grouped = {}
-    const noTag = []
     
-    for (const item of itemList) {
-      const tag = getItemTagInfo(item.name)
-      if (tag) {
-        if (!grouped[tag.name]) {
-          grouped[tag.name] = { tag, items: [] }
-        }
-        grouped[tag.name].items.push(item)
-      } else {
-        noTag.push(item)
+    for (const item of filteredItems) {
+      if (!grouped[item.category]) {
+        grouped[item.category] = []
       }
+      grouped[item.category].push(item)
     }
     
-    // 태그별로 정렬된 결과 반환
-    const result = Object.values(grouped).sort((a, b) => 
-      a.tag.name.localeCompare(b.tag.name, 'ko')
-    )
-    
-    if (noTag.length > 0) {
-      result.push({ tag: { name: '태그 없음', color: 'default' }, items: noTag })
+    // 각 카테고리 내 아이템 정렬
+    for (const cat of Object.keys(grouped)) {
+      grouped[cat] = sortItems(grouped[cat])
     }
     
-    return result
-  }
-
-  // 카테고리별 그룹핑 (카테고리 미선택 시) + 정렬 적용
-  const groupedItems = category 
-    ? { [category]: sortItems(filteredItems) }
-    : Object.entries(
-        filteredItems.reduce((acc, item) => {
-          if (!acc[item.category]) acc[item.category] = []
-          acc[item.category].push(item)
-          return acc
-        }, {})
-      ).reduce((acc, [cat, catItems]) => {
-        acc[cat] = sortItems(catItems)
-        return acc
-      }, {})
-
-  // 태그순 정렬일 때 태그별 그룹
-  const tagGroupedItems = sortBy === 'tag' && category ? groupByTag(filteredItems) : null
+    return grouped
+  }, [filteredItems, sortBy])
+  
+  // 카테고리 정렬 (첫 번째 아이템의 order 기준)
+  const sortedCategories = useMemo(() => {
+    return Object.keys(groupedItems).sort((a, b) => {
+      const orderA = groupedItems[a][0]?.order || 0
+      const orderB = groupedItems[b][0]?.order || 0
+      return orderA - orderB
+    })
+  }, [groupedItems])
 
   return (
-    <div className="flex gap-6">
-      {/* 왼쪽 사이드바 - 카테고리 목록 */}
-      <aside className="w-64 shrink-0 hidden lg:block">
-        <div className="bg-dark-300 rounded-xl p-4 border border-dark-100 sticky top-20">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <FolderOpen size={20} />
-            카테고리
-          </h2>
-          <nav className="space-y-1">
-            <NavLink
-              to="/inventory"
-              end
-              className={({ isActive }) => clsx(
-                'block px-3 py-2 rounded-lg transition-colors',
-                isActive ? 'bg-primary-600 text-white' : 'hover:bg-dark-200 text-gray-300'
-              )}
+    <div className="max-w-6xl mx-auto">
+      {/* 헤더 */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">재고 관리</h1>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          {/* 추가 버튼 */}
+          {user && (
+            <button
+              onClick={handleAddItem}
+              className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl transition-colors font-medium"
             >
-              전체 보기
-            </NavLink>
-            {categories.map((cat) => (
-              <NavLink
-                key={cat}
-                to={`/inventory/${encodeURIComponent(cat)}`}
-                className={({ isActive }) => clsx(
-                  'flex items-center justify-between px-3 py-2 rounded-lg transition-colors',
-                  isActive ? 'bg-primary-600 text-white' : 'hover:bg-dark-200 text-gray-300'
-                )}
-              >
-                <DiscordText>{cat}</DiscordText>
-                <ChevronRight size={16} />
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-      </aside>
-
-      {/* 메인 콘텐츠 */}
-      <div className="flex-1 min-w-0">
-        {/* 헤더 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-bold">
-            재고 {category && <>- <DiscordText>{category}</DiscordText></>}
-          </h1>
+              <Plus size={20} />
+              <span>아이템 추가</span>
+            </button>
+          )}
           
-          <div className="flex items-center gap-3">
-            {/* 초기화 버튼 - 카테고리 선택 시에만 */}
-            {user && category && (
-              <button
-                onClick={() => setResetModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 rounded-lg transition-colors"
-                title="수량 초기화"
-              >
-                <RotateCcw size={18} />
-                <span className="hidden sm:inline">초기화</span>
-              </button>
-            )}
-            
-            {/* 추가 버튼 */}
-            {user && (
-              <button
-                onClick={handleAddItem}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-              >
-                <Plus size={18} />
-                <span className="hidden sm:inline">아이템 추가</span>
-              </button>
-            )}
-            
-            {/* 검색 */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder="아이템 검색..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-dark-300 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
-              />
-            </div>
-            
-            {/* 정렬 */}
+          {/* 검색 */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="아이템 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-64 pl-10 pr-4 py-2.5 bg-white dark:bg-dark-300 border border-gray-200 dark:border-dark-100 rounded-xl focus:outline-none focus:border-primary-500 text-gray-900 dark:text-white"
+            />
+          </div>
+          
+          {/* 정렬 */}
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="appearance-none pl-9 pr-8 py-2.5 bg-white dark:bg-dark-300 border border-gray-200 dark:border-dark-100 rounded-xl focus:outline-none focus:border-primary-500 cursor-pointer text-gray-900 dark:text-white"
+            >
+              <option value="default">기본순</option>
+              <option value="name">가나다순</option>
+              <option value="type">타입순</option>
+              <option value="tag">태그순</option>
+              <option value="quantity">수량순</option>
+              <option value="progress">진행률순</option>
+            </select>
+            <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+          </div>
+
+          {/* 태그 필터 */}
+          {tags.length > 0 && (
             <div className="relative">
               <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="appearance-none pl-9 pr-4 py-2 bg-dark-300 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 cursor-pointer"
+                value={filterTag}
+                onChange={(e) => setFilterTag(e.target.value)}
+                className="appearance-none pl-9 pr-8 py-2.5 bg-white dark:bg-dark-300 border border-gray-200 dark:border-dark-100 rounded-xl focus:outline-none focus:border-primary-500 cursor-pointer text-gray-900 dark:text-white"
               >
-                <option value="default">기본순</option>
-                <option value="name">가나다순</option>
-                <option value="type">타입순</option>
-                <option value="tag">태그순</option>
-                <option value="quantity">수량순</option>
-                <option value="progress">진행률순</option>
+                <option value="">모든 태그</option>
+                {tags.map((tag) => (
+                  <option key={tag.name} value={tag.name}>{tag.name}</option>
+                ))}
               </select>
-              <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
             </div>
-
-            {/* 태그 필터 */}
-            {category && tags.length > 0 && (
-              <div className="relative">
-                <select
-                  value={filterTag}
-                  onChange={(e) => setFilterTag(e.target.value)}
-                  className="appearance-none pl-9 pr-4 py-2 bg-dark-300 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 cursor-pointer"
-                >
-                  <option value="">모든 태그</option>
-                  {tags.map((tag) => (
-                    <option key={tag.name} value={tag.name}>{tag.name}</option>
-                  ))}
-                </select>
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-              </div>
-            )}
-          </div>
+          )}
         </div>
-
-        {/* 모바일 카테고리 선택 */}
-        <div className="lg:hidden mb-4">
-          <select
-            value={category || ''}
-            onChange={(e) => {
-              const val = e.target.value
-              window.location.href = val ? `/inventory/${encodeURIComponent(val)}` : '/inventory'
-            }}
-            className="w-full px-4 py-2 bg-dark-300 border border-dark-100 rounded-lg"
-          >
-            <option value="">전체 카테고리</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* 아이템 목록 */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
-          </div>
-        ) : tagGroupedItems ? (
-          /* 태그순 정렬 - 태그별 그룹 표시 */
-          <div className="space-y-6">
-            {tagGroupedItems.map(({ tag, items: tagItems }) => (
-              <div key={tag.name}>
-                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <span 
-                    className={clsx(
-                      'w-3 h-3 rounded-full',
-                      getTagColor(tag.color).dot
-                    )}
-                  />
-                  <span>{tag.name}</span>
-                  <span className="text-sm text-gray-400">({tagItems.length})</span>
-                </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {tagItems.map((item) => (
-                    <ItemRow
-                      key={`${item.category}-${item.name}`}
-                      item={item}
-                      itemTag={getItemTagInfo(item.name)}
-                      type="inventory"
-                      onQuantityChange={handleQuantityChange}
-                      onQuantitySet={handleQuantitySet}
-                      onEdit={handleEditItem}
-                      onDelete={handleDeleteItem}
-                      onWorkerToggle={handleWorkerToggle}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : Object.keys(groupedItems).length > 0 ? (
-          <div className="space-y-6">
-            {Object.entries(groupedItems).map(([cat, catItems]) => (
-              <div key={cat}>
-                {!category && (
-                  <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <DiscordText>{cat}</DiscordText>
-                    <span className="text-sm text-gray-400">({catItems.length})</span>
-                  </h2>
-                )}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {catItems.map((item) => (
-                    <ItemRow
-                      key={`${item.category}-${item.name}`}
-                      item={item}
-                      itemTag={getItemTagInfo(item.name)}
-                      type="inventory"
-                      onQuantityChange={handleQuantityChange}
-                      onQuantitySet={handleQuantitySet}
-                      onEdit={handleEditItem}
-                      onDelete={handleDeleteItem}
-                      onWorkerToggle={handleWorkerToggle}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 text-gray-400">
-            {searchQuery ? '검색 결과가 없습니다.' : '아이템이 없습니다.'}
-          </div>
-        )}
       </div>
+
+      {/* 카테고리 섹션들 */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500"></div>
+        </div>
+      ) : sortedCategories.length > 0 ? (
+        <div className="space-y-4">
+          {sortedCategories.map((cat) => (
+            <CategorySection
+              key={cat}
+              category={cat}
+              emoji={categoryEmojis[cat]}
+              items={groupedItems[cat]}
+              isExpanded={expandedCategories[cat] || false}
+              onToggle={() => toggleCategory(cat)}
+              getItemTagInfo={getItemTagInfo}
+              onQuantityChange={handleQuantityChange}
+              onQuantitySet={handleQuantitySet}
+              onEdit={handleEditItem}
+              onDelete={handleDeleteItem}
+              onWorkerToggle={handleWorkerToggle}
+              onReset={handleResetCategory}
+              user={user}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-20 text-gray-500 dark:text-gray-400">
+          {searchQuery || filterTag ? '검색 결과가 없습니다.' : '아이템이 없습니다.'}
+        </div>
+      )}
 
       {/* 모달들 */}
       <ItemModal
@@ -1099,30 +916,30 @@ function Inventory() {
         isOpen={resetModalOpen}
         onClose={() => setResetModalOpen(false)}
         onConfirm={handleReset}
-        categoryName={category}
-        itemCount={items.length}
+        categoryName={resetCategory}
+        itemCount={resetCategory ? groupedItems[resetCategory]?.length || 0 : 0}
         isPending={resetMutation.isPending}
       />
       
       {/* 되돌리기 토스트 */}
       {showUndo && undoStack.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
-          <div className="flex items-center gap-3 px-4 py-3 bg-dark-300 border border-dark-100 rounded-xl shadow-lg">
-            <span className="text-sm text-gray-300">
+          <div className="flex items-center gap-3 px-5 py-3.5 bg-white dark:bg-dark-300 border border-gray-200 dark:border-dark-100 rounded-xl shadow-xl">
+            <span className="text-sm text-gray-700 dark:text-gray-300">
               {undoStack[0].description}
             </span>
             <button
               onClick={handleUndo}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
             >
               <Undo2 size={14} />
               되돌리기
             </button>
             <button
               onClick={() => { setShowUndo(false); setUndoStack([]); }}
-              className="p-1 hover:bg-dark-200 rounded text-gray-400"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-dark-200 rounded text-gray-400"
             >
-              ✕
+              
             </button>
           </div>
         </div>
