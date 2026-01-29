@@ -110,11 +110,11 @@ function History() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-dark-100">
-              {data?.history?.length > 0 ? (
-                data.history.map(item => (
-                  <tr key={item._id} className="hover:bg-gray-50 dark:hover:bg-dark-200/50">
+              {data?.data?.length > 0 ? (
+                data.data.map((item, index) => (
+                  <tr key={item._id || index} className="hover:bg-gray-50 dark:hover:bg-dark-200/50">
                     <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                      {formatDate(item.createdAt)}
+                      {formatDate(item.timestamp)}
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-sm text-gray-900 dark:text-white">{getTypeLabel(item.type)}</span>
@@ -123,10 +123,10 @@ function History() {
                       {getActionBadge(item.action)}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{item.target || '-'}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{item.category} / {item.itemName}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">{item.username || '시스템'}</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{item.userName || '시스템'}</span>
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-sm text-gray-500 dark:text-gray-500 max-w-xs truncate block">
@@ -148,7 +148,7 @@ function History() {
       </div>
 
       {/* 페이지네이션 */}
-      {data?.totalPages > 1 && (
+      {data?.pagination?.totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -159,12 +159,12 @@ function History() {
           </button>
           
           <span className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
-            {page} / {data.totalPages}
+            {page} / {data.pagination.totalPages}
           </span>
           
           <button
-            onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-            disabled={page === data.totalPages}
+            onClick={() => setPage(p => Math.min(data.pagination.totalPages, p + 1))}
+            disabled={page === data.pagination.totalPages}
             className="p-2 rounded-lg bg-white dark:bg-dark-300 border border-gray-200 dark:border-dark-100 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronRight size={18} />
