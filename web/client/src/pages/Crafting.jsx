@@ -1,59 +1,80 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, NavLink } from 'react-router-dom'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { 
   Plus, 
   Minus, 
-  Edit, 
   Trash2,
   FolderOpen,
   ChevronRight,
   Search,
-  BookOpen,
-  RotateCcw,
-  Undo2,
-  ArrowUpDown,
-  Tag,
-  Filter
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Target,
+  Package,
+  Layers,
+  Star,
+  AlertCircle,
+  Settings
 } from 'lucide-react'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { DiscordText } from '../utils/discordEmoji'
-import { ItemModal, DeleteConfirmModal, ResetConfirmModal, RecipeModal } from '../components/ItemModals'
+import { CraftingPlanModal, DeleteConfirmModal } from '../components/ItemModals'
 import clsx from 'clsx'
 
-// 태그 색상 정의
-const TAG_COLORS = {
-  default: { bg: 'bg-gray-600', text: 'text-gray-300', dot: 'bg-gray-400' },
-  red: { bg: 'bg-red-600/20', text: 'text-red-400', dot: 'bg-red-500' },
-  orange: { bg: 'bg-orange-600/20', text: 'text-orange-400', dot: 'bg-orange-500' },
-  yellow: { bg: 'bg-yellow-600/20', text: 'text-yellow-400', dot: 'bg-yellow-500' },
-  green: { bg: 'bg-green-600/20', text: 'text-green-400', dot: 'bg-green-500' },
-  blue: { bg: 'bg-blue-600/20', text: 'text-blue-400', dot: 'bg-blue-500' },
-  purple: { bg: 'bg-purple-600/20', text: 'text-purple-400', dot: 'bg-purple-500' },
-  pink: { bg: 'bg-pink-600/20', text: 'text-pink-400', dot: 'bg-pink-500' },
+// 티어 설정
+const TIER_CONFIG = {
+  1: { 
+    name: '1차 재료', 
+    icon: Package, 
+    color: 'bg-blue-500', 
+    bgColor: 'bg-blue-500/10',
+    borderColor: 'border-blue-500/30',
+    textColor: 'text-blue-400'
+  },
+  2: { 
+    name: '2차 중간재', 
+    icon: Layers, 
+    color: 'bg-purple-500', 
+    bgColor: 'bg-purple-500/10',
+    borderColor: 'border-purple-500/30',
+    textColor: 'text-purple-400'
+  },
+  3: { 
+    name: '3차 완성품', 
+    icon: Star, 
+    color: 'bg-yellow-500', 
+    bgColor: 'bg-yellow-500/10',
+    borderColor: 'border-yellow-500/30',
+    textColor: 'text-yellow-400'
+  }
 }
 
-function getTagColor(color) {
-  return TAG_COLORS[color] || TAG_COLORS.default
-}
-
-function ProgressBar({ current, target }) {
+// 진행률 바 컴포넌트
+function ProgressBar({ current, target, size = 'md' }) {
   const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0
-  let color = 'bg-red-500'
-  if (percentage >= 100) color = 'bg-green-500'
-  else if (percentage >= 50) color = 'bg-yellow-500'
+  const isComplete = current >= target
+  
+  let barColor = 'bg-red-500'
+  if (isComplete) barColor = 'bg-green-500'
+  else if (percentage >= 75) barColor = 'bg-yellow-500'
+  else if (percentage >= 50) barColor = 'bg-orange-500'
+  
+  const heightClass = size === 'sm' ? 'h-1.5' : 'h-2'
   
   return (
-    <div className="w-full bg-dark-200 rounded-full h-2">
+    <div className={`w-full bg-dark-200 rounded-full ${heightClass}`}>
       <div
-        className={`${color} h-2 rounded-full transition-all duration-300`}
+        className={`${barColor} ${heightClass} rounded-full transition-all duration-300`}
         style={{ width: `${percentage}%` }}
       />
     </div>
   )
 }
 
+// 수량 포맷팅
 function formatQuantity(quantity) {
   const ITEMS_PER_SET = 64
   const ITEMS_PER_BOX = 64 * 54
@@ -76,1159 +97,544 @@ function formatQuantity(quantity) {
   return `${quantity}개`
 }
 
-// 상수 정의
-const ITEMS_PER_SET = 64
-const ITEMS_PER_BOX = 64 * 54 // 3456
-
-// 단위별 수량을 총 개수로 변환
-function convertToTotal(boxes, sets, items) {
-  return (boxes * ITEMS_PER_BOX) + (sets * ITEMS_PER_SET) + items
-}
-
-// 총 개수를 단위별로 분해
-function decomposeQuantity(total) {
-  const boxes = Math.floor(total / ITEMS_PER_BOX)
-  const remaining = total % ITEMS_PER_BOX
-  const sets = Math.floor(remaining / ITEMS_PER_SET)
-  const items = remaining % ITEMS_PER_SET
-  return { boxes, sets, items }
-}
-
-function CraftingItemRow({ item, recipe, itemTag, onQuantityChange, onQuantitySet, onEdit, onDelete, onWorkerToggle, onRecipeEdit }) {
-  const { user } = useAuth()
-  const [editMode, setEditMode] = useState(null) // null, 'delta', 'set'
+// 개별 아이템 카드
+function CraftingCard({ item, onQuantityChange, onQuantitySet }) {
+  const [showInput, setShowInput] = useState(false)
+  const [inputValue, setInputValue] = useState('')
+  const [inputMode, setInputMode] = useState('add') // 'add', 'subtract', 'set'
   
-  // 단위별 입력값
-  const [deltaUnits, setDeltaUnits] = useState({ boxes: 0, sets: 0, items: 0 })
-  const [setUnits, setSetUnits] = useState({ boxes: 0, sets: 0, items: 0 })
-  const [isAdding, setIsAdding] = useState(true) // 증감 모드에서 추가/차감
+  const percentage = item.required > 0 ? Math.min((item.quantity / item.required) * 100, 100) : 0
+  const isComplete = item.quantity >= item.required
+  const remaining = Math.max(0, item.required - item.quantity)
   
-  const [showRecipe, setShowRecipe] = useState(false)
-  const [showPresets, setShowPresets] = useState(false)
-
-  // 프리셋 수량 정의
-  const PRESETS = [
-    { label: '+1', value: 1, color: 'text-green-400' },
-    { label: '+32 (반세트)', value: 32, color: 'text-green-400' },
-    { label: '+64 (1세트)', value: 64, color: 'text-green-400' },
-    { label: '+1728 (반상자)', value: 1728, color: 'text-green-400' },
-    { label: '+3456 (1상자)', value: 3456, color: 'text-green-400' },
-    { label: '-1', value: -1, color: 'text-red-400' },
-    { label: '-32 (반세트)', value: -32, color: 'text-red-400' },
-    { label: '-64 (1세트)', value: -64, color: 'text-red-400' },
-    { label: '-1728 (반상자)', value: -1728, color: 'text-red-400' },
-    { label: '-3456 (1상자)', value: -3456, color: 'text-red-400' },
-  ]
-
-  // 증감 모드 제출
-  const handleDeltaSubmit = (e) => {
+  const handleQuickChange = (delta) => {
+    onQuantityChange(item, delta)
+  }
+  
+  const handleSubmit = (e) => {
     e.preventDefault()
-    const total = convertToTotal(
-      parseInt(deltaUnits.boxes) || 0,
-      parseInt(deltaUnits.sets) || 0,
-      parseInt(deltaUnits.items) || 0
-    )
-    if (total > 0) {
-      onQuantityChange(item, isAdding ? total : -total)
+    const value = parseInt(inputValue) || 0
+    if (value <= 0) return
+    
+    if (inputMode === 'set') {
+      onQuantitySet(item, value)
+    } else if (inputMode === 'subtract') {
+      onQuantityChange(item, -value)
+    } else {
+      onQuantityChange(item, value)
     }
-    setEditMode(null)
-    setDeltaUnits({ boxes: 0, sets: 0, items: 0 })
+    
+    setInputValue('')
+    setShowInput(false)
   }
-
-  // 직접 설정 모드 제출
-  const handleSetSubmit = (e) => {
-    e.preventDefault()
-    const total = convertToTotal(
-      parseInt(setUnits.boxes) || 0,
-      parseInt(setUnits.sets) || 0,
-      parseInt(setUnits.items) || 0
-    )
-    if (total >= 0) {
-      onQuantitySet(item, total)
-    }
-    setEditMode(null)
-    setSetUnits({ boxes: 0, sets: 0, items: 0 })
-  }
-
-  // 직접 설정 모드 시작 시 현재 수량으로 초기화
-  const startSetMode = () => {
-    const decomposed = decomposeQuantity(item.quantity)
-    setSetUnits(decomposed)
-    setEditMode('set')
-  }
-
-  // 증감 모드 시작
-  const startDeltaMode = (adding = true) => {
-    setIsAdding(adding)
-    setDeltaUnits({ boxes: 0, sets: 0, items: 0 })
-    setEditMode('delta')
-  }
-
-  const handlePresetClick = (value) => {
-    onQuantityChange(item, value)
-    // 드롭다운 유지 - 연속 증감 가능
-  }
-
-  const percentage = item.required > 0 
-    ? Math.min((item.quantity / item.required) * 100, 100) 
-    : 0
-
+  
   return (
-    <div className="bg-dark-200 rounded-lg overflow-hidden hover:bg-dark-100/50 transition-colors group">
-      {/* 메인 카드 영역 */}
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <DiscordText className="text-lg">{item.emoji || '⭐'}</DiscordText>
-            <DiscordText className="font-medium">{item.name}</DiscordText>
-            {/* 아이템 타입 배지 */}
-            {(item.itemType === 'material' || item.itemType === 'normal' || !item.itemType) && (
-              <span className="text-xs px-2 py-0.5 bg-gray-500/20 text-gray-400 rounded whitespace-nowrap">재료</span>
-            )}
-            {item.itemType === 'intermediate' && (
-              <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded whitespace-nowrap">중간재료</span>
-            )}
-            {item.itemType === 'finished' && (
-              <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded whitespace-nowrap">완성품</span>
-            )}
-            {/* 태그 배지 */}
-            {itemTag && (
-              <span className={clsx(
-                'text-xs px-2 py-0.5 rounded whitespace-nowrap flex items-center gap-1',
-                getTagColor(itemTag.color).bg,
-                getTagColor(itemTag.color).text
-              )}>
-                <span className={clsx('w-2 h-2 rounded-full', getTagColor(itemTag.color).dot)} />
-                {itemTag.name}
-              </span>
-            )}
-            {/* 작업자 상태 */}
-            {item.worker?.userId ? (
-              <button
-                onClick={() => user && (user.id === item.worker.userId || user.isAdmin) && onWorkerToggle(item, 'stop')}
-                className={`text-xs px-2 py-0.5 rounded transition-colors whitespace-nowrap ${
-                  user && (user.id === item.worker.userId || user.isAdmin)
-                    ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 cursor-pointer'
-                    : 'bg-orange-500/20 text-orange-400 cursor-default'
-                }`}
-                title={user && (user.id === item.worker.userId || user.isAdmin) ? '클릭하여 작업 중단' : ''}
-              >
-                {item.worker.userName} 작업중
-              </button>
-            ) : user && (
-              <button
-                onClick={() => onWorkerToggle(item, 'start')}
-                className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded transition-colors opacity-0 group-hover:opacity-100 whitespace-nowrap"
-              >
-                작업 시작
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {/* 수정/삭제 버튼 - 호버 시 표시 */}
-            {user && (
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => onEdit(item)}
-                  className="p-1 hover:bg-dark-300 rounded text-blue-400"
-                  title="수정"
-                >
-                  <Edit size={14} />
-                </button>
-                <button
-                  onClick={() => onDelete(item)}
-                  className="p-1 hover:bg-dark-300 rounded text-red-400"
-                  title="삭제"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            )}
-            {/* 레시피 버튼 */}
-            {recipe ? (
-              <div className="flex items-center">
-                <button
-                  onClick={() => setShowRecipe(!showRecipe)}
-                  className={clsx(
-                    'p-1 rounded-l transition-colors',
-                    showRecipe ? 'bg-primary-600 text-white' : 'hover:bg-dark-300 text-gray-400'
-                  )}
-                  title="레시피 보기"
-                >
-                  <BookOpen size={16} />
-                </button>
-                {user && (
-                  <button
-                    onClick={() => onRecipeEdit(item, recipe)}
-                    className="p-1 rounded-r hover:bg-dark-300 text-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="레시피 편집"
-                  >
-                    <Edit size={14} />
-                  </button>
-                )}
-              </div>
-            ) : user && (
-              <button
-                onClick={() => onRecipeEdit(item, null)}
-                className="p-1 rounded hover:bg-dark-300 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                title="레시피 추가"
-              >
-                <BookOpen size={16} />
-              </button>
-            )}
-            <span className={clsx(
-              'text-sm ml-1',
-              percentage >= 100 ? 'text-green-400' : '',
-              percentage >= 50 && percentage < 100 ? 'text-yellow-400' : '',
-              percentage < 50 ? 'text-red-400' : ''
-            )}>
-              {percentage.toFixed(0)}%
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-sm">
-            {/* 수량 클릭 시 직접 설정 모드 */}
-            {user && editMode === null ? (
-              <button
-                onClick={startSetMode}
-                className="hover:bg-dark-300 px-1.5 py-0.5 rounded transition-colors cursor-pointer group/qty"
-                title="클릭하여 수량 직접 설정"
-              >
-                <span className="text-gray-300 group-hover/qty:text-blue-400">{formatQuantity(item.quantity)}</span>
-                <span className="text-gray-500"> / </span>
-                <span className="text-gray-400">{formatQuantity(item.required)}</span>
-              </button>
-            ) : (
-              <>
-                <span className="text-gray-300">{formatQuantity(item.quantity)}</span>
-                <span className="text-gray-500"> / </span>
-                <span className="text-gray-400">{formatQuantity(item.required)}</span>
-              </>
-            )}
-          </div>
-
-          {/* 수량 조절 버튼 - editMode가 null일 때만 표시 */}
-          {user && editMode === null && (
-            <div className="flex items-center gap-1 relative">
-              {/* 빠른 조절 버튼 */}
-              <button
-                onClick={() => onQuantityChange(item, -1)}
-                className="p-1 hover:bg-dark-300 rounded text-red-400"
-                title="-1"
-              >
-                <Minus size={16} />
-              </button>
-              <button
-                onClick={() => onQuantityChange(item, 1)}
-                className="p-1 hover:bg-dark-300 rounded text-green-400"
-                title="+1"
-              >
-                <Plus size={16} />
-              </button>
-              
-              {/* 프리셋 버튼 */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowPresets(!showPresets)}
-                  className="px-2 py-1 hover:bg-dark-300 rounded text-gray-400 text-xs font-medium"
-                  title="프리셋 수량"
-                >
-                  ±세트
-                </button>
-                
-                {showPresets && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40" 
-                      onClick={() => setShowPresets(false)}
-                    />
-                    <div className="absolute right-0 bottom-full mb-1 bg-dark-300 border border-dark-100 rounded-lg shadow-lg z-50 p-3 w-[280px]">
-                      {/* 추가 버튼 그리드 */}
-                      <div className="text-xs text-gray-500 mb-1">추가</div>
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {PRESETS.filter(p => p.value > 0).map(preset => (
-                          <button
-                            key={preset.value}
-                            onClick={() => handlePresetClick(preset.value)}
-                            className="px-2 py-1.5 bg-green-600/20 hover:bg-green-600/40 text-green-400 rounded text-xs font-medium whitespace-nowrap"
-                          >
-                            {preset.label}
-                          </button>
-                        ))}
-                      </div>
-                      
-                      {/* 차감 버튼 그리드 */}
-                      <div className="text-xs text-gray-500 mb-1">차감</div>
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {PRESETS.filter(p => p.value < 0).map(preset => (
-                          <button
-                            key={preset.value}
-                            onClick={() => handlePresetClick(preset.value)}
-                            className="px-2 py-1.5 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded text-xs font-medium whitespace-nowrap"
-                          >
-                            {preset.label}
-                          </button>
-                        ))}
-                      </div>
-                      
-                      {/* 직접 입력 버튼 */}
-                      <div className="border-t border-dark-100 pt-2 flex gap-1">
-                        <button
-                          onClick={() => { startDeltaMode(true); setShowPresets(false); }}
-                          className="flex-1 px-2 py-1.5 bg-green-600/30 hover:bg-green-600/50 text-green-400 rounded text-xs font-medium"
-                        >
-                          ➕ 추가
-                        </button>
-                        <button
-                          onClick={() => { startDeltaMode(false); setShowPresets(false); }}
-                          className="flex-1 px-2 py-1.5 bg-red-600/30 hover:bg-red-600/50 text-red-400 rounded text-xs font-medium"
-                        >
-                          ➖ 차감
-                        </button>
-                        <button
-                          onClick={() => { startSetMode(); setShowPresets(false); }}
-                          className="flex-1 px-2 py-1.5 bg-blue-600/30 hover:bg-blue-600/50 text-blue-400 rounded text-xs font-medium"
-                        >
-                          📝 설정
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              {/* 직접 수량 설정 버튼 */}
-              <button
-                onClick={startSetMode}
-                className="px-1.5 py-0.5 hover:bg-blue-600/20 rounded text-blue-400 text-xs font-medium border border-blue-500/30"
-                title="수량 직접 설정"
-              >
-                설정
-              </button>
-            </div>
-          )}
-        </div>
-
-        <ProgressBar current={item.quantity} target={item.required} />
-
-        {/* 레시피 표시 */}
-        {showRecipe && recipe && (
-          <div className="mt-3 pt-3 border-t border-dark-100">
-            <p className="text-sm text-gray-400 mb-2">필요 재료:</p>
-            <div className="space-y-1">
-              {recipe.materials.map((material, idx) => (
-                <div key={idx} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-300">
-                    <DiscordText>{material.name}</DiscordText>
-                    <span className="text-gray-500 ml-1">(<DiscordText>{material.category}</DiscordText>)</span>
-                  </span>
-                  <span className="text-gray-400">{material.quantity}개</span>
-                </div>
-              ))}
-            </div>
-          </div>
+    <div className={clsx(
+      'rounded-lg border p-3 transition-all',
+      isComplete 
+        ? 'bg-green-500/10 border-green-500/30' 
+        : 'bg-dark-400 border-dark-300 hover:border-dark-200'
+    )}>
+      {/* 헤더: 아이콘 + 이름 */}
+      <div className="flex items-center gap-2 mb-2">
+        {item.emoji && (
+          <span className="text-lg">
+            <DiscordText>{item.emoji}</DiscordText>
+          </span>
+        )}
+        <span className="font-medium text-sm truncate flex-1">
+          <DiscordText>{item.name}</DiscordText>
+        </span>
+        {isComplete && <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />}
+      </div>
+      
+      {/* 진행률 바 */}
+      <ProgressBar current={item.quantity} target={item.required} size="sm" />
+      
+      {/* 수량 표시 */}
+      <div className="flex justify-between items-center mt-2 text-xs">
+        <span className={clsx(
+          'font-mono',
+          isComplete ? 'text-green-400' : 'text-gray-400'
+        )}>
+          {item.quantity} / {item.required}
+        </span>
+        {!isComplete && remaining > 0 && (
+          <span className="text-gray-500">
+            -{remaining}
+          </span>
         )}
       </div>
-
-      {/* 인라인 확장 편집 영역 */}
-      {editMode && (
-        <div className="border-t border-dark-100 bg-dark-300/50 p-4">
-          <form onSubmit={editMode === 'delta' ? handleDeltaSubmit : handleSetSubmit}>
-            {/* 모드 표시 */}
-            <div className="flex items-center justify-between mb-3">
-              <span className={clsx(
-                'text-sm font-medium',
-                editMode === 'set' ? 'text-blue-400' :
-                isAdding ? 'text-green-400' : 'text-red-400'
-              )}>
-                {editMode === 'set' ? '📝 수량 직접 설정' :
-                 isAdding ? '➕ 수량 추가' : '➖ 수량 차감'}
-              </span>
-              {editMode === 'delta' && (
-                <button
-                  type="button"
-                  onClick={() => setIsAdding(!isAdding)}
-                  className={clsx(
-                    'text-xs px-2 py-1 rounded',
-                    isAdding ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30' : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
-                  )}
-                >
-                  {isAdding ? '차감으로 전환' : '추가로 전환'}
-                </button>
-              )}
-            </div>
-
-            {/* 입력 필드 */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">상자</label>
-                <input
-                  type="number"
-                  value={editMode === 'delta' ? (deltaUnits.boxes || '') : (setUnits.boxes || '')}
-                  onChange={(e) => editMode === 'delta' 
-                    ? setDeltaUnits({...deltaUnits, boxes: e.target.value})
-                    : setSetUnits({...setUnits, boxes: e.target.value})
-                  }
-                  placeholder="0"
-                  min="0"
-                  className="w-full px-3 py-2 bg-dark-400 border border-dark-100 rounded-lg text-center text-lg focus:border-primary-500 focus:outline-none"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">세트</label>
-                <input
-                  type="number"
-                  value={editMode === 'delta' ? (deltaUnits.sets || '') : (setUnits.sets || '')}
-                  onChange={(e) => editMode === 'delta'
-                    ? setDeltaUnits({...deltaUnits, sets: e.target.value})
-                    : setSetUnits({...setUnits, sets: e.target.value})
-                  }
-                  placeholder="0"
-                  min="0"
-                  className="w-full px-3 py-2 bg-dark-400 border border-dark-100 rounded-lg text-center text-lg focus:border-primary-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">개</label>
-                <input
-                  type="number"
-                  value={editMode === 'delta' ? (deltaUnits.items || '') : (setUnits.items || '')}
-                  onChange={(e) => editMode === 'delta'
-                    ? setDeltaUnits({...deltaUnits, items: e.target.value})
-                    : setSetUnits({...setUnits, items: e.target.value})
-                  }
-                  placeholder="0"
-                  min="0"
-                  className="w-full px-3 py-2 bg-dark-400 border border-dark-100 rounded-lg text-center text-lg focus:border-primary-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* 현재 → 변경 후 미리보기 */}
-            <div className="text-sm text-gray-400 mb-4 text-center">
-              {editMode === 'set' ? (
-                <>
-                  <span className="text-gray-500">{formatQuantity(item.quantity)}</span>
-                  <span className="text-blue-400 mx-2">→</span>
-                  <span className="text-white">{formatQuantity(convertToTotal(
-                    parseInt(setUnits.boxes) || 0,
-                    parseInt(setUnits.sets) || 0,
-                    parseInt(setUnits.items) || 0
-                  ))}</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-gray-500">{formatQuantity(item.quantity)}</span>
-                  <span className={isAdding ? 'text-green-400' : 'text-red-400'}> {isAdding ? '+' : '-'} </span>
-                  <span className="text-white">{formatQuantity(convertToTotal(
-                    parseInt(deltaUnits.boxes) || 0,
-                    parseInt(deltaUnits.sets) || 0,
-                    parseInt(deltaUnits.items) || 0
-                  ))}</span>
-                  <span className="text-gray-500 mx-2">=</span>
-                  <span className="text-white">{formatQuantity(Math.max(0, item.quantity + (isAdding ? 1 : -1) * convertToTotal(
-                    parseInt(deltaUnits.boxes) || 0,
-                    parseInt(deltaUnits.sets) || 0,
-                    parseInt(deltaUnits.items) || 0
-                  )))}</span>
-                </>
-              )}
-            </div>
-
-            {/* 버튼 */}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setEditMode(null)}
-                className="flex-1 px-4 py-2 bg-dark-100 hover:bg-dark-200 rounded-lg transition-colors"
-              >
-                취소
-              </button>
-              <button
-                type="submit"
-                className={clsx(
-                  'flex-1 px-4 py-2 rounded-lg transition-colors font-medium',
-                  editMode === 'set' ? 'bg-blue-600 hover:bg-blue-700' :
-                  isAdding ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
-                )}
-              >
-                {editMode === 'set' ? '설정' : isAdding ? '추가' : '차감'}
-              </button>
-            </div>
-          </form>
+      
+      {/* 빠른 조작 버튼 */}
+      {!showInput ? (
+        <div className="flex gap-1 mt-2">
+          <button
+            onClick={() => handleQuickChange(1)}
+            className="flex-1 py-1 text-xs bg-green-600/20 hover:bg-green-600/40 text-green-400 rounded transition-colors"
+          >
+            +1
+          </button>
+          <button
+            onClick={() => handleQuickChange(64)}
+            className="flex-1 py-1 text-xs bg-green-600/20 hover:bg-green-600/40 text-green-400 rounded transition-colors"
+          >
+            +64
+          </button>
+          <button
+            onClick={() => handleQuickChange(-1)}
+            className="flex-1 py-1 text-xs bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded transition-colors"
+          >
+            -1
+          </button>
+          <button
+            onClick={() => setShowInput(true)}
+            className="px-2 py-1 text-xs bg-dark-300 hover:bg-dark-200 rounded transition-colors"
+          >
+            ...
+          </button>
         </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-2 space-y-2">
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setInputMode('add')}
+              className={clsx(
+                'flex-1 py-1 text-xs rounded transition-colors',
+                inputMode === 'add' ? 'bg-green-600 text-white' : 'bg-dark-300'
+              )}
+            >
+              추가
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputMode('subtract')}
+              className={clsx(
+                'flex-1 py-1 text-xs rounded transition-colors',
+                inputMode === 'subtract' ? 'bg-red-600 text-white' : 'bg-dark-300'
+              )}
+            >
+              차감
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputMode('set')}
+              className={clsx(
+                'flex-1 py-1 text-xs rounded transition-colors',
+                inputMode === 'set' ? 'bg-blue-600 text-white' : 'bg-dark-300'
+              )}
+            >
+              설정
+            </button>
+          </div>
+          <div className="flex gap-1">
+            <input
+              type="number"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="수량"
+              className="flex-1 px-2 py-1 text-xs bg-dark-200 rounded border border-dark-100 focus:border-primary-500 outline-none"
+              autoFocus
+              min="1"
+            />
+            <button
+              type="submit"
+              className="px-3 py-1 text-xs bg-primary-600 hover:bg-primary-500 rounded transition-colors"
+            >
+              확인
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowInput(false)}
+              className="px-2 py-1 text-xs bg-dark-300 hover:bg-dark-200 rounded transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+        </form>
       )}
     </div>
   )
 }
 
-function Crafting() {
-  const { category } = useParams()
-  const { user } = useAuth()
-  const queryClient = useQueryClient()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [sortBy, setSortBy] = useState('default') // 'default', 'name', 'type', 'tag', 'quantity', 'progress'
-  const [filterTag, setFilterTag] = useState('') // 태그 필터링
+// 티어 컬럼 컴포넌트
+function TierColumn({ tier, items, onQuantityChange, onQuantitySet }) {
+  const config = TIER_CONFIG[tier]
+  const Icon = config.icon
   
-  // 되돌리기 기능
-  const [undoStack, setUndoStack] = useState([])
-  const [showUndo, setShowUndo] = useState(false)
+  const completedCount = items.filter(i => i.quantity >= i.required).length
+  const totalCount = items.length
+  const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
   
-  // 되돌리기 토스트 타이머
-  useEffect(() => {
-    if (undoStack.length > 0) {
-      setShowUndo(true)
-      const timer = setTimeout(() => {
-        setShowUndo(false)
-        setUndoStack([])
-      }, 5000)
-      return () => clearTimeout(timer)
-    }
-  }, [undoStack])
-  
-  // 모달 상태
-  const [itemModalOpen, setItemModalOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState(null)
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  const [deletingItem, setDeletingItem] = useState(null)
-  const [resetModalOpen, setResetModalOpen] = useState(false)
-  const [recipeModalOpen, setRecipeModalOpen] = useState(false)
-  const [editingRecipe, setEditingRecipe] = useState({ item: null, recipe: null })
+  return (
+    <div className={clsx(
+      'flex flex-col rounded-xl border',
+      config.borderColor,
+      config.bgColor
+    )}>
+      {/* 컬럼 헤더 */}
+      <div className="p-4 border-b border-dark-300">
+        <div className="flex items-center gap-2 mb-2">
+          <div className={clsx('p-1.5 rounded-lg', config.color)}>
+            <Icon className="w-4 h-4 text-white" />
+          </div>
+          <h3 className={clsx('font-semibold', config.textColor)}>
+            {config.name}
+          </h3>
+          <span className="ml-auto text-sm text-gray-400">
+            {completedCount}/{totalCount}
+          </span>
+        </div>
+        <ProgressBar current={completedCount} target={totalCount} size="sm" />
+        <div className="text-right text-xs text-gray-500 mt-1">
+          {progress}% 완료
+        </div>
+      </div>
+      
+      {/* 아이템 목록 */}
+      <div className="flex-1 p-3 space-y-2 overflow-y-auto max-h-[calc(100vh-350px)]">
+        {items.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 text-sm">
+            아이템 없음
+          </div>
+        ) : (
+          items.map(item => (
+            <CraftingCard
+              key={`${item.category}-${item.name}`}
+              item={item}
+              onQuantityChange={onQuantityChange}
+              onQuantitySet={onQuantitySet}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
 
+// 완료 컬럼
+function CompletedColumn({ items }) {
+  return (
+    <div className="flex flex-col rounded-xl border border-green-500/30 bg-green-500/5">
+      {/* 컬럼 헤더 */}
+      <div className="p-4 border-b border-dark-300">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="p-1.5 rounded-lg bg-green-500">
+            <CheckCircle2 className="w-4 h-4 text-white" />
+          </div>
+          <h3 className="font-semibold text-green-400">완료</h3>
+          <span className="ml-auto text-sm text-gray-400">
+            {items.length}
+          </span>
+        </div>
+      </div>
+      
+      {/* 완료 아이템 목록 */}
+      <div className="flex-1 p-3 space-y-2 overflow-y-auto max-h-[calc(100vh-350px)]">
+        {items.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 text-sm">
+            아직 없음
+          </div>
+        ) : (
+          items.map(item => (
+            <div
+              key={`${item.category}-${item.name}`}
+              className="rounded-lg bg-green-500/10 border border-green-500/20 p-2"
+            >
+              <div className="flex items-center gap-2">
+                {item.emoji && (
+                  <span className="text-sm">
+                    <DiscordText>{item.emoji}</DiscordText>
+                  </span>
+                )}
+                <span className="text-sm truncate flex-1">
+                  <DiscordText>{item.name}</DiscordText>
+                </span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+              </div>
+              <div className="text-xs text-green-400 mt-1">
+                {item.quantity} / {item.required}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+// 메인 컴포넌트
+export default function Crafting() {
+  const { category } = useParams()
+  const { hasPermission } = useAuth()
+  const queryClient = useQueryClient()
+  
+  const [searchQuery, setSearchQuery] = useState('')
+  const [planModalOpen, setPlanModalOpen] = useState(false)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  
+  // 대시보드 데이터 조회
+  const { data: dashboard, isLoading } = useQuery({
+    queryKey: ['crafting', 'dashboard', category],
+    queryFn: () => api.get(`/items/crafting/dashboard${category ? `?category=${category}` : ''}`).then(res => res.data),
+  })
+  
   // 카테고리 목록 조회
   const { data: categories = [] } = useQuery({
     queryKey: ['items', 'crafting', 'categories'],
     queryFn: () => api.get('/items/crafting/categories').then(res => res.data),
   })
-
-  // 선택된 카테고리의 아이템 조회
-  const { data: items = [], isLoading } = useQuery({
-    queryKey: ['items', 'crafting', category],
-    queryFn: () => api.get(`/items/crafting${category ? `?category=${category}` : ''}`).then(res => res.data),
+  
+  // 이벤트 목록 조회 (마감일 표시용)
+  const { data: events = [] } = useQuery({
+    queryKey: ['events'],
+    queryFn: () => api.get('/events').then(res => res.data),
   })
-
-  // 태그 데이터 조회 (카테고리 선택 시)
-  const { data: tags = [] } = useQuery({
-    queryKey: ['tags', 'crafting', category],
-    queryFn: () => api.get(`/tags/crafting/${encodeURIComponent(category)}`).then(res => res.data),
-    enabled: !!category,
-  })
-
-  // 레시피 조회
-  const { data: recipes = [] } = useQuery({
-    queryKey: ['recipes', category],
-    queryFn: () => api.get(`/recipes${category ? `?category=${category}` : ''}`).then(res => res.data),
-  })
-
-  // 수량 변경 뮤테이션 (Optimistic Update)
+  
+  // 수량 변경 뮤테이션
   const quantityMutation = useMutation({
     mutationFn: ({ item, delta }) => 
       api.patch(`/items/${item.type}/${item.category}/${item.name}/quantity`, { delta }),
-    onMutate: async ({ item, delta }) => {
-      // 진행 중인 쿼리 취소
-      await queryClient.cancelQueries({ queryKey: ['items', 'crafting', category] })
-      
-      // 이전 데이터 스냅샷
-      const previousItems = queryClient.getQueryData(['items', 'crafting', category])
-      
-      // 낙관적 업데이트 - 즉시 UI 반영
-      queryClient.setQueryData(['items', 'crafting', category], (old) => {
-        if (!old) return old
-        return old.map(i => 
-          i.name === item.name && i.category === item.category
-            ? { ...i, quantity: Math.max(0, i.quantity + delta) }
-            : i
-        )
-      })
-      
-      return { previousItems }
-    },
-    onError: (err, variables, context) => {
-      // 에러 시 롤백
-      if (context?.previousItems) {
-        queryClient.setQueryData(['items', 'crafting', category], context.previousItems)
-      }
-    },
-    onSettled: () => {
-      // 완료 후 리페치 (서버와 동기화)
-      queryClient.invalidateQueries({ queryKey: ['items', 'crafting'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crafting', 'dashboard'] })
     },
   })
-
-  // 수량 직접 설정 뮤테이션 (Optimistic Update)
+  
+  // 수량 직접 설정 뮤테이션
   const quantitySetMutation = useMutation({
     mutationFn: ({ item, value }) => 
       api.patch(`/items/${item.type}/${item.category}/${item.name}/quantity/set`, { value }),
-    onMutate: async ({ item, value }) => {
-      await queryClient.cancelQueries({ queryKey: ['items', 'crafting', category] })
-      const previousItems = queryClient.getQueryData(['items', 'crafting', category])
-      
-      queryClient.setQueryData(['items', 'crafting', category], (old) => {
-        if (!old) return old
-        return old.map(i => 
-          i.name === item.name && i.category === item.category
-            ? { ...i, quantity: Math.max(0, value) }
-            : i
-        )
-      })
-      
-      return { previousItems }
-    },
-    onError: (err, variables, context) => {
-      if (context?.previousItems) {
-        queryClient.setQueryData(['items', 'crafting', category], context.previousItems)
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['items', 'crafting'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crafting', 'dashboard'] })
     },
   })
-
-  // 삭제 뮤테이션
-  const deleteMutation = useMutation({
-    mutationFn: (item) => api.delete(`/items/crafting/${item.category}/${item.name}`),
+  
+  // 전체 삭제 뮤테이션
+  const deleteAllMutation = useMutation({
+    mutationFn: () => api.delete(`/items/crafting/all${category ? `?category=${category}` : ''}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['crafting'] })
+      queryClient.invalidateQueries({ queryKey: ['items', 'crafting'] })
       setDeleteModalOpen(false)
-      setDeletingItem(null)
     },
   })
-
-  // 초기화 뮤테이션
-  const resetMutation = useMutation({
-    mutationFn: (cat) => api.post(`/items/crafting/${cat}/reset`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] })
-      setResetModalOpen(false)
-    },
-  })
-
-  // 작업자 토글 뮤테이션
-  const workerMutation = useMutation({
-    mutationFn: ({ item, action }) => 
-      api.patch(`/items/${item.type}/${item.category}/${item.name}/worker`, { action }),
-    onMutate: async ({ item, action }) => {
-      await queryClient.cancelQueries({ queryKey: ['items', 'crafting', category] })
-      const previousItems = queryClient.getQueryData(['items', 'crafting', category])
-      
-      queryClient.setQueryData(['items', 'crafting', category], (old) => {
-        if (!old) return old
-        return old.map(i => 
-          i.name === item.name && i.category === item.category
-            ? { 
-                ...i, 
-                worker: action === 'start' 
-                  ? { userId: user.id, userName: user.username, startTime: new Date() }
-                  : null 
-              }
-            : i
-        )
-      })
-      
-      return { previousItems }
-    },
-    onError: (err, variables, context) => {
-      if (context?.previousItems) {
-        queryClient.setQueryData(['items', 'crafting', category], context.previousItems)
-      }
-      // 에러 메시지 표시
-      const errorMessage = err.response?.data?.error || '작업 상태 변경 실패'
-      alert(errorMessage)
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['items', 'crafting'] })
-    },
-  })
-
-  // 레시피 저장 뮤테이션
-  const recipeMutation = useMutation({
-    mutationFn: ({ category, resultName, materials }) => 
-      api.post('/recipes', { category, resultName, materials }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recipes'] })
-      setRecipeModalOpen(false)
-      setEditingRecipe({ item: null, recipe: null })
-    },
-  })
-
-  // 레시피 삭제 뮤테이션
-  const recipeDeleteMutation = useMutation({
-    mutationFn: ({ category, resultName }) => 
-      api.delete(`/recipes/${category}/${resultName}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recipes'] })
-      setRecipeModalOpen(false)
-      setEditingRecipe({ item: null, recipe: null })
-    },
-  })
-
+  
+  // 핸들러
   const handleQuantityChange = (item, delta) => {
-    setUndoStack([{ 
-      item, 
-      prevValue: item.quantity, 
-      delta: -delta,
-      type: 'delta',
-      description: `${item.name}: ${delta > 0 ? '+' : ''}${delta}`
-    }])
     quantityMutation.mutate({ item, delta })
   }
-
+  
   const handleQuantitySet = (item, value) => {
-    setUndoStack([{ 
-      item, 
-      prevValue: item.quantity, 
-      newValue: value,
-      type: 'set',
-      description: `${item.name}: ${item.quantity} → ${value}`
-    }])
     quantitySetMutation.mutate({ item, value })
   }
-
-  // 되돌리기 실행
-  const handleUndo = useCallback(() => {
-    if (undoStack.length === 0) return
+  
+  // 티어별 아이템 분류 및 필터링
+  const { tier1Items, tier2Items, tier3Items, completedItems } = useMemo(() => {
+    if (!dashboard) return { tier1Items: [], tier2Items: [], tier3Items: [], completedItems: [] }
     
-    const lastAction = undoStack[0]
-    if (lastAction.type === 'delta') {
-      quantityMutation.mutate({ item: lastAction.item, delta: lastAction.delta })
-    } else if (lastAction.type === 'set') {
-      quantitySetMutation.mutate({ item: lastAction.item, value: lastAction.prevValue })
+    const filterBySearch = (items) => {
+      if (!searchQuery) return items
+      const query = searchQuery.toLowerCase()
+      return items.filter(item => 
+        item.name.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query)
+      )
     }
     
-    setUndoStack([])
-    setShowUndo(false)
-  }, [undoStack, quantityMutation, quantitySetMutation])
-
-  const handleWorkerToggle = (item, action) => {
-    workerMutation.mutate({ item, action })
-  }
-
-  const handleRecipeEdit = (item, recipe) => {
-    setEditingRecipe({ item, recipe })
-    setRecipeModalOpen(true)
-  }
-
-  const handleAddItem = () => {
-    setEditingItem(null)
-    setItemModalOpen(true)
-  }
-
-  const handleEditItem = (item) => {
-    setEditingItem(item)
-    setItemModalOpen(true)
-  }
-
-  const handleDeleteItem = (item) => {
-    setDeletingItem(item)
-    setDeleteModalOpen(true)
-  }
-
-  const handleConfirmDelete = () => {
-    if (deletingItem) {
-      deleteMutation.mutate(deletingItem)
-    }
-  }
-
-  const handleReset = () => {
-    if (category) {
-      resetMutation.mutate(category)
-    }
-  }
-
-  // 레시피 맵 생성
-  const recipeMap = recipes.reduce((acc, recipe) => {
-    acc[`${recipe.category}-${recipe.resultName}`] = recipe
-    return acc
-  }, {})
-
-  // 태그 조회 함수
-  const getItemTagInfo = (itemName) => {
-    for (const tag of tags) {
-      if (tag.items?.includes(itemName)) {
-        return tag
-      }
-    }
-    return null
-  }
-
-  const getItemTag = (itemName) => {
-    const tag = getItemTagInfo(itemName)
-    return tag ? tag.name : null
-  }
-
-  // 정렬 함수
-  const sortItems = (itemList) => {
-    const sorted = [...itemList]
+    const allTier1 = filterBySearch(dashboard.tier1?.items || [])
+    const allTier2 = filterBySearch(dashboard.tier2?.items || [])
+    const allTier3 = filterBySearch(dashboard.tier3?.items || [])
     
-    // 아이템 타입 순서: 재료 -> 중간재료 -> 완성품
-    const typeOrder = { 'material': 0, 'normal': 0, 'intermediate': 1, 'finished': 2 }
-    const getTypeOrder = (item) => typeOrder[item.itemType] ?? 0
+    // 완료된 아이템 분리
+    const completed = [
+      ...allTier1.filter(i => i.quantity >= i.required),
+      ...allTier2.filter(i => i.quantity >= i.required),
+      ...allTier3.filter(i => i.quantity >= i.required),
+    ]
     
-    switch (sortBy) {
-      case 'name':
-        sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-        break
-      case 'tag':
-        sorted.sort((a, b) => {
-          const tagA = getItemTag(a.name) || 'zzz'
-          const tagB = getItemTag(b.name) || 'zzz'
-          if (tagA === tagB) return a.name.localeCompare(b.name, 'ko')
-          return tagA.localeCompare(tagB, 'ko')
-        })
-        break
-      case 'type':
-        // 타입순 (재료 -> 중간재료 -> 완성품)
-        sorted.sort((a, b) => {
-          const typeA = getTypeOrder(a)
-          const typeB = getTypeOrder(b)
-          if (typeA !== typeB) return typeA - typeB
-          return a.name.localeCompare(b.name, 'ko')
-        })
-        break
-      case 'quantity':
-        sorted.sort((a, b) => b.quantity - a.quantity)
-        break
-      case 'progress':
-        sorted.sort((a, b) => {
-          const progressA = a.required > 0 ? a.quantity / a.required : 1
-          const progressB = b.required > 0 ? b.quantity / b.required : 1
-          return progressA - progressB
-        })
-        break
-      default:
-        sorted.sort((a, b) => (a.order || 0) - (b.order || 0))
+    return {
+      tier1Items: allTier1.filter(i => i.quantity < i.required),
+      tier2Items: allTier2.filter(i => i.quantity < i.required),
+      tier3Items: allTier3.filter(i => i.quantity < i.required),
+      completedItems: completed,
     }
-    
-    return sorted
-  }
-
-  // 검색 + 태그 필터링
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesTag = !filterTag || getItemTag(item.name) === filterTag
-    return matchesSearch && matchesTag
-  })
-
-  // 태그별 그룹핑 함수
-  const groupByTag = (itemList) => {
-    const grouped = {}
-    const noTag = []
-    
-    for (const item of itemList) {
-      const tag = getItemTagInfo(item.name)
-      if (tag) {
-        if (!grouped[tag.name]) {
-          grouped[tag.name] = { tag, items: [] }
-        }
-        grouped[tag.name].items.push(item)
-      } else {
-        noTag.push(item)
-      }
-    }
-    
-    // 태그별로 정렬된 결과 반환
-    const result = Object.values(grouped).sort((a, b) => 
-      a.tag.name.localeCompare(b.tag.name, 'ko')
+  }, [dashboard, searchQuery])
+  
+  // 전체 진행률 계산
+  const overallProgress = dashboard?.overall?.progress || 0
+  const totalItems = dashboard?.overall?.total || 0
+  const completedCount = dashboard?.overall?.completed || 0
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+      </div>
     )
-    
-    if (noTag.length > 0) {
-      result.push({ tag: { name: '태그 없음', color: 'default' }, items: noTag })
-    }
-    
-    return result
   }
-
-  // 카테고리별 그룹핑 + 정렬 적용
-  const groupedItems = category 
-    ? { [category]: sortItems(filteredItems) }
-    : Object.entries(
-        filteredItems.reduce((acc, item) => {
-          if (!acc[item.category]) acc[item.category] = []
-          acc[item.category].push(item)
-          return acc
-        }, {})
-      ).reduce((acc, [cat, catItems]) => {
-        acc[cat] = sortItems(catItems)
-        return acc
-      }, {})
-
-  // 태그순 정렬일 때 태그별 그룹
-  const tagGroupedItems = sortBy === 'tag' && category ? groupByTag(filteredItems) : null
-
+  
   return (
-    <div className="flex gap-6">
-      {/* 왼쪽 사이드바 */}
-      <aside className="w-64 shrink-0 hidden lg:block">
-        <div className="bg-dark-300 rounded-xl p-4 border border-dark-100 sticky top-20">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <FolderOpen size={20} />
-            카테고리
-          </h2>
-          <nav className="space-y-1">
+    <div className="space-y-4">
+      {/* 헤더 */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Target className="w-7 h-7 text-primary-500" />
+            제작 계획
+            {category && (
+              <span className="text-primary-400 ml-2">
+                <DiscordText>{category}</DiscordText>
+              </span>
+            )}
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">
+            티어별로 제작 진행 상황을 관리하세요
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {hasPermission('manage') && (
+            <>
+              <button
+                onClick={() => setPlanModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 rounded-lg transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                새 계획
+              </button>
+              {totalItems > 0 && (
+                <button
+                  onClick={() => setDeleteModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  전체 삭제
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+      
+      {/* 카테고리 탭 */}
+      {categories.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          <NavLink
+            to="/crafting"
+            end
+            className={({ isActive }) => clsx(
+              'px-4 py-2 rounded-lg whitespace-nowrap transition-colors',
+              isActive 
+                ? 'bg-primary-600 text-white' 
+                : 'bg-dark-400 hover:bg-dark-300 text-gray-300'
+            )}
+          >
+            전체
+          </NavLink>
+          {categories.map(cat => (
             <NavLink
-              to="/crafting"
-              end
+              key={cat}
+              to={`/crafting/${encodeURIComponent(cat)}`}
               className={({ isActive }) => clsx(
-                'block px-3 py-2 rounded-lg transition-colors',
-                isActive ? 'bg-primary-600 text-white' : 'hover:bg-dark-200 text-gray-300'
+                'px-4 py-2 rounded-lg whitespace-nowrap transition-colors',
+                isActive 
+                  ? 'bg-primary-600 text-white' 
+                  : 'bg-dark-400 hover:bg-dark-300 text-gray-300'
               )}
             >
-              전체 보기
+              <DiscordText>{cat}</DiscordText>
             </NavLink>
-            {categories.map((cat) => (
-              <NavLink
-                key={cat}
-                to={`/crafting/${encodeURIComponent(cat)}`}
-                className={({ isActive }) => clsx(
-                  'flex items-center justify-between px-3 py-2 rounded-lg transition-colors',
-                  isActive ? 'bg-primary-600 text-white' : 'hover:bg-dark-200 text-gray-300'
-                )}
-              >
-                <DiscordText>{cat}</DiscordText>
-                <ChevronRight size={16} />
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-      </aside>
-
-      {/* 메인 콘텐츠 */}
-      <div className="flex-1 min-w-0">
-        {/* 헤더 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-bold">
-            제작 {category && <>- <DiscordText>{category}</DiscordText></>}
-          </h1>
-          
-          <div className="flex items-center gap-3">
-            {/* 초기화 버튼 - 카테고리 선택 시에만 */}
-            {user && category && (
-              <button
-                onClick={() => setResetModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 rounded-lg transition-colors"
-                title="수량 초기화"
-              >
-                <RotateCcw size={18} />
-                <span className="hidden sm:inline">초기화</span>
-              </button>
-            )}
-            
-            {/* 추가 버튼 */}
-            {user && (
-              <button
-                onClick={handleAddItem}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-              >
-                <Plus size={18} />
-                <span className="hidden sm:inline">제작품 추가</span>
-              </button>
-            )}
-            
-            {/* 검색 */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder="제작품 검색..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-dark-300 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
-              />
-            </div>
-            
-            {/* 정렬 */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="appearance-none pl-9 pr-4 py-2 bg-dark-300 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 cursor-pointer"
-              >
-                <option value="default">기본순</option>
-                <option value="name">가나다순</option>
-                <option value="type">타입순</option>
-                <option value="tag">태그순</option>
-                <option value="quantity">수량순</option>
-                <option value="progress">진행률순</option>
-              </select>
-              <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-            </div>
-
-            {/* 태그 필터 */}
-            {category && tags.length > 0 && (
-              <div className="relative">
-                <select
-                  value={filterTag}
-                  onChange={(e) => setFilterTag(e.target.value)}
-                  className="appearance-none pl-9 pr-4 py-2 bg-dark-300 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 cursor-pointer"
-                >
-                  <option value="">모든 태그</option>
-                  {tags.map((tag) => (
-                    <option key={tag.name} value={tag.name}>{tag.name}</option>
-                  ))}
-                </select>
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 모바일 카테고리 선택 */}
-        <div className="lg:hidden mb-4">
-          <select
-            value={category || ''}
-            onChange={(e) => {
-              const val = e.target.value
-              window.location.href = val ? `/crafting/${encodeURIComponent(val)}` : '/crafting'
-            }}
-            className="w-full px-4 py-2 bg-dark-300 border border-dark-100 rounded-lg"
-          >
-            <option value="">전체 카테고리</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* 아이템 목록 */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
-          </div>
-        ) : tagGroupedItems ? (
-          /* 태그순 정렬 - 태그별 그룹 표시 */
-          <div className="space-y-6">
-            {tagGroupedItems.map(({ tag, items: tagItems }) => (
-              <div key={tag.name}>
-                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <span 
-                    className={clsx(
-                      'w-3 h-3 rounded-full',
-                      getTagColor(tag.color).dot
-                    )}
-                  />
-                  <span>{tag.name}</span>
-                  <span className="text-sm text-gray-400">({tagItems.length})</span>
-                </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {tagItems.map((item) => (
-                    <CraftingItemRow
-                      key={`${item.category}-${item.name}`}
-                      item={item}
-                      recipe={recipeMap[`${item.category}-${item.name}`]}
-                      itemTag={getItemTagInfo(item.name)}
-                      onQuantityChange={handleQuantityChange}
-                      onQuantitySet={handleQuantitySet}
-                      onEdit={handleEditItem}
-                      onDelete={handleDeleteItem}
-                      onWorkerToggle={handleWorkerToggle}
-                      onRecipeEdit={handleRecipeEdit}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : Object.keys(groupedItems).length > 0 ? (
-          <div className="space-y-6">
-            {Object.entries(groupedItems).map(([cat, catItems]) => (
-              <div key={cat}>
-                {!category && (
-                  <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <DiscordText>{cat}</DiscordText>
-                    <span className="text-sm text-gray-400">({catItems.length})</span>
-                  </h2>
-                )}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {catItems.map((item) => (
-                    <CraftingItemRow
-                      key={`${item.category}-${item.name}`}
-                      item={item}
-                      recipe={recipeMap[`${item.category}-${item.name}`]}
-                      itemTag={getItemTagInfo(item.name)}
-                      onQuantityChange={handleQuantityChange}
-                      onQuantitySet={handleQuantitySet}
-                      onEdit={handleEditItem}
-                      onDelete={handleDeleteItem}
-                      onWorkerToggle={handleWorkerToggle}
-                      onRecipeEdit={handleRecipeEdit}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 text-gray-400">
-            {searchQuery ? '검색 결과가 없습니다.' : '제작품이 없습니다.'}
-          </div>
-        )}
-      </div>
-
-      {/* 모달들 */}
-      <ItemModal
-        isOpen={itemModalOpen}
-        onClose={() => { setItemModalOpen(false); setEditingItem(null); }}
-        type="crafting"
-        categories={categories}
-        item={editingItem}
-      />
-      
-      <DeleteConfirmModal
-        isOpen={deleteModalOpen}
-        onClose={() => { setDeleteModalOpen(false); setDeletingItem(null); }}
-        onConfirm={handleConfirmDelete}
-        itemName={deletingItem?.name}
-        isPending={deleteMutation.isPending}
-      />
-      
-      <ResetConfirmModal
-        isOpen={resetModalOpen}
-        onClose={() => setResetModalOpen(false)}
-        onConfirm={handleReset}
-        categoryName={category}
-        itemCount={items.length}
-        isPending={resetMutation.isPending}
-      />
-      
-      <RecipeModal
-        isOpen={recipeModalOpen}
-        onClose={() => { setRecipeModalOpen(false); setEditingRecipe({ item: null, recipe: null }); }}
-        item={editingRecipe.item}
-        recipe={editingRecipe.recipe}
-        onSave={(data) => recipeMutation.mutate(data)}
-        onDelete={(data) => recipeDeleteMutation.mutate(data)}
-        isSaving={recipeMutation.isPending}
-        isDeleting={recipeDeleteMutation.isPending}
-      />
-      
-      {/* 되돌리기 토스트 */}
-      {showUndo && undoStack.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
-          <div className="flex items-center gap-3 px-4 py-3 bg-dark-300 border border-dark-100 rounded-xl shadow-lg">
-            <span className="text-sm text-gray-300">
-              {undoStack[0].description}
-            </span>
-            <button
-              onClick={handleUndo}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              <Undo2 size={14} />
-              되돌리기
-            </button>
-            <button
-              onClick={() => { setShowUndo(false); setUndoStack([]); }}
-              className="p-1 hover:bg-dark-200 rounded text-gray-400"
-            >
-              ✕
-            </button>
-          </div>
+          ))}
         </div>
       )}
+      
+      {/* 전체 진행 상황 */}
+      {totalItems > 0 && (
+        <div className="bg-dark-400 rounded-xl p-4 border border-dark-300">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl font-bold text-primary-400">
+                {overallProgress}%
+              </div>
+              <div className="text-sm text-gray-400">
+                완료 {completedCount} / {totalItems}
+              </div>
+            </div>
+            {/* TODO: 이벤트 마감일 표시 */}
+          </div>
+          <ProgressBar current={completedCount} target={totalItems} />
+        </div>
+      )}
+      
+      {/* 검색 */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="아이템 검색..."
+          className="w-full pl-10 pr-4 py-2 bg-dark-400 rounded-lg border border-dark-300 focus:border-primary-500 outline-none"
+        />
+      </div>
+      
+      {/* 칸반 보드 */}
+      {totalItems > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <TierColumn
+            tier={1}
+            items={tier1Items}
+            onQuantityChange={handleQuantityChange}
+            onQuantitySet={handleQuantitySet}
+          />
+          <TierColumn
+            tier={2}
+            items={tier2Items}
+            onQuantityChange={handleQuantityChange}
+            onQuantitySet={handleQuantitySet}
+          />
+          <TierColumn
+            tier={3}
+            items={tier3Items}
+            onQuantityChange={handleQuantityChange}
+            onQuantitySet={handleQuantitySet}
+          />
+          <CompletedColumn items={completedItems} />
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+          <FolderOpen className="w-16 h-16 mb-4 opacity-50" />
+          <p className="text-lg mb-2">제작 계획이 없습니다</p>
+          <p className="text-sm mb-4">새 제작 계획을 생성해 시작하세요</p>
+          {hasPermission('manage') && (
+            <button
+              onClick={() => setPlanModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-500 rounded-lg transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              새 제작 계획 생성
+            </button>
+          )}
+        </div>
+      )}
+      
+      {/* 제작 계획 모달 */}
+      <CraftingPlanModal
+        isOpen={planModalOpen}
+        onClose={() => setPlanModalOpen(false)}
+        category={category}
+      />
+      
+      {/* 삭제 확인 모달 */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={() => deleteAllMutation.mutate()}
+        title="제작 계획 삭제"
+        message={`${category || '전체'} 카테고리의 모든 제작 아이템(${totalItems}개)을 삭제하시겠습니까?`}
+        isLoading={deleteAllMutation.isPending}
+      />
     </div>
   )
 }
-
-export default Crafting

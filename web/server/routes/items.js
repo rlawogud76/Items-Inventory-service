@@ -3,6 +3,92 @@ const router = express.Router();
 const db = require('shared/database');
 const { authenticate, requireFeature } = require('../middleware/auth');
 
+// ============ 제작 계획 API (특정 경로가 먼저 선언되어야 함) ============
+
+// 제작 대시보드 조회
+router.get('/crafting/dashboard', async (req, res, next) => {
+  try {
+    const { category } = req.query;
+    const dashboard = await db.getCraftingDashboard(category || null);
+    res.json(dashboard);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 제작 계획 생성 (3차 목표 기준 전체 티어 자동 생성)
+router.post('/crafting/plan', authenticate, requireFeature('manage'), async (req, res, next) => {
+  try {
+    const { category, tier3Goals, eventId } = req.body;
+    
+    if (!category || !tier3Goals || !Array.isArray(tier3Goals)) {
+      return res.status(400).json({ error: '카테고리와 3차 목표가 필요합니다.' });
+    }
+    
+    if (tier3Goals.length === 0) {
+      return res.status(400).json({ error: '최소 1개 이상의 3차 목표가 필요합니다.' });
+    }
+    
+    const result = await db.createCraftingPlan(category, tier3Goals, eventId);
+    
+    // 히스토리 기록
+    await db.addHistoryEntry({
+      timestamp: new Date().toISOString(),
+      type: 'crafting',
+      category,
+      itemName: '[제작 계획]',
+      action: 'create_plan',
+      details: `3차: ${result.tier3}개, 2차: ${result.tier2}개, 1차: ${result.tier1}개 (총 ${result.created}개)`,
+      userName: req.user.username
+    });
+    
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 필요량 계산 미리보기 (실제 생성 전)
+router.post('/crafting/calculate', authenticate, async (req, res, next) => {
+  try {
+    const { category, tier3Goals } = req.body;
+    
+    if (!category || !tier3Goals || !Array.isArray(tier3Goals)) {
+      return res.status(400).json({ error: '카테고리와 3차 목표가 필요합니다.' });
+    }
+    
+    const requirements = await db.calculateMaterialRequirements(category, tier3Goals);
+    res.json(requirements);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 제작 아이템 전체 삭제
+router.delete('/crafting/all', authenticate, requireFeature('manage'), async (req, res, next) => {
+  try {
+    const { category } = req.query;
+    const deletedCount = await db.deleteCraftingItems(category || null);
+    
+    // 히스토리 기록
+    await db.addHistoryEntry({
+      timestamp: new Date().toISOString(),
+      type: 'crafting',
+      category: category || '전체',
+      itemName: '[일괄 삭제]',
+      action: 'delete_all',
+      details: `${deletedCount}개 아이템 삭제`,
+      userName: req.user.username
+    });
+    
+    res.json({ success: true, deletedCount });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============ 기존 API ============
+
 // 아이템 목록 조회
 router.get('/:type', async (req, res, next) => {
   try {

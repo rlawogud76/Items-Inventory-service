@@ -11,6 +11,9 @@ const recipeSchema = new mongoose.Schema({
   resultName: { type: String, required: true, index: true },
   category: { type: String, required: true, index: true },
   
+  // 티어 (1차/2차/3차 제작품)
+  tier: { type: Number, enum: [1, 2, 3], default: 1, index: true },
+  
   // 필요한 재료 목록
   materials: [materialSchema],
   

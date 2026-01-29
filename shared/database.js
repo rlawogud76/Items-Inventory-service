@@ -572,6 +572,210 @@ async function removeRecipe(category, resultName) {
   }
 }
 
+// ============ 제작 계획 관련 함수들 ============
+
+/**
+ * 3차 제작품 목표 기준으로 모든 티어 필요량 계산
+ * @param {string} category - 카테고리
+ * @param {Array} tier3Goals - [{name, quantity}] 3차 제작품 목표
+ * @returns {Object} { tier1: [], tier2: [], tier3: [] }
+ */
+async function calculateMaterialRequirements(category, tier3Goals) {
+  try {
+    const recipes = await Recipe.find({ category }).lean();
+    const recipeMap = recipes.reduce((acc, r) => {
+      acc[r.resultName] = r;
+      return acc;
+    }, {});
+
+    const requirements = { tier1: {}, tier2: {}, tier3: {} };
+
+    // 3차 목표 설정
+    for (const goal of tier3Goals) {
+      requirements.tier3[goal.name] = {
+        name: goal.name,
+        required: goal.quantity,
+        emoji: goal.emoji || null
+      };
+
+      // 3차 레시피에서 2차 재료 계산
+      const recipe3 = recipeMap[goal.name];
+      if (recipe3 && recipe3.materials) {
+        for (const mat of recipe3.materials) {
+          const needed = mat.quantity * goal.quantity;
+          if (!requirements.tier2[mat.name]) {
+            requirements.tier2[mat.name] = { name: mat.name, required: 0, emoji: null };
+          }
+          requirements.tier2[mat.name].required += needed;
+
+          // 2차 레시피에서 1차 재료 계산
+          const recipe2 = recipeMap[mat.name];
+          if (recipe2 && recipe2.materials) {
+            for (const mat2 of recipe2.materials) {
+              const needed2 = mat2.quantity * needed;
+              if (!requirements.tier1[mat2.name]) {
+                requirements.tier1[mat2.name] = { name: mat2.name, required: 0, emoji: null };
+              }
+              requirements.tier1[mat2.name].required += needed2;
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      tier1: Object.values(requirements.tier1),
+      tier2: Object.values(requirements.tier2),
+      tier3: Object.values(requirements.tier3)
+    };
+  } catch (error) {
+    console.error('❌ 재료 필요량 계산 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * 제작 계획 생성 (3차 목표 기준으로 전체 티어 아이템 자동 생성)
+ * @param {string} category - 카테고리
+ * @param {Array} tier3Goals - [{name, quantity, emoji}]
+ * @param {string} eventId - 연동할 이벤트 ID (optional)
+ */
+async function createCraftingPlan(category, tier3Goals, eventId = null) {
+  try {
+    // 기존 해당 카테고리 crafting 아이템 삭제
+    await Item.deleteMany({ type: 'crafting', category });
+
+    // 필요량 계산
+    const requirements = await calculateMaterialRequirements(category, tier3Goals);
+
+    const itemsToCreate = [];
+
+    // 1차 아이템 생성
+    for (const item of requirements.tier1) {
+      itemsToCreate.push({
+        name: item.name,
+        category,
+        type: 'crafting',
+        itemType: 'material',
+        tier: 1,
+        eventId: eventId ? new mongoose.Types.ObjectId(eventId) : null,
+        quantity: 0,
+        required: item.required,
+        emoji: item.emoji
+      });
+    }
+
+    // 2차 아이템 생성
+    for (const item of requirements.tier2) {
+      itemsToCreate.push({
+        name: item.name,
+        category,
+        type: 'crafting',
+        itemType: 'intermediate',
+        tier: 2,
+        eventId: eventId ? new mongoose.Types.ObjectId(eventId) : null,
+        quantity: 0,
+        required: item.required,
+        emoji: item.emoji
+      });
+    }
+
+    // 3차 아이템 생성
+    for (const item of requirements.tier3) {
+      itemsToCreate.push({
+        name: item.name,
+        category,
+        type: 'crafting',
+        itemType: 'final',
+        tier: 3,
+        eventId: eventId ? new mongoose.Types.ObjectId(eventId) : null,
+        quantity: 0,
+        required: item.required,
+        emoji: item.emoji
+      });
+    }
+
+    // 일괄 생성
+    if (itemsToCreate.length > 0) {
+      await Item.insertMany(itemsToCreate);
+    }
+
+    notifyChangeListeners();
+    
+    return {
+      created: itemsToCreate.length,
+      tier1: requirements.tier1.length,
+      tier2: requirements.tier2.length,
+      tier3: requirements.tier3.length
+    };
+  } catch (error) {
+    console.error('❌ 제작 계획 생성 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * 특정 카테고리 또는 전체 crafting 아이템 삭제
+ * @param {string} category - 카테고리 (null이면 전체)
+ */
+async function deleteCraftingItems(category = null) {
+  try {
+    const query = { type: 'crafting' };
+    if (category) {
+      query.category = category;
+    }
+    const result = await Item.deleteMany(query);
+    notifyChangeListeners();
+    return result.deletedCount;
+  } catch (error) {
+    console.error('❌ 제작 아이템 삭제 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * 티어별 제작 대시보드 통계
+ * @param {string} category - 카테고리 (optional)
+ */
+async function getCraftingDashboard(category = null) {
+  try {
+    const query = { type: 'crafting' };
+    if (category) {
+      query.category = category;
+    }
+
+    const items = await Item.find(query).lean();
+    
+    const stats = {
+      tier1: { items: [], total: 0, completed: 0 },
+      tier2: { items: [], total: 0, completed: 0 },
+      tier3: { items: [], total: 0, completed: 0 },
+      overall: { total: 0, completed: 0, progress: 0 }
+    };
+
+    for (const item of items) {
+      const tierKey = `tier${item.tier || 1}`;
+      const isCompleted = item.quantity >= item.required;
+      
+      stats[tierKey].items.push(item);
+      stats[tierKey].total++;
+      if (isCompleted) stats[tierKey].completed++;
+      
+      stats.overall.total++;
+      if (isCompleted) stats.overall.completed++;
+    }
+
+    stats.overall.progress = stats.overall.total > 0 
+      ? Math.round((stats.overall.completed / stats.overall.total) * 100) 
+      : 0;
+
+    return stats;
+  } catch (error) {
+    console.error('❌ 대시보드 조회 실패:', error);
+    throw error;
+  }
+}
+
 // 작업자 업데이트
 async function updateItemWorker(type, category, itemName, workerData) {
   try {
@@ -912,6 +1116,12 @@ module.exports = {
   // 레시피
   saveRecipe,
   removeRecipe,
+  
+  // 제작 계획
+  calculateMaterialRequirements,
+  createCraftingPlan,
+  deleteCraftingItems,
+  getCraftingDashboard,
   
   // 설정
   getSettings,

@@ -397,8 +397,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
   )
 }
 
-export function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, isPending }) {
+export function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, title, message, isPending, isLoading }) {
   if (!isOpen) return null
+  
+  const loading = isPending || isLoading
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -407,10 +409,14 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, isPen
           <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
             <X className="text-red-500" size={24} />
           </div>
-          <h3 className="text-lg font-semibold mb-2">아이템 삭제</h3>
+          <h3 className="text-lg font-semibold mb-2">{title || '아이템 삭제'}</h3>
           <p className="text-gray-400 mb-6">
-            <DiscordText className="font-medium text-white">{itemName}</DiscordText>
-            <br />이 아이템을 삭제하시겠습니까?
+            {message || (
+              <>
+                <DiscordText className="font-medium text-white">{itemName}</DiscordText>
+                <br />이 아이템을 삭제하시겠습니까?
+              </>
+            )}
           </p>
           <div className="flex gap-3">
             <button
@@ -421,10 +427,10 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, isPen
             </button>
             <button
               onClick={onConfirm}
-              disabled={isPending}
+              disabled={loading}
               className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
             >
-              {isPending ? '삭제 중...' : '삭제'}
+              {loading ? '삭제 중...' : '삭제'}
             </button>
           </div>
         </div>
@@ -665,6 +671,376 @@ export function RecipeModal({
               className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50"
             >
               {isSaving ? '저장 중...' : (recipe ? '수정' : '추가')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// 제작 계획 생성 모달
+export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }) {
+  const queryClient = useQueryClient()
+  
+  const [category, setCategory] = useState(initialCategory || '')
+  const [newCategory, setNewCategory] = useState('')
+  const [useNewCategory, setUseNewCategory] = useState(false)
+  const [goals, setGoals] = useState([{ name: '', quantity: 1, emoji: '' }])
+  const [eventId, setEventId] = useState('')
+  const [previewData, setPreviewData] = useState(null)
+  const [error, setError] = useState('')
+  
+  // 카테고리 목록 조회
+  const { data: categories = [] } = useQuery({
+    queryKey: ['items', 'inventory', 'categories'],
+    queryFn: () => api.get('/items/inventory/categories').then(res => res.data),
+  })
+  
+  // 레시피 목록 조회 (3차 제작품 선택용)
+  const { data: recipes = [] } = useQuery({
+    queryKey: ['recipes'],
+    queryFn: () => api.get('/recipes').then(res => res.data),
+  })
+  
+  // 이벤트 목록 조회
+  const { data: events = [] } = useQuery({
+    queryKey: ['events'],
+    queryFn: () => api.get('/events').then(res => res.data),
+  })
+  
+  // 미리보기 mutation
+  const previewMutation = useMutation({
+    mutationFn: (data) => api.post('/items/crafting/calculate', data),
+    onSuccess: (res) => {
+      setPreviewData(res.data)
+      setError('')
+    },
+    onError: (err) => {
+      setError(err.response?.data?.error || '미리보기 실패')
+      setPreviewData(null)
+    }
+  })
+  
+  // 계획 생성 mutation
+  const createMutation = useMutation({
+    mutationFn: (data) => api.post('/items/crafting/plan', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crafting'] })
+      queryClient.invalidateQueries({ queryKey: ['items', 'crafting'] })
+      onClose()
+      resetForm()
+    },
+    onError: (err) => {
+      setError(err.response?.data?.error || '생성 실패')
+    }
+  })
+  
+  const resetForm = () => {
+    setCategory('')
+    setNewCategory('')
+    setUseNewCategory(false)
+    setGoals([{ name: '', quantity: 1, emoji: '' }])
+    setEventId('')
+    setPreviewData(null)
+    setError('')
+  }
+  
+  useEffect(() => {
+    if (isOpen) {
+      setCategory(initialCategory || '')
+      setError('')
+      setPreviewData(null)
+    }
+  }, [isOpen, initialCategory])
+  
+  const handleAddGoal = () => {
+    setGoals([...goals, { name: '', quantity: 1, emoji: '' }])
+  }
+  
+  const handleRemoveGoal = (index) => {
+    if (goals.length > 1) {
+      setGoals(goals.filter((_, i) => i !== index))
+    }
+  }
+  
+  const handleGoalChange = (index, field, value) => {
+    const newGoals = [...goals]
+    newGoals[index][field] = field === 'quantity' ? parseInt(value) || 0 : value
+    setGoals(newGoals)
+  }
+  
+  const handlePreview = () => {
+    const targetCategory = useNewCategory ? newCategory : category
+    if (!targetCategory) {
+      setError('카테고리를 선택해주세요')
+      return
+    }
+    
+    const validGoals = goals.filter(g => g.name && g.quantity > 0)
+    if (validGoals.length === 0) {
+      setError('최소 1개 이상의 3차 제작품을 입력해주세요')
+      return
+    }
+    
+    previewMutation.mutate({
+      category: targetCategory,
+      tier3Goals: validGoals
+    })
+  }
+  
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    
+    const targetCategory = useNewCategory ? newCategory : category
+    if (!targetCategory) {
+      setError('카테고리를 선택해주세요')
+      return
+    }
+    
+    const validGoals = goals.filter(g => g.name && g.quantity > 0)
+    if (validGoals.length === 0) {
+      setError('최소 1개 이상의 3차 제작품을 입력해주세요')
+      return
+    }
+    
+    createMutation.mutate({
+      category: targetCategory,
+      tier3Goals: validGoals,
+      eventId: eventId || null
+    })
+  }
+  
+  // 현재 카테고리의 3차 레시피만 필터링
+  const tier3Recipes = recipes.filter(r => 
+    r.tier === 3 && (!category || r.category === category)
+  )
+  
+  if (!isOpen) return null
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-dark-300 rounded-xl w-full max-w-2xl border border-dark-100 max-h-[90vh] overflow-hidden flex flex-col">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between p-4 border-b border-dark-200">
+          <h2 className="text-lg font-semibold">새 제작 계획 생성</h2>
+          <button
+            onClick={() => { onClose(); resetForm(); }}
+            className="p-1 hover:bg-dark-200 rounded transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+          
+          {/* 카테고리 선택 */}
+          <div>
+            <label className="block text-sm font-medium mb-2">카테고리</label>
+            <div className="flex gap-2 mb-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={!useNewCategory}
+                  onChange={() => setUseNewCategory(false)}
+                  className="text-primary-500"
+                />
+                <span className="text-sm">기존 카테고리</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={useNewCategory}
+                  onChange={() => setUseNewCategory(true)}
+                  className="text-primary-500"
+                />
+                <span className="text-sm">새 카테고리</span>
+              </label>
+            </div>
+            
+            {useNewCategory ? (
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="새 카테고리 이름"
+                className="w-full px-3 py-2 bg-dark-200 rounded-lg border border-dark-100 focus:border-primary-500 outline-none"
+              />
+            ) : (
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-3 py-2 bg-dark-200 rounded-lg border border-dark-100 focus:border-primary-500 outline-none"
+              >
+                <option value="">카테고리 선택...</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          
+          {/* 이벤트 연동 */}
+          <div>
+            <label className="block text-sm font-medium mb-2">이벤트 연동 (선택)</label>
+            <select
+              value={eventId}
+              onChange={(e) => setEventId(e.target.value)}
+              className="w-full px-3 py-2 bg-dark-200 rounded-lg border border-dark-100 focus:border-primary-500 outline-none"
+            >
+              <option value="">이벤트 없음</option>
+              {events.map(event => (
+                <option key={event._id} value={event._id}>
+                  {event.title} ({new Date(event.start).toLocaleDateString()})
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* 3차 제작품 목표 */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium">3차 제작품 목표</label>
+              <button
+                type="button"
+                onClick={handleAddGoal}
+                className="flex items-center gap-1 px-2 py-1 text-xs bg-primary-600 hover:bg-primary-500 rounded transition-colors"
+              >
+                <Plus size={14} />
+                추가
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              {goals.map((goal, index) => (
+                <div key={index} className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    value={goal.emoji}
+                    onChange={(e) => handleGoalChange(index, 'emoji', e.target.value)}
+                    placeholder="🎯"
+                    className="w-12 px-2 py-2 bg-dark-200 rounded-lg border border-dark-100 focus:border-primary-500 outline-none text-center"
+                  />
+                  <input
+                    type="text"
+                    value={goal.name}
+                    onChange={(e) => handleGoalChange(index, 'name', e.target.value)}
+                    placeholder="제작품 이름"
+                    className="flex-1 px-3 py-2 bg-dark-200 rounded-lg border border-dark-100 focus:border-primary-500 outline-none"
+                    list={`recipes-${index}`}
+                  />
+                  <datalist id={`recipes-${index}`}>
+                    {tier3Recipes.map(r => (
+                      <option key={r.resultName} value={r.resultName} />
+                    ))}
+                  </datalist>
+                  <input
+                    type="number"
+                    value={goal.quantity}
+                    onChange={(e) => handleGoalChange(index, 'quantity', e.target.value)}
+                    placeholder="수량"
+                    min="1"
+                    className="w-24 px-3 py-2 bg-dark-200 rounded-lg border border-dark-100 focus:border-primary-500 outline-none"
+                  />
+                  {goals.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveGoal(index)}
+                      className="p-2 hover:bg-red-500/20 text-red-400 rounded transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* 미리보기 버튼 */}
+          <button
+            type="button"
+            onClick={handlePreview}
+            disabled={previewMutation.isPending}
+            className="w-full px-4 py-2 bg-dark-200 hover:bg-dark-100 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {previewMutation.isPending ? '계산 중...' : '필요 재료 미리보기'}
+          </button>
+          
+          {/* 미리보기 결과 */}
+          {previewData && (
+            <div className="bg-dark-200 rounded-lg p-4 space-y-3">
+              <h4 className="font-medium text-sm">예상 아이템 생성 결과</h4>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="text-center p-2 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                  <div className="text-2xl font-bold text-blue-400">{previewData.tier1?.length || 0}</div>
+                  <div className="text-xs text-gray-400">1차 재료</div>
+                </div>
+                <div className="text-center p-2 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                  <div className="text-2xl font-bold text-purple-400">{previewData.tier2?.length || 0}</div>
+                  <div className="text-xs text-gray-400">2차 중간재</div>
+                </div>
+                <div className="text-center p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+                  <div className="text-2xl font-bold text-yellow-400">{previewData.tier3?.length || 0}</div>
+                  <div className="text-xs text-gray-400">3차 완성품</div>
+                </div>
+              </div>
+              
+              {/* 상세 목록 */}
+              <div className="max-h-40 overflow-y-auto text-xs space-y-2">
+                {previewData.tier3?.length > 0 && (
+                  <div>
+                    <div className="font-medium text-yellow-400 mb-1">3차 완성품</div>
+                    {previewData.tier3.map(item => (
+                      <div key={item.name} className="text-gray-300">
+                        • {item.name}: {item.required}개
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {previewData.tier2?.length > 0 && (
+                  <div>
+                    <div className="font-medium text-purple-400 mb-1">2차 중간재</div>
+                    {previewData.tier2.map(item => (
+                      <div key={item.name} className="text-gray-300">
+                        • {item.name}: {item.required}개
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {previewData.tier1?.length > 0 && (
+                  <div>
+                    <div className="font-medium text-blue-400 mb-1">1차 재료</div>
+                    {previewData.tier1.map(item => (
+                      <div key={item.name} className="text-gray-300">
+                        • {item.name}: {item.required}개
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* 버튼 */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => { onClose(); resetForm(); }}
+              className="flex-1 px-4 py-2 bg-dark-200 hover:bg-dark-100 rounded-lg transition-colors"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={createMutation.isPending}
+              className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {createMutation.isPending ? '생성 중...' : '제작 계획 생성'}
             </button>
           </div>
         </form>

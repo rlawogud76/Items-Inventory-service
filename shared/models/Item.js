@@ -11,6 +11,12 @@ const itemSchema = new mongoose.Schema({
   // 세부 유형: 'material'(재료), 'intermediate'(중간재), 'final'(완성품)
   itemType: { type: String, default: 'material' },
   
+  // 티어 (1차/2차/3차 제작품) - crafting 타입에서 사용
+  tier: { type: Number, enum: [1, 2, 3], default: 1, index: true },
+  
+  // 이벤트 연동 (제작 계획 그룹화)
+  eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', default: null, index: true },
+  
   // 데이터
   quantity: { type: Number, default: 0, min: 0 },
   required: { type: Number, default: 0, min: 0 },
