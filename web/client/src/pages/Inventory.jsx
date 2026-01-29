@@ -804,7 +804,7 @@ const Inventory = () => {
         name: item.name,
         order: idx
       }))
-      await api.post(`/items/inventory/${encodeURIComponent(category)}/reorder`, { items: reorderedItems })
+      await api.patch(`/items/inventory/${encodeURIComponent(category)}/order`, { items: reorderedItems })
     },
     onMutate: async ({ category, items }) => {
       await queryClient.cancelQueries({ queryKey: ['items', 'inventory'] })
