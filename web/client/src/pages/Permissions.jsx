@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Shield, UserPlus, X, Save, Check } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import api from '../services/api'
@@ -141,8 +141,8 @@ function Permissions() {
   if (!user?.isAdmin && !user?.isServerOwner) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-center text-gray-400">
-          <Shield className="mx-auto mb-4 text-gray-600" size={48} />
+        <div className="text-center text-gray-500 dark:text-gray-400">
+          <Shield className="mx-auto mb-4 text-gray-400 dark:text-gray-600" size={48} />
           <p className="text-lg">관리자만 접근할 수 있습니다.</p>
         </div>
       </div>
@@ -171,12 +171,12 @@ function Permissions() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold flex items-center gap-2">
+      <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
         <Shield className="text-green-500" />
         권한 설정
       </h1>
 
-      <p className="text-gray-400 text-sm">
+      <p className="text-gray-500 dark:text-gray-400 text-sm">
         Discord 봇의 권한을 설정합니다.
         {user?.isServerOwner 
           ? ' 서버장으로 모든 권한을 수정할 수 있습니다.' 
@@ -185,12 +185,12 @@ function Permissions() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 관리자 목록 - 서버장만 수정 가능 */}
-        <div className={`bg-dark-300 rounded-xl p-6 border border-dark-100 ${!user?.isServerOwner ? 'opacity-60' : ''}`}>
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            👑 관리자 목록
+        <div className={`bg-white dark:bg-dark-300 rounded-xl p-6 border border-gray-200 dark:border-dark-100 ${!user?.isServerOwner ? 'opacity-60' : ''}`}>
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-white">
+             관리자 목록
             {!user?.isServerOwner && <span className="text-xs text-yellow-500">(서버장만 수정 가능)</span>}
           </h2>
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Discord 사용자 ID를 입력하여 관리자를 추가합니다.
             관리자는 모든 기능에 접근할 수 있습니다.
           </p>
@@ -202,13 +202,13 @@ function Permissions() {
               onChange={(e) => setNewAdminId(e.target.value)}
               placeholder="Discord 사용자 ID (예: 123456789012345678)"
               disabled={!user?.isServerOwner}
-              className="flex-1 px-4 py-2 bg-dark-200 border border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-gray-50 dark:bg-dark-200 border border-gray-200 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 disabled:opacity-50 text-gray-900 dark:text-white"
             />
             <button
               type="button"
               onClick={handleAddAdmin}
               disabled={!user?.isServerOwner}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <UserPlus size={18} />
               추가
@@ -220,13 +220,13 @@ function Permissions() {
               <p className="text-gray-500 text-sm py-2">등록된 관리자가 없습니다.</p>
             ) : (
               formData.adminUserIds.map(id => (
-                <div key={id} className="flex items-center justify-between py-2 px-3 bg-dark-200 rounded-lg">
-                  <span className="font-mono text-sm">{id}</span>
+                <div key={id} className="flex items-center justify-between py-2 px-3 bg-gray-100 dark:bg-dark-200 rounded-lg">
+                  <span className="font-mono text-sm text-gray-900 dark:text-white">{id}</span>
                   {user?.isServerOwner && (
                     <button
                       type="button"
                       onClick={() => handleRemoveAdmin(id)}
-                      className="p-1 hover:bg-dark-100 rounded text-red-400 hover:text-red-300"
+                      className="p-1 hover:bg-gray-200 dark:hover:bg-dark-100 rounded text-red-400 hover:text-red-300"
                     >
                       <X size={16} />
                     </button>
@@ -238,27 +238,27 @@ function Permissions() {
         </div>
 
         {/* 관리자 권한 범위 - 서버장만 수정 가능 */}
-        <div className={`bg-dark-300 rounded-xl p-6 border border-dark-100 ${!user?.isServerOwner ? 'opacity-60' : ''}`}>
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            🛡️ 관리자 권한 범위
+        <div className={`bg-white dark:bg-dark-300 rounded-xl p-6 border border-gray-200 dark:border-dark-100 ${!user?.isServerOwner ? 'opacity-60' : ''}`}>
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-white">
+             관리자 권한 범위
             {!user?.isServerOwner && <span className="text-xs text-yellow-500">(서버장만 수정 가능)</span>}
           </h2>
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             관리자가 사용할 수 있는 기능을 선택합니다.
           </p>
           
           <div className="space-y-3">
             {/* 모든 권한 */}
-            <label className={`flex items-center gap-3 p-3 bg-dark-200 rounded-lg ${user?.isServerOwner ? 'cursor-pointer hover:bg-dark-100' : 'cursor-not-allowed'}`}>
+            <label className={`flex items-center gap-3 p-3 bg-gray-100 dark:bg-dark-200 rounded-lg ${user?.isServerOwner ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-dark-100' : 'cursor-not-allowed'}`}>
               <input
                 type="checkbox"
                 checked={formData.adminAllowedFeatureKeys.includes('*')}
                 onChange={() => toggleFeatureKey('admin', '*')}
                 disabled={!user?.isServerOwner}
-                className="w-5 h-5 rounded border-dark-100 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 bg-dark-100 disabled:opacity-50"
+                className="w-5 h-5 rounded border-gray-300 dark:border-dark-100 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 bg-white dark:bg-dark-100 disabled:opacity-50"
               />
               <div className="flex-1">
-                <span className="font-medium">모든 권한</span>
+                <span className="font-medium text-gray-900 dark:text-white">모든 권한</span>
                 <p className="text-xs text-gray-500">모든 기능에 접근 가능</p>
               </div>
               {formData.adminAllowedFeatureKeys.includes('*') && (
@@ -271,17 +271,17 @@ function Permissions() {
               {FEATURE_KEYS.map(feature => (
                 <label
                   key={feature.key}
-                  className={`flex items-center gap-3 p-3 bg-dark-200 rounded-lg ${user?.isServerOwner && !formData.adminAllowedFeatureKeys.includes('*') ? 'cursor-pointer hover:bg-dark-100' : 'cursor-not-allowed'}`}
+                  className={`flex items-center gap-3 p-3 bg-gray-100 dark:bg-dark-200 rounded-lg ${user?.isServerOwner && !formData.adminAllowedFeatureKeys.includes('*') ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-dark-100' : 'cursor-not-allowed'}`}
                 >
                   <input
                     type="checkbox"
                     checked={isFeatureSelected('admin', feature.key)}
                     onChange={() => toggleFeatureKey('admin', feature.key)}
                     disabled={!user?.isServerOwner || formData.adminAllowedFeatureKeys.includes('*')}
-                    className="w-4 h-4 rounded border-dark-100 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 bg-dark-100 disabled:opacity-50"
+                    className="w-4 h-4 rounded border-gray-300 dark:border-dark-100 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 bg-white dark:bg-dark-100 disabled:opacity-50"
                   />
                   <div className="flex-1">
-                    <span className="text-sm">{feature.label}</span>
+                    <span className="text-sm text-gray-900 dark:text-white">{feature.label}</span>
                     <p className="text-xs text-gray-500">{feature.description}</p>
                   </div>
                 </label>
@@ -291,26 +291,26 @@ function Permissions() {
         </div>
 
         {/* 멤버 권한 범위 - 관리자도 수정 가능 */}
-        <div className="bg-dark-300 rounded-xl p-6 border border-dark-100">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            👤 멤버 권한 범위
+        <div className="bg-white dark:bg-dark-300 rounded-xl p-6 border border-gray-200 dark:border-dark-100">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-white">
+             멤버 권한 범위
             <span className="text-xs text-green-500">(관리자도 수정 가능)</span>
           </h2>
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             일반 멤버가 사용할 수 있는 기능을 선택합니다.
           </p>
           
           <div className="space-y-3">
             {/* 모든 권한 */}
-            <label className="flex items-center gap-3 p-3 bg-dark-200 rounded-lg cursor-pointer hover:bg-dark-100">
+            <label className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-dark-200 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-dark-100">
               <input
                 type="checkbox"
                 checked={formData.memberAllowedFeatureKeys.includes('*')}
                 onChange={() => toggleFeatureKey('member', '*')}
-                className="w-5 h-5 rounded border-dark-100 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 bg-dark-100"
+                className="w-5 h-5 rounded border-gray-300 dark:border-dark-100 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 bg-white dark:bg-dark-100"
               />
               <div className="flex-1">
-                <span className="font-medium">모든 권한</span>
+                <span className="font-medium text-gray-900 dark:text-white">모든 권한</span>
                 <p className="text-xs text-gray-500">모든 기능에 접근 가능</p>
               </div>
               {formData.memberAllowedFeatureKeys.includes('*') && (
@@ -323,17 +323,17 @@ function Permissions() {
               {FEATURE_KEYS.map(feature => (
                 <label
                   key={feature.key}
-                  className="flex items-center gap-3 p-3 bg-dark-200 rounded-lg cursor-pointer hover:bg-dark-100"
+                  className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-dark-200 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-dark-100"
                 >
                   <input
                     type="checkbox"
                     checked={isFeatureSelected('member', feature.key)}
                     onChange={() => toggleFeatureKey('member', feature.key)}
                     disabled={formData.memberAllowedFeatureKeys.includes('*')}
-                    className="w-4 h-4 rounded border-dark-100 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 bg-dark-100 disabled:opacity-50"
+                    className="w-4 h-4 rounded border-gray-300 dark:border-dark-100 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 bg-white dark:bg-dark-100 disabled:opacity-50"
                   />
                   <div className="flex-1">
-                    <span className="text-sm">{feature.label}</span>
+                    <span className="text-sm text-gray-900 dark:text-white">{feature.label}</span>
                     <p className="text-xs text-gray-500">{feature.description}</p>
                   </div>
                 </label>
@@ -346,7 +346,7 @@ function Permissions() {
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 rounded-lg font-medium disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium disabled:opacity-50"
         >
           <Save size={18} />
           {mutation.isPending ? '저장 중...' : '권한 설정 저장'}

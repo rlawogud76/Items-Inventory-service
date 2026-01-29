@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+﻿import { useQuery } from '@tanstack/react-query'
 import { Users as UsersIcon, Crown, Shield, User } from 'lucide-react'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -48,7 +48,7 @@ function Users() {
 
   if (!user?.isAdmin && !user?.isServerOwner) {
     return (
-      <div className="text-center py-12 text-gray-400">
+      <div className="text-center py-12 text-gray-500 dark:text-gray-400">
         관리자만 접근할 수 있습니다.
       </div>
     )
@@ -75,11 +75,11 @@ function Users() {
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <UsersIcon className="text-primary-500" size={28} />
-        <h1 className="text-2xl font-bold">유저 관리</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">유저 관리</h1>
       </div>
 
-      <div className="bg-dark-300 rounded-xl p-6 border border-dark-100">
-        <p className="text-gray-400 mb-6">
+      <div className="bg-white dark:bg-dark-300 rounded-xl p-6 border border-gray-200 dark:border-dark-100">
+        <p className="text-gray-500 dark:text-gray-400 mb-6">
           로그인한 유저들의 역할을 확인할 수 있습니다. 역할 변경은 권한 설정 페이지에서 관리자 ID를 추가/제거하여 할 수 있습니다.
         </p>
 
@@ -88,7 +88,7 @@ function Users() {
           {/* 서버장 */}
           {groupedUsers.owner.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2 text-gray-900 dark:text-white">
                 <Crown className="text-yellow-400" size={20} />
                 서버장
               </h2>
@@ -103,7 +103,7 @@ function Users() {
           {/* 관리자 */}
           {groupedUsers.admin.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2 text-gray-900 dark:text-white">
                 <Shield className="text-primary-400" size={20} />
                 관리자 ({groupedUsers.admin.length})
               </h2>
@@ -118,7 +118,7 @@ function Users() {
           {/* 멤버 */}
           {groupedUsers.member.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2 text-gray-900 dark:text-white">
                 <User className="text-gray-400" size={20} />
                 멤버 ({groupedUsers.member.length})
               </h2>
@@ -131,7 +131,7 @@ function Users() {
           )}
 
           {users.length === 0 && (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               로그인한 유저가 없습니다.
             </div>
           )}
@@ -147,7 +147,7 @@ function UserCard({ user }) {
     : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.discriminator || '0') % 5}.png`
 
   return (
-    <div className="flex items-center gap-3 p-4 bg-dark-200 rounded-lg">
+    <div className="flex items-center gap-3 p-4 bg-gray-100 dark:bg-dark-200 rounded-lg">
       <img 
         src={avatarUrl} 
         alt={user.username}
@@ -157,7 +157,7 @@ function UserCard({ user }) {
         }}
       />
       <div className="flex-1 min-w-0">
-        <div className="font-medium truncate">{user.username}</div>
+        <div className="font-medium truncate text-gray-900 dark:text-white">{user.username}</div>
         <div className="text-xs text-gray-500 truncate">ID: {user.id}</div>
       </div>
       <div className={clsx(

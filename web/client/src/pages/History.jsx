@@ -1,212 +1,178 @@
-import { useQuery } from '@tanstack/react-query'
+﻿import { useQuery } from '@tanstack/react-query'
+import { History as HistoryIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
-import { Clock, ChevronLeft, ChevronRight, ShieldX } from 'lucide-react'
 import api from '../services/api'
-import { DiscordText } from '../utils/discordEmoji'
-import clsx from 'clsx'
-
-function formatDate(timestamp) {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diff = now - date
-  
-  // 1시간 이내
-  if (diff < 60 * 60 * 1000) {
-    const minutes = Math.floor(diff / (60 * 1000))
-    return `${minutes}분 전`
-  }
-  // 24시간 이내
-  if (diff < 24 * 60 * 60 * 1000) {
-    const hours = Math.floor(diff / (60 * 60 * 1000))
-    return `${hours}시간 전`
-  }
-  // 그 외
-  return date.toLocaleDateString('ko-KR', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-function getActionBadge(action) {
-  switch (action) {
-    case 'add':
-      return { text: '추가', color: 'bg-green-500/20 text-green-400' }
-    case 'remove':
-      return { text: '삭제', color: 'bg-red-500/20 text-red-400' }
-    case 'update_quantity':
-      return { text: '수량 변경', color: 'bg-blue-500/20 text-blue-400' }
-    case 'update_required':
-    case 'edit_required':
-      return { text: '목표 변경', color: 'bg-purple-500/20 text-purple-400' }
-    case 'reset':
-      return { text: '초기화', color: 'bg-orange-500/20 text-orange-400' }
-    case 'rename':
-      return { text: '이름 변경', color: 'bg-yellow-500/20 text-yellow-400' }
-    default:
-      return { text: action, color: 'bg-gray-500/20 text-gray-400' }
-  }
-}
 
 function History() {
   const [page, setPage] = useState(1)
-  const [typeFilter, setTypeFilter] = useState('')
+  const [filter, setFilter] = useState('all')
   const limit = 20
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['history', page, typeFilter],
-    queryFn: () => api.get('/history', {
-      params: { page, limit, type: typeFilter || undefined }
+  const { data, isLoading } = useQuery({
+    queryKey: ['history', page, filter],
+    queryFn: () => api.get('/history', { 
+      params: { page, limit, filter: filter === 'all' ? undefined : filter } 
     }).then(res => res.data),
-    retry: (failureCount, error) => {
-      // 403 권한 없음 에러는 재시도 안함
-      if (error?.response?.status === 403) return false
-      return failureCount < 3
-    }
   })
 
-  const history = data?.data || []
-  const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0 }
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
 
-  // 권한 없음 에러 표시
-  if (error?.response?.status === 403) {
+  const getActionBadge = (action) => {
+    const badges = {
+      add: { text: '추가', class: 'bg-green-500/20 text-green-400' },
+      remove: { text: '제거', class: 'bg-red-500/20 text-red-400' },
+      update: { text: '수정', class: 'bg-blue-500/20 text-blue-400' },
+      reset: { text: '초기화', class: 'bg-yellow-500/20 text-yellow-400' },
+      create: { text: '생성', class: 'bg-purple-500/20 text-purple-400' },
+      delete: { text: '삭제', class: 'bg-red-500/20 text-red-400' },
+    }
+    const badge = badges[action] || { text: action, class: 'bg-gray-500/20 text-gray-400' }
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <ShieldX className="w-16 h-16 text-red-500 mb-4" />
-        <h2 className="text-xl font-bold text-red-400 mb-2">권한이 없습니다</h2>
-        <p className="text-gray-400">수정내역 조회 권한이 비활성화되어 있습니다.</p>
-        <p className="text-gray-500 text-sm mt-2">관리자에게 문의하세요.</p>
+      <span className={`px-2 py-1 rounded text-xs font-medium ${badge.class}`}>
+        {badge.text}
+      </span>
+    )
+  }
+
+  const getTypeLabel = (type) => {
+    const types = {
+      inventory: '재고',
+      crafting: '제작',
+      recipe: '레시피',
+      event: '이벤트',
+      tag: '태그',
+      settings: '설정',
+    }
+    return types[type] || type
+  }
+
+  const filterOptions = [
+    { value: 'all', label: '전체' },
+    { value: 'inventory', label: '재고' },
+    { value: 'crafting', label: '제작' },
+    { value: 'recipe', label: '레시피' },
+    { value: 'event', label: '이벤트' },
+    { value: 'tag', label: '태그' },
+    { value: 'settings', label: '설정' },
+  ]
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Clock className="text-primary-500" />
-          수정 내역
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+          <HistoryIcon className="text-primary-500" />
+          활동 내역
         </h1>
+      </div>
 
-        {/* 필터 */}
-        <div className="flex gap-2">
+      {/* 필터 */}
+      <div className="flex flex-wrap gap-2">
+        {filterOptions.map(option => (
           <button
-            onClick={() => { setTypeFilter(''); setPage(1); }}
-            className={clsx(
-              'px-4 py-2 rounded-lg text-sm transition-colors',
-              !typeFilter ? 'bg-primary-600 text-white' : 'bg-dark-300 hover:bg-dark-200'
-            )}
+            key={option.value}
+            onClick={() => { setFilter(option.value); setPage(1); }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filter === option.value
+                ? 'bg-primary-600 text-white'
+                : 'bg-white dark:bg-dark-300 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-200'
+            }`}
           >
-            전체
+            {option.label}
           </button>
-          <button
-            onClick={() => { setTypeFilter('inventory'); setPage(1); }}
-            className={clsx(
-              'px-4 py-2 rounded-lg text-sm transition-colors',
-              typeFilter === 'inventory' ? 'bg-primary-600 text-white' : 'bg-dark-300 hover:bg-dark-200'
-            )}
-          >
-            재고
-          </button>
-          <button
-            onClick={() => { setTypeFilter('crafting'); setPage(1); }}
-            className={clsx(
-              'px-4 py-2 rounded-lg text-sm transition-colors',
-              typeFilter === 'crafting' ? 'bg-primary-600 text-white' : 'bg-dark-300 hover:bg-dark-200'
-            )}
-          >
-            제작
-          </button>
+        ))}
+      </div>
+
+      {/* 테이블 */}
+      <div className="bg-white dark:bg-dark-300 rounded-xl border border-gray-200 dark:border-dark-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-100 dark:bg-dark-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-400">시간</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-400">유형</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-400">작업</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-400">대상</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-400">사용자</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-400">상세</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-dark-100">
+              {data?.history?.length > 0 ? (
+                data.history.map(item => (
+                  <tr key={item._id} className="hover:bg-gray-50 dark:hover:bg-dark-200/50">
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                      {formatDate(item.createdAt)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-gray-900 dark:text-white">{getTypeLabel(item.type)}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {getActionBadge(item.action)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{item.target || '-'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{item.username || '시스템'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-gray-500 dark:text-gray-500 max-w-xs truncate block">
+                        {item.details || '-'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                    기록이 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
-        </div>
-      ) : history.length > 0 ? (
-        <>
-          {/* 테이블 */}
-          <div className="bg-dark-300 rounded-xl border border-dark-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-dark-200">
-                  <tr>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">시간</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">유형</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">카테고리</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">아이템</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">액션</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">상세</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">사용자</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-dark-100">
-                  {history.map((entry, index) => {
-                    const badge = getActionBadge(entry.action)
-                    return (
-                      <tr key={index} className="hover:bg-dark-200/50">
-                        <td className="px-4 py-3 text-sm text-gray-400 whitespace-nowrap">
-                          {formatDate(entry.timestamp)}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={clsx(
-                            'px-2 py-0.5 rounded text-xs',
-                            entry.type === 'inventory' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'
-                          )}>
-                            {entry.type === 'inventory' ? '재고' : '제작'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-300"><DiscordText>{entry.category}</DiscordText></td>
-                        <td className="px-4 py-3 text-sm font-medium"><DiscordText>{entry.itemName}</DiscordText></td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`px-2 py-0.5 rounded text-xs ${badge.color}`}>
-                            {badge.text}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-400 max-w-xs truncate">
-                          {entry.details}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-300">{entry.userName}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* 페이지네이션 */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-400">
-              총 {pagination.total}개 중 {((pagination.page - 1) * limit) + 1}-{Math.min(pagination.page * limit, pagination.total)}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-2 rounded-lg bg-dark-300 hover:bg-dark-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <span className="px-4 py-2 bg-dark-300 rounded-lg text-sm">
-                {pagination.page} / {pagination.totalPages}
-              </span>
-              <button
-                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
-                disabled={page === pagination.totalPages}
-                className="p-2 rounded-lg bg-dark-300 hover:bg-dark-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="text-center py-12 text-gray-400">
-          <Clock size={48} className="mx-auto mb-4 opacity-50" />
-          <p>수정 내역이 없습니다.</p>
+      {/* 페이지네이션 */}
+      {data?.totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="p-2 rounded-lg bg-white dark:bg-dark-300 border border-gray-200 dark:border-dark-100 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          
+          <span className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+            {page} / {data.totalPages}
+          </span>
+          
+          <button
+            onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
+            disabled={page === data.totalPages}
+            className="p-2 rounded-lg bg-white dark:bg-dark-300 border border-gray-200 dark:border-dark-100 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronRight size={18} />
+          </button>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Star, RotateCcw, Save, ChevronDown, ChevronRight } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import api from '../services/api'
@@ -57,7 +57,6 @@ function Points() {
       [key]: clampedValue
     }))
 
-    // 원본 값과 다르면 변경 목록에 추가
     const originalValue = points?.[type]?.[category]?.[itemName] || 1
     if (clampedValue !== originalValue) {
       setPendingChanges(prev => ({
@@ -102,8 +101,8 @@ function Points() {
   if (!user?.isAdmin) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-center text-gray-400">
-          <Star className="mx-auto mb-4 text-gray-600" size={48} />
+        <div className="text-center text-gray-500 dark:text-gray-400">
+          <Star className="mx-auto mb-4 text-gray-400 dark:text-gray-600" size={48} />
           <p className="text-lg">관리자만 접근할 수 있습니다.</p>
         </div>
       </div>
@@ -123,7 +122,7 @@ function Points() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
           <Star className="text-yellow-500" />
           배점 설정
         </h1>
@@ -132,7 +131,7 @@ function Points() {
           <button
             onClick={handleReset}
             disabled={resetMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm disabled:opacity-50"
           >
             <RotateCcw size={16} />
             전체 초기화
@@ -142,7 +141,7 @@ function Points() {
             <button
               onClick={handleSaveAll}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg text-sm disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm disabled:opacity-50"
             >
               <Save size={16} />
               {Object.keys(pendingChanges).length}개 저장
@@ -151,19 +150,19 @@ function Points() {
         </div>
       </div>
 
-      <p className="text-gray-400 text-sm">
+      <p className="text-gray-500 dark:text-gray-400 text-sm">
         아이템별 배점을 설정합니다. 배점은 기여도 계산에 사용됩니다. (1~100)
       </p>
 
       {/* 재고 배점 */}
-      <div className="bg-dark-300 rounded-xl border border-dark-100 overflow-hidden">
-        <div className="p-4 bg-dark-200 border-b border-dark-100">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            📦 재고 배점
+      <div className="bg-white dark:bg-dark-300 rounded-xl border border-gray-200 dark:border-dark-100 overflow-hidden">
+        <div className="p-4 bg-gray-100 dark:bg-dark-200 border-b border-gray-200 dark:border-dark-100">
+          <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+             재고 배점
           </h2>
         </div>
         
-        <div className="divide-y divide-dark-100">
+        <div className="divide-y divide-gray-200 dark:divide-dark-100">
           {points?.inventory && Object.keys(points.inventory).length > 0 ? (
             Object.keys(points.inventory).map(category => {
               const key = `inventory:${category}`
@@ -174,12 +173,12 @@ function Points() {
                 <div key={category}>
                   <button
                     onClick={() => toggleCategory('inventory', category)}
-                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-dark-200 transition-colors"
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-dark-200 transition-colors"
                   >
-                    <span className="font-medium">{category}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{category}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-400">{items.length}개</span>
-                      {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{items.length}개</span>
+                      {isExpanded ? <ChevronDown size={18} className="text-gray-500" /> : <ChevronRight size={18} className="text-gray-500" />}
                     </div>
                   </button>
                   
@@ -190,8 +189,8 @@ function Points() {
                         const hasChange = pendingChanges[itemKey]
                         
                         return (
-                          <div key={itemName} className="flex items-center justify-between py-2 px-3 bg-dark-200 rounded-lg">
-                            <span className="text-sm">{itemName}</span>
+                          <div key={itemName} className="flex items-center justify-between py-2 px-3 bg-gray-100 dark:bg-dark-200 rounded-lg">
+                            <span className="text-sm text-gray-900 dark:text-white">{itemName}</span>
                             <div className="flex items-center gap-2">
                               <input
                                 type="number"
@@ -199,8 +198,8 @@ function Points() {
                                 max="100"
                                 value={getItemPoint('inventory', category, itemName)}
                                 onChange={(e) => handlePointChange('inventory', category, itemName, e.target.value)}
-                                className={`w-20 px-3 py-1 text-center bg-dark-100 border rounded text-sm focus:outline-none focus:border-primary-500 ${
-                                  hasChange ? 'border-yellow-500' : 'border-dark-50'
+                                className={`w-20 px-3 py-1 text-center bg-white dark:bg-dark-100 border rounded text-sm focus:outline-none focus:border-primary-500 text-gray-900 dark:text-white ${
+                                  hasChange ? 'border-yellow-500' : 'border-gray-300 dark:border-dark-50'
                                 }`}
                               />
                               <span className="text-gray-500 text-xs">점</span>
@@ -222,14 +221,14 @@ function Points() {
       </div>
 
       {/* 제작 배점 */}
-      <div className="bg-dark-300 rounded-xl border border-dark-100 overflow-hidden">
-        <div className="p-4 bg-dark-200 border-b border-dark-100">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            🔨 제작 배점
+      <div className="bg-white dark:bg-dark-300 rounded-xl border border-gray-200 dark:border-dark-100 overflow-hidden">
+        <div className="p-4 bg-gray-100 dark:bg-dark-200 border-b border-gray-200 dark:border-dark-100">
+          <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+             제작 배점
           </h2>
         </div>
         
-        <div className="divide-y divide-dark-100">
+        <div className="divide-y divide-gray-200 dark:divide-dark-100">
           {points?.crafting && Object.keys(points.crafting).length > 0 ? (
             Object.keys(points.crafting).map(category => {
               const key = `crafting:${category}`
@@ -240,12 +239,12 @@ function Points() {
                 <div key={category}>
                   <button
                     onClick={() => toggleCategory('crafting', category)}
-                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-dark-200 transition-colors"
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-dark-200 transition-colors"
                   >
-                    <span className="font-medium">{category}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{category}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-400">{items.length}개</span>
-                      {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{items.length}개</span>
+                      {isExpanded ? <ChevronDown size={18} className="text-gray-500" /> : <ChevronRight size={18} className="text-gray-500" />}
                     </div>
                   </button>
                   
@@ -256,8 +255,8 @@ function Points() {
                         const hasChange = pendingChanges[itemKey]
                         
                         return (
-                          <div key={itemName} className="flex items-center justify-between py-2 px-3 bg-dark-200 rounded-lg">
-                            <span className="text-sm">{itemName}</span>
+                          <div key={itemName} className="flex items-center justify-between py-2 px-3 bg-gray-100 dark:bg-dark-200 rounded-lg">
+                            <span className="text-sm text-gray-900 dark:text-white">{itemName}</span>
                             <div className="flex items-center gap-2">
                               <input
                                 type="number"
@@ -265,8 +264,8 @@ function Points() {
                                 max="100"
                                 value={getItemPoint('crafting', category, itemName)}
                                 onChange={(e) => handlePointChange('crafting', category, itemName, e.target.value)}
-                                className={`w-20 px-3 py-1 text-center bg-dark-100 border rounded text-sm focus:outline-none focus:border-primary-500 ${
-                                  hasChange ? 'border-yellow-500' : 'border-dark-50'
+                                className={`w-20 px-3 py-1 text-center bg-white dark:bg-dark-100 border rounded text-sm focus:outline-none focus:border-primary-500 text-gray-900 dark:text-white ${
+                                  hasChange ? 'border-yellow-500' : 'border-gray-300 dark:border-dark-50'
                                 }`}
                               />
                               <span className="text-gray-500 text-xs">점</span>

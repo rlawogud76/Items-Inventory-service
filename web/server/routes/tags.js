@@ -16,11 +16,14 @@ router.get('/:type', async (req, res, next) => {
     const seenNames = new Set();
     
     for (const category of Object.keys(typeTags)) {
-      const categoryTags = typeTags[category] || [];
-      for (const tag of categoryTags) {
-        if (!seenNames.has(tag.name)) {
-          seenNames.add(tag.name);
-          allTags.push(tag);
+      const categoryTags = typeTags[category];
+      // 배열인 경우만 처리
+      if (Array.isArray(categoryTags)) {
+        for (const tag of categoryTags) {
+          if (tag && tag.name && !seenNames.has(tag.name)) {
+            seenNames.add(tag.name);
+            allTags.push(tag);
+          }
         }
       }
     }
