@@ -108,7 +108,7 @@ router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('qu
     }
     
     // 중간재료/완성품이고 레시피가 있으면 재료 연동
-    if (syncMaterials && (item.itemType === 'intermediate' || item.itemType === 'finished') && delta !== 0) {
+    if (syncMaterials && (item.itemType === 'intermediate' || item.itemType === 'finished' || item.itemType === 'final') && delta !== 0) {
       const recipes = await db.getRecipes(category);
       const recipe = recipes.find(r => r.resultName === name);
       
@@ -207,7 +207,7 @@ router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature
     const delta = value - item.quantity; // 변화량 계산
     
     // 중간재료/완성품이고 레시피가 있으면 재료 연동
-    if (syncMaterials && (item.itemType === 'intermediate' || item.itemType === 'finished') && delta !== 0) {
+    if (syncMaterials && (item.itemType === 'intermediate' || item.itemType === 'finished' || item.itemType === 'final') && delta !== 0) {
       const recipes = await db.getRecipes(category);
       const recipe = recipes.find(r => r.resultName === name);
       
