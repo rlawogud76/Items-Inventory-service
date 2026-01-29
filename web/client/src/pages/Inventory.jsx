@@ -103,25 +103,18 @@ const ItemRow = ({
   const isUserWorking = item.workers?.some(w => w.userId === user?.id)
   const workersCount = item.workers?.length || 0
   
-  // 프리셋 버튼들 (커스텀 프리셋 + 세트/상자)
+  // 프리셋 버튼들 (커스텀 프리셋)
   const presetButtons = useMemo(() => {
-    const presets = []
+    const plusPresets = []
+    const minusPresets = []
     
-    // 세트 기준 (고정값 사용)
-    presets.push({ label: '+1세트', delta: SET_SIZE })
-    presets.push({ label: '-1세트', delta: -SET_SIZE })
-    
-    // 상자 기준 (고정값 사용)
-    presets.push({ label: '+1상자', delta: BOX_SIZE })
-    presets.push({ label: '-1상자', delta: -BOX_SIZE })
-    
-    // 커스텀 프리셋
+    // 커스텀 프리셋 (플러스/마이너스 분리)
     for (const p of customPresets) {
-      presets.push({ label: `+${p}`, delta: p })
-      presets.push({ label: `-${p}`, delta: -p })
+      plusPresets.push({ label: `+${p}`, delta: p })
+      minusPresets.push({ label: `-${p}`, delta: -p })
     }
     
-    return presets
+    return [...plusPresets, ...minusPresets]
   }, [customPresets])
 
   const handlePresetClick = (delta) => {
