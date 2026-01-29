@@ -475,7 +475,7 @@ const Inventory = () => {
   const { data: categories = [] } = useQuery({
     queryKey: ['items', 'inventory', 'categories'],
     queryFn: async () => {
-      const res = await api.get('/items/categories?type=inventory')
+      const res = await api.get('/items/inventory/categories')
       return res.data
     }
   })
@@ -483,7 +483,7 @@ const Inventory = () => {
   const { data: allItems = [], isLoading } = useQuery({
     queryKey: ['items', 'inventory', 'all'],
     queryFn: async () => {
-      const res = await api.get('/items?type=inventory')
+      const res = await api.get('/items/inventory')
       return res.data
     }
   })
@@ -491,7 +491,7 @@ const Inventory = () => {
   const { data: tags = [] } = useQuery({
     queryKey: ['tags', 'inventory'],
     queryFn: async () => {
-      const res = await api.get('/tags?type=inventory')
+      const res = await api.get('/tags/inventory')
       return res.data
     }
   })

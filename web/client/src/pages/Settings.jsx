@@ -18,12 +18,12 @@ function Settings() {
   // 카테고리 목록 조회
   const { data: inventoryCategories = [] } = useQuery({
     queryKey: ['items', 'inventory', 'categories'],
-    queryFn: () => api.get('/items/categories?type=inventory').then(res => res.data),
+    queryFn: () => api.get('/items/inventory/categories').then(res => res.data),
   })
 
   const { data: craftingCategories = [] } = useQuery({
     queryKey: ['items', 'crafting', 'categories'],
-    queryFn: () => api.get('/items/categories?type=crafting').then(res => res.data),
+    queryFn: () => api.get('/items/crafting/categories').then(res => res.data),
   })
 
   // 카테고리 이모지 조회

@@ -4,7 +4,34 @@ const db = require('shared/database');
 const tagService = require('shared/services/tagService');
 const { authenticate, requireFeature } = require('../middleware/auth');
 
-// 태그 목록 조회
+// 전체 태그 목록 조회 (카테고리 무관)
+router.get('/:type', async (req, res, next) => {
+  try {
+    const { type } = req.params;
+    const settings = await db.getSettings();
+    const typeTags = settings?.tags?.[type] || {};
+    
+    // 모든 카테고리의 태그를 합쳐서 중복 제거
+    const allTags = [];
+    const seenNames = new Set();
+    
+    for (const category of Object.keys(typeTags)) {
+      const categoryTags = typeTags[category] || [];
+      for (const tag of categoryTags) {
+        if (!seenNames.has(tag.name)) {
+          seenNames.add(tag.name);
+          allTags.push(tag);
+        }
+      }
+    }
+    
+    res.json(allTags);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 태그 목록 조회 (카테고리별)
 router.get('/:type/:category', async (req, res, next) => {
   try {
     const { type, category } = req.params;
