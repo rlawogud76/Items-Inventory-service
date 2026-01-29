@@ -386,8 +386,8 @@ const CategorySection = ({
       
       {/* 아이템 목록 - 애니메이션 적용 */}
       <div className={clsx(
-        'transition-all duration-300 ease-in-out overflow-hidden',
-        isExpanded ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
+        'transition-all duration-300 ease-in-out',
+        isExpanded ? 'opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
       )}>
         <div className="p-4 bg-white dark:bg-dark-400">
           {/* 카테고리 액션 버튼 */}

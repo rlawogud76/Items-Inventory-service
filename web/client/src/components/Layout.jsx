@@ -29,6 +29,7 @@ import { useTheme } from '../contexts/ThemeContext'
 import api from '../services/api'
 import clsx from 'clsx'
 
+// 전체 네비게이션 아이템 (사이드바용)
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: '대시보드' },
   { path: '/inventory', icon: Package, label: '재고' },
@@ -44,14 +45,29 @@ const navItems = [
   { path: '/users', icon: Users, label: '유저', adminOnly: true },
 ]
 
+// 헤더에 표시할 핵심 메뉴 (경로 기준)
+const headerNavPaths = ['/', '/inventory', '/crafting']
+
 function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false) // 모바일용
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    // localStorage에서 상태 복원
+    const saved = localStorage.getItem('sidebarCollapsed')
+    return saved === 'true'
+  })
   const [notificationOpen, setNotificationOpen] = useState(false)
   const notificationRef = useRef(null)
   const { user, logout, hasFeature, getRoleName } = useAuth()
   const { connected, toasts, removeToast } = useSocket()
   const { isDark, toggleTheme } = useTheme()
   const location = useLocation()
+  
+  // 사이드바 토글 (데스크톱)
+  const toggleSidebar = () => {
+    const newState = !sidebarCollapsed
+    setSidebarCollapsed(newState)
+    localStorage.setItem('sidebarCollapsed', String(newState))
+  }
 
   // 다가오는 이벤트 조회 (알림용)
   const { data: upcomingEvents = [] } = useQuery({
@@ -88,11 +104,20 @@ function Layout() {
         <div className="h-full px-4 flex items-center justify-between">
           {/* 왼쪽: 메뉴 버튼 + 로고 */}
           <div className="flex items-center gap-4">
+            {/* 모바일 메뉴 버튼 */}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="lg:hidden p-2 hover:bg-light-200 dark:hover:bg-dark-200 rounded-lg transition-colors"
             >
               {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+            {/* 데스크톱 사이드바 토글 버튼 */}
+            <button
+              onClick={toggleSidebar}
+              className="hidden lg:flex p-2 hover:bg-light-200 dark:hover:bg-dark-200 rounded-lg transition-colors"
+              title={sidebarCollapsed ? '메뉴 펼치기' : '메뉴 접기'}
+            >
+              <Menu size={24} />
             </button>
             <div className="flex items-center gap-2">
               <Package className="text-primary-500" size={28} />
@@ -100,9 +125,11 @@ function Layout() {
             </div>
           </div>
 
-          {/* 가운데: 네비게이션 (데스크톱) */}
+          {/* 가운데: 핵심 네비게이션 (데스크톱) */}
           <nav className="hidden lg:flex items-center gap-1">
-            {filteredNavItems.map((item) => (
+            {filteredNavItems
+              .filter(item => headerNavPaths.includes(item.path))
+              .map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
@@ -251,17 +278,22 @@ function Layout() {
         />
       )}
 
-      {/* 데스크탑 사이드바 (고정) */}
-      <aside className="hidden lg:block fixed top-16 left-0 bottom-0 w-64 bg-white dark:bg-dark-300 border-r border-light-300 dark:border-dark-100 z-30 overflow-y-auto">
-        <nav className="p-4 flex flex-col gap-2">
+      {/* 데스크탑 사이드바 (토글 가능) */}
+      <aside className={clsx(
+        'hidden lg:flex flex-col fixed top-16 left-0 bottom-0 bg-white dark:bg-dark-300 border-r border-light-300 dark:border-dark-100 z-30 overflow-y-auto transition-all duration-300',
+        sidebarCollapsed ? 'w-16' : 'w-64'
+      )}>
+        <nav className="p-2 flex flex-col gap-1 flex-1">
           {filteredNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               end={item.path === '/'}
+              title={sidebarCollapsed ? item.label : undefined}
               className={({ isActive }) =>
                 clsx(
-                  'px-4 py-3 rounded-lg flex items-center gap-3 transition-colors',
+                  'rounded-lg flex items-center gap-3 transition-colors',
+                  sidebarCollapsed ? 'p-3 justify-center' : 'px-4 py-3',
                   isActive
                     ? 'bg-primary-600 text-white'
                     : 'hover:bg-light-200 dark:hover:bg-dark-200 text-gray-600 dark:text-gray-300'
@@ -269,7 +301,7 @@ function Layout() {
               }
             >
               <item.icon size={20} />
-              <span>{item.label}</span>
+              {!sidebarCollapsed && <span>{item.label}</span>}
             </NavLink>
           ))}
         </nav>
@@ -306,8 +338,11 @@ function Layout() {
       </aside>
 
       {/* 메인 콘텐츠 */}
-      <main className="pt-16 lg:pl-64 flex-1 overflow-y-auto">
-        <div className="p-4 lg:p-6 pb-24">
+      <main className={clsx(
+        'pt-16 flex-1 overflow-y-auto transition-all duration-300',
+        sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'
+      )}>
+        <div className="p-4 lg:p-6 pb-24 min-h-full">
           <Outlet />
         </div>
       </main>
