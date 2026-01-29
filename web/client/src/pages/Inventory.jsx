@@ -583,7 +583,7 @@ const Inventory = () => {
   // 뮤테이션
   const quantityMutation = useMutation({
     mutationFn: async ({ item, delta }) => {
-      const res = await api.patch(`/items/${item._id}/quantity`, { delta })
+      const res = await api.patch(`/items/${item.type}/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}/quantity`, { delta })
       return res.data
     },
     onMutate: async ({ item, delta }) => {
@@ -619,7 +619,7 @@ const Inventory = () => {
   
   const quantitySetMutation = useMutation({
     mutationFn: async ({ item, quantity }) => {
-      const res = await api.patch(`/items/${item._id}/quantity`, { quantity })
+      const res = await api.patch(`/items/${item.type}/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}/quantity/set`, { value: quantity })
       return res.data
     },
     onMutate: async ({ item, quantity }) => {
@@ -654,7 +654,7 @@ const Inventory = () => {
   
   const deleteMutation = useMutation({
     mutationFn: async (item) => {
-      await api.delete(`/items/${item._id}`)
+      await api.delete(`/items/${item.type}/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
@@ -665,7 +665,7 @@ const Inventory = () => {
   
   const resetMutation = useMutation({
     mutationFn: async (category) => {
-      await api.post('/items/reset', { type: 'inventory', category })
+      await api.post(`/items/inventory/${encodeURIComponent(category)}/reset`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })

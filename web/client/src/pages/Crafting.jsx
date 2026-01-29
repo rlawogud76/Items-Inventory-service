@@ -395,7 +395,7 @@ export default function Crafting() {
   // 수량 변경 뮤테이션
   const quantityMutation = useMutation({
     mutationFn: ({ item, delta }) => 
-      api.patch(`/items/${item.type}/${item.category}/${item.name}/quantity`, { delta }),
+      api.patch(`/items/${item.type}/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}/quantity`, { delta }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crafting', 'dashboard'] })
     },
@@ -404,7 +404,7 @@ export default function Crafting() {
   // 수량 직접 설정 뮤테이션
   const quantitySetMutation = useMutation({
     mutationFn: ({ item, value }) => 
-      api.patch(`/items/${item.type}/${item.category}/${item.name}/quantity/set`, { value }),
+      api.patch(`/items/${item.type}/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}/quantity/set`, { value }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crafting', 'dashboard'] })
     },
