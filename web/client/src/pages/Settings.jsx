@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
-import DiscordText from '../utils/discordEmoji'
+import { DiscordText } from '../utils/discordEmoji'
 
 function Settings() {
   const { user } = useAuth()

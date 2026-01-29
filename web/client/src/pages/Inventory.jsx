@@ -9,7 +9,7 @@ import clsx from 'clsx'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { ItemModal, DeleteConfirmModal, ResetConfirmModal } from '../components/ItemModals'
-import DiscordText from '../utils/discordEmoji'
+import { DiscordText } from '../utils/discordEmoji'
 
 // 프로그레스 바 컴포넌트
 const ProgressBar = ({ current, required, className }) => {
