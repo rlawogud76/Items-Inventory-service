@@ -639,8 +639,8 @@ const CategorySection = ({
                     className={clsx(
                       'w-full px-4 py-3 flex items-center justify-between transition-colors',
                       isTagExpanded 
-                        ? 'bg-gray-100 dark:bg-dark-300' 
-                        : 'bg-gray-50 dark:bg-dark-350 hover:bg-gray-100 dark:hover:bg-dark-300'
+                        ? 'bg-gray-100 dark:bg-dark-200' 
+                        : 'bg-gray-50 dark:bg-dark-300 hover:bg-gray-100 dark:hover:bg-dark-200'
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -675,8 +675,8 @@ const CategorySection = ({
                   className={clsx(
                     'w-full px-4 py-3 flex items-center justify-between transition-colors',
                     expandedTags[`${category}-__uncategorized__`]
-                      ? 'bg-gray-100 dark:bg-dark-300' 
-                      : 'bg-gray-50 dark:bg-dark-350 hover:bg-gray-100 dark:hover:bg-dark-300'
+                      ? 'bg-gray-100 dark:bg-dark-200' 
+                      : 'bg-gray-50 dark:bg-dark-300 hover:bg-gray-100 dark:hover:bg-dark-200'
                   )}
                 >
                   <div className="flex items-center gap-3">

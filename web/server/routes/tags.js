@@ -17,12 +17,16 @@ router.get('/:type', async (req, res, next) => {
     
     for (const category of Object.keys(typeTags)) {
       const categoryTags = typeTags[category];
-      // 배열인 경우만 처리
-      if (Array.isArray(categoryTags)) {
-        for (const tag of categoryTags) {
-          if (tag && tag.name && !seenNames.has(tag.name)) {
-            seenNames.add(tag.name);
-            allTags.push(tag);
+      // 객체 구조: { tagName: { items: [], color: '' } }
+      if (categoryTags && typeof categoryTags === 'object' && !Array.isArray(categoryTags)) {
+        for (const [tagName, tagData] of Object.entries(categoryTags)) {
+          if (tagName && !seenNames.has(tagName)) {
+            seenNames.add(tagName);
+            allTags.push({
+              name: tagName,
+              color: tagData?.color || 'default',
+              items: tagData?.items || []
+            });
           }
         }
       }
