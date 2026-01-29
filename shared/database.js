@@ -854,8 +854,9 @@ async function getCraftingDashboard(category = null) {
             const invItem = inventoryMap[invKey];
             return {
               ...mat,
+              emoji: invItem?.emoji || null,
               stock: invItem?.quantity || 0,
-              needed: mat.quantity * (item.required - item.quantity)
+              needed: mat.quantity * Math.max(0, item.required - item.quantity)
             };
           });
         }

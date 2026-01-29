@@ -295,7 +295,12 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet, onRequiredChange 
               const shortage = Math.max(0, mat.needed - mat.stock)
               return (
                 <div key={idx} className="flex items-center justify-between text-xs">
-                  <span className="truncate flex-1">
+                  <span className="truncate flex-1 flex items-center gap-1">
+                    {mat.emoji && (
+                      <span className="text-sm">
+                        <DiscordText>{mat.emoji}</DiscordText>
+                      </span>
+                    )}
                     <DiscordText>{mat.name}</DiscordText>
                   </span>
                   <div className="flex items-center gap-2 ml-2">
