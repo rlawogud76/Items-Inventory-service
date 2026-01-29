@@ -96,6 +96,11 @@ const ItemRow = ({
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
+            {item.emoji && (
+              <span className="text-xl flex-shrink-0">
+                <DiscordText>{item.emoji}</DiscordText>
+              </span>
+            )}
             <h3 className="font-semibold text-gray-900 dark:text-white truncate">
               <DiscordText>{item.name}</DiscordText>
             </h3>

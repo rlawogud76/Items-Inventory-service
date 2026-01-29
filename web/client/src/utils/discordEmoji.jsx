@@ -6,7 +6,7 @@ import React from 'react';
  * <a:name:id> - 애니메이션 이모지
  * <:name:id:> - 끝에 콜론이 붙은 형식도 지원
  */
-const EMOJI_REGEX = /<(a)?:([^:]+):(\d+):?>/g;
+const EMOJI_PATTERN = /<(a)?:([^:]+):(\d+):?>/g;
 
 /**
  * Discord 이모지 ID로 CDN URL 생성
@@ -33,8 +33,8 @@ export function parseDiscordEmojis(text, options = {}) {
   let match;
   let key = 0;
   
-  // 정규식 재설정 (글로벌 플래그 때문에 필요)
-  const regex = new RegExp(EMOJI_REGEX.source, 'g');
+  // 매번 새 정규식 인스턴스 생성 (글로벌 플래그의 lastIndex 문제 방지)
+  const regex = new RegExp(EMOJI_PATTERN.source, 'g');
   
   while ((match = regex.exec(text)) !== null) {
     // 이모지 앞의 텍스트 추가
@@ -101,7 +101,9 @@ export function DiscordText({ children, size = '1.2em', className = '', as: Comp
  */
 export function hasDiscordEmoji(text) {
   if (!text || typeof text !== 'string') return false;
-  return EMOJI_REGEX.test(text);
+  // 매번 새 정규식 인스턴스 생성 (글로벌 플래그의 lastIndex 문제 방지)
+  const regex = new RegExp(EMOJI_PATTERN.source, 'g');
+  return regex.test(text);
 }
 
 /**
@@ -109,7 +111,9 @@ export function hasDiscordEmoji(text) {
  */
 export function stripDiscordEmojis(text) {
   if (!text || typeof text !== 'string') return text;
-  return text.replace(EMOJI_REGEX, '').trim();
+  // 매번 새 정규식 인스턴스 생성 (글로벌 플래그의 lastIndex 문제 방지)
+  const regex = new RegExp(EMOJI_PATTERN.source, 'g');
+  return text.replace(regex, '').trim();
 }
 
 export default {
