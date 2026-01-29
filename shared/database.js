@@ -776,7 +776,7 @@ async function getCraftingDashboard(category = null) {
   }
 }
 
-// 작업자 업데이트
+// 작업자 업데이트 (단일 - 하위 호환)
 async function updateItemWorker(type, category, itemName, workerData) {
   try {
     const update = workerData 
@@ -796,6 +796,89 @@ async function updateItemWorker(type, category, itemName, workerData) {
     return false;
   } catch (error) {
     console.error('❌ 작업자 업데이트 실패:', error);
+    throw error;
+  }
+}
+
+// 작업자 추가 (다중 작업자)
+async function addItemWorker(type, category, itemName, userId, userName) {
+  try {
+    const item = await Item.findOne({ type, category, name: itemName });
+    if (!item) return null;
+    
+    // 이미 참여 중인지 확인
+    const alreadyWorking = item.workers?.some(w => w.userId === userId);
+    if (alreadyWorking) {
+      return { success: false, message: '이미 작업에 참여 중입니다.' };
+    }
+    
+    const result = await Item.findOneAndUpdate(
+      { type, category, name: itemName },
+      { 
+        $push: { 
+          workers: { 
+            userId, 
+            userName, 
+            startedAt: new Date() 
+          } 
+        },
+        $set: { updatedAt: new Date() }
+      },
+      { new: true }
+    );
+    
+    if (result) {
+      notifyChangeListeners();
+      return { success: true, item: result };
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ 작업자 추가 실패:', error);
+    throw error;
+  }
+}
+
+// 작업자 제거 (다중 작업자)
+async function removeItemWorker(type, category, itemName, userId) {
+  try {
+    const result = await Item.findOneAndUpdate(
+      { type, category, name: itemName },
+      { 
+        $pull: { workers: { userId } },
+        $set: { updatedAt: new Date() }
+      },
+      { new: true }
+    );
+    
+    if (result) {
+      notifyChangeListeners();
+      return { success: true, item: result };
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ 작업자 제거 실패:', error);
+    throw error;
+  }
+}
+
+// 아이템의 모든 작업자 제거
+async function clearItemWorkers(type, category, itemName) {
+  try {
+    const result = await Item.findOneAndUpdate(
+      { type, category, name: itemName },
+      { 
+        $set: { workers: [], updatedAt: new Date() }
+      },
+      { new: true }
+    );
+    
+    if (result) {
+      notifyChangeListeners();
+      return { success: true, item: result };
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ 작업자 전체 제거 실패:', error);
     throw error;
   }
 }
@@ -1111,6 +1194,9 @@ module.exports = {
   setItemQuantity,
   updateMultipleItems,
   updateItemWorker,
+  addItemWorker,
+  removeItemWorker,
+  clearItemWorkers,
   updateItemsOrder,
   
   // 레시피

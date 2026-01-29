@@ -30,12 +30,16 @@ const itemSchema = new mongoose.Schema({
   // 순서 (정렬용)
   order: { type: Number, default: 0 },
 
-  // 작업 상태
-  worker: {
-    userId: { type: String, default: null },
-    userName: { type: String, default: null },
-    startTime: { type: Date, default: null }
-  },
+  // 세트/상자 크기 설정
+  setSize: { type: Number, default: 0, min: 0 },
+  boxSize: { type: Number, default: 0, min: 0 },
+
+  // 다중 작업자 지원
+  workers: [{
+    userId: { type: String },
+    userName: { type: String },
+    startedAt: { type: Date, default: Date.now }
+  }],
   
   // 메타데이터
   updatedAt: { type: Date, default: Date.now }

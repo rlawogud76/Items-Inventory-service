@@ -259,4 +259,42 @@ router.delete('/category-emojis/:type/:category', authenticate, requireAdmin, as
   }
 });
 
+// 수량 프리셋 조회
+router.get('/quantity-presets', async (req, res, next) => {
+  try {
+    const settings = await db.getSettings();
+    res.json({
+      presets: settings?.quantityPresets || [1, 10, 64, 100]
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 수량 프리셋 수정
+router.patch('/quantity-presets', authenticate, requireAdmin, async (req, res, next) => {
+  try {
+    const { presets } = req.body;
+    
+    if (!Array.isArray(presets)) {
+      return res.status(400).json({ error: '프리셋은 배열이어야 합니다.' });
+    }
+    
+    // 숫자만 필터링 및 정렬
+    const validPresets = presets
+      .map(p => parseInt(p))
+      .filter(p => !isNaN(p) && p > 0)
+      .sort((a, b) => a - b);
+    
+    if (validPresets.length === 0) {
+      return res.status(400).json({ error: '최소 1개 이상의 프리셋이 필요합니다.' });
+    }
+    
+    await db.updateSettings({ quantityPresets: validPresets });
+    res.json({ success: true, presets: validPresets });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

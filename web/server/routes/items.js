@@ -376,7 +376,7 @@ router.patch('/:type/:category/:name', authenticate, requireFeature('manage'), a
     const updates = req.body;
     
     // 허용된 필드만 업데이트
-    const allowedFields = ['name', 'emoji', 'itemType', 'required', 'linkedItem'];
+    const allowedFields = ['name', 'emoji', 'itemType', 'required', 'linkedItem', 'setSize', 'boxSize'];
     const filteredUpdates = {};
     
     for (const key of allowedFields) {
@@ -428,7 +428,7 @@ router.delete('/:type/:category/:name', authenticate, requireFeature('manage'), 
   }
 });
 
-// 작업자 상태 업데이트
+// 작업자 상태 업데이트 (단일 - 하위 호환)
 router.patch('/:type/:category/:name/worker', authenticate, requireFeature('work'), async (req, res, next) => {
   try {
     const { type, category, name } = req.params;
@@ -486,6 +486,100 @@ router.patch('/:type/:category/:name/worker', authenticate, requireFeature('work
     }
     
     res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 다중 작업자 추가
+router.post('/:type/:category/:name/workers', authenticate, requireFeature('work'), async (req, res, next) => {
+  try {
+    const { type, category, name } = req.params;
+    
+    const result = await db.addItemWorker(
+      type, 
+      category, 
+      name, 
+      req.user.id, 
+      req.user.username
+    );
+    
+    if (!result) {
+      return res.status(404).json({ error: '아이템을 찾을 수 없습니다.' });
+    }
+    
+    if (!result.success) {
+      return res.status(409).json({ error: result.message });
+    }
+    
+    // 소켓으로 알림 브로드캐스트
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('activity', {
+        type: 'worker',
+        action: 'join',
+        itemName: name,
+        category,
+        itemType: type,
+        userName: req.user.username || req.user.globalName || '알 수 없음',
+        timestamp: Date.now()
+      });
+    }
+    
+    res.json({ success: true, item: result.item });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 다중 작업자 제거 (본인 또는 관리자)
+router.delete('/:type/:category/:name/workers/:userId', authenticate, requireFeature('work'), async (req, res, next) => {
+  try {
+    const { type, category, name, userId } = req.params;
+    
+    // 본인이 아니면 관리자 권한 필요
+    if (userId !== req.user.id && !req.user.isAdmin) {
+      return res.status(403).json({ error: '본인의 작업만 취소할 수 있습니다.' });
+    }
+    
+    const result = await db.removeItemWorker(type, category, name, userId);
+    
+    if (!result) {
+      return res.status(404).json({ error: '아이템을 찾을 수 없습니다.' });
+    }
+    
+    // 소켓으로 알림 브로드캐스트
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('activity', {
+        type: 'worker',
+        action: 'leave',
+        itemName: name,
+        category,
+        itemType: type,
+        userName: req.user.username || req.user.globalName || '알 수 없음',
+        timestamp: Date.now()
+      });
+    }
+    
+    res.json({ success: true, item: result.item });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 아이템의 모든 작업자 제거 (관리자 전용)
+router.delete('/:type/:category/:name/workers', authenticate, requireFeature('manage'), async (req, res, next) => {
+  try {
+    const { type, category, name } = req.params;
+    
+    const result = await db.clearItemWorkers(type, category, name);
+    
+    if (!result) {
+      return res.status(404).json({ error: '아이템을 찾을 수 없습니다.' });
+    }
+    
+    res.json({ success: true, item: result.item });
   } catch (error) {
     next(error);
   }

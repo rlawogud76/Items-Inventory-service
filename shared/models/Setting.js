@@ -31,6 +31,12 @@ const settingSchema = new mongoose.Schema({
     crafting: { type: mongoose.Schema.Types.Mixed, default: {} }
   },
 
+  // 수량 프리셋 설정 (사용자 정의)
+  quantityPresets: {
+    type: [Number],
+    default: [1, 10, 64, 100]
+  },
+
   // 권한 설정
   adminUserIds: { type: [String], default: [] },
   adminAllowedFeatureKeys: { type: [String], default: ['*'] },

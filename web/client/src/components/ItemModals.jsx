@@ -4,21 +4,21 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import api from '../services/api'
 import { DiscordText } from '../utils/discordEmoji'
 
-// 수량 계산 상수
-const ITEMS_PER_SET = 64
-const ITEMS_PER_BOX = 64 * 54 // 3456
-
-// 분리된 수량을 총 수량으로 변환
-function calculateTotal(items, sets, boxes) {
-  return (parseInt(items) || 0) + (parseInt(sets) || 0) * ITEMS_PER_SET + (parseInt(boxes) || 0) * ITEMS_PER_BOX
+// 분리된 수량을 총 수량으로 변환 (아이템별 크기 지원)
+function calculateTotal(items, sets, boxes, setSize = 64, boxSize = 3456) {
+  const ss = setSize > 0 ? setSize : 64
+  const bs = boxSize > 0 ? boxSize : 3456
+  return (parseInt(items) || 0) + (parseInt(sets) || 0) * ss + (parseInt(boxes) || 0) * bs
 }
 
-// 총 수량을 분리된 수량으로 변환
-function splitQuantity(total) {
-  const boxes = Math.floor(total / ITEMS_PER_BOX)
-  const remaining = total % ITEMS_PER_BOX
-  const sets = Math.floor(remaining / ITEMS_PER_SET)
-  const items = remaining % ITEMS_PER_SET
+// 총 수량을 분리된 수량으로 변환 (아이템별 크기 지원)
+function splitQuantity(total, setSize = 64, boxSize = 3456) {
+  const ss = setSize > 0 ? setSize : 64
+  const bs = boxSize > 0 ? boxSize : 3456
+  const boxes = Math.floor(total / bs)
+  const remaining = total % bs
+  const sets = Math.floor(remaining / ss)
+  const items = remaining % ss
   return { items, sets, boxes }
 }
 
@@ -40,7 +40,9 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
     emoji: item?.emoji || '',
     quantity: item?.quantity || 0,
     required: item?.required || 0,
-    itemType: normalizeItemType(item?.itemType)
+    itemType: normalizeItemType(item?.itemType),
+    setSize: item?.setSize || 64,
+    boxSize: item?.boxSize || 3456
   })
   
   // 분리된 수량 입력 상태
@@ -50,8 +52,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
   // 초기값 설정
   useEffect(() => {
     if (isOpen) {
-      setQuantityParts(splitQuantity(item?.quantity || 0))
-      setRequiredParts(splitQuantity(item?.required || 0))
+      const ss = item?.setSize || 64
+      const bs = item?.boxSize || 3456
+      setQuantityParts(splitQuantity(item?.quantity || 0, ss, bs))
+      setRequiredParts(splitQuantity(item?.required || 0, ss, bs))
       // formData도 업데이트
       setFormData({
         name: item?.name || '',
@@ -61,7 +65,9 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
         emoji: item?.emoji || '',
         quantity: item?.quantity || 0,
         required: item?.required || 0,
-        itemType: normalizeItemType(item?.itemType)
+        itemType: normalizeItemType(item?.itemType),
+        setSize: item?.setSize || 64,
+        boxSize: item?.boxSize || 3456
       })
       setError('')
     }
@@ -71,8 +77,8 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
   useEffect(() => {
     setFormData(prev => ({
       ...prev,
-      quantity: calculateTotal(quantityParts.items, quantityParts.sets, quantityParts.boxes),
-      required: calculateTotal(requiredParts.items, requiredParts.sets, requiredParts.boxes)
+      quantity: calculateTotal(quantityParts.items, quantityParts.sets, quantityParts.boxes, prev.setSize, prev.boxSize),
+      required: calculateTotal(requiredParts.items, requiredParts.sets, requiredParts.boxes, prev.setSize, prev.boxSize)
     }))
   }, [quantityParts, requiredParts])
   
@@ -120,7 +126,9 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
         name: formData.name,
         emoji: formData.emoji,
         required: parseInt(formData.required) || 0,
-        itemType: formData.itemType
+        itemType: formData.itemType,
+        setSize: parseInt(formData.setSize) || 0,
+        boxSize: parseInt(formData.boxSize) || 0
       })
     } else {
       addMutation.mutate({
@@ -130,7 +138,9 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
         emoji: formData.emoji,
         quantity: parseInt(formData.quantity) || 0,
         required: parseInt(formData.required) || 0,
-        itemType: formData.itemType
+        itemType: formData.itemType,
+        setSize: parseInt(formData.setSize) || 0,
+        boxSize: parseInt(formData.boxSize) || 0
       })
     }
   }
@@ -240,9 +250,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     <label className="block text-xs text-gray-500 mb-1">상자</label>
                     <input
                       type="number"
-                      value={quantityParts.boxes}
-                      onChange={(e) => setQuantityParts({ ...quantityParts, boxes: parseInt(e.target.value) || 0 })}
+                      value={quantityParts.boxes || ''}
+                      onChange={(e) => setQuantityParts({ ...quantityParts, boxes: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      placeholder="0"
                       min="0"
                     />
                   </div>
@@ -250,9 +261,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     <label className="block text-xs text-gray-500 mb-1">세트</label>
                     <input
                       type="number"
-                      value={quantityParts.sets}
-                      onChange={(e) => setQuantityParts({ ...quantityParts, sets: parseInt(e.target.value) || 0 })}
+                      value={quantityParts.sets || ''}
+                      onChange={(e) => setQuantityParts({ ...quantityParts, sets: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      placeholder="0"
                       min="0"
                     />
                   </div>
@@ -260,9 +272,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     <label className="block text-xs text-gray-500 mb-1">낱개</label>
                     <input
                       type="number"
-                      value={quantityParts.items}
-                      onChange={(e) => setQuantityParts({ ...quantityParts, items: parseInt(e.target.value) || 0 })}
+                      value={quantityParts.items || ''}
+                      onChange={(e) => setQuantityParts({ ...quantityParts, items: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      placeholder="0"
                       min="0"
                     />
                   </div>
@@ -279,9 +292,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     <label className="block text-xs text-gray-500 mb-1">상자</label>
                     <input
                       type="number"
-                      value={requiredParts.boxes}
-                      onChange={(e) => setRequiredParts({ ...requiredParts, boxes: parseInt(e.target.value) || 0 })}
+                      value={requiredParts.boxes || ''}
+                      onChange={(e) => setRequiredParts({ ...requiredParts, boxes: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      placeholder="0"
                       min="0"
                     />
                   </div>
@@ -289,9 +303,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     <label className="block text-xs text-gray-500 mb-1">세트</label>
                     <input
                       type="number"
-                      value={requiredParts.sets}
-                      onChange={(e) => setRequiredParts({ ...requiredParts, sets: parseInt(e.target.value) || 0 })}
+                      value={requiredParts.sets || ''}
+                      onChange={(e) => setRequiredParts({ ...requiredParts, sets: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      placeholder="0"
                       min="0"
                     />
                   </div>
@@ -299,9 +314,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     <label className="block text-xs text-gray-500 mb-1">낱개</label>
                     <input
                       type="number"
-                      value={requiredParts.items}
-                      onChange={(e) => setRequiredParts({ ...requiredParts, items: parseInt(e.target.value) || 0 })}
+                      value={requiredParts.items || ''}
+                      onChange={(e) => setRequiredParts({ ...requiredParts, items: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                      placeholder="0"
                       min="0"
                     />
                   </div>
@@ -322,9 +338,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                   <label className="block text-xs text-gray-500 mb-1">상자</label>
                   <input
                     type="number"
-                    value={requiredParts.boxes}
-                    onChange={(e) => setRequiredParts({ ...requiredParts, boxes: parseInt(e.target.value) || 0 })}
+                    value={requiredParts.boxes || ''}
+                    onChange={(e) => setRequiredParts({ ...requiredParts, boxes: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                    placeholder="0"
                     min="0"
                   />
                 </div>
@@ -332,9 +349,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                   <label className="block text-xs text-gray-500 mb-1">세트</label>
                   <input
                     type="number"
-                    value={requiredParts.sets}
-                    onChange={(e) => setRequiredParts({ ...requiredParts, sets: parseInt(e.target.value) || 0 })}
+                    value={requiredParts.sets || ''}
+                    onChange={(e) => setRequiredParts({ ...requiredParts, sets: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                    placeholder="0"
                     min="0"
                   />
                 </div>
@@ -342,9 +360,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                   <label className="block text-xs text-gray-500 mb-1">낱개</label>
                   <input
                     type="number"
-                    value={requiredParts.items}
-                    onChange={(e) => setRequiredParts({ ...requiredParts, items: parseInt(e.target.value) || 0 })}
+                    value={requiredParts.items || ''}
+                    onChange={(e) => setRequiredParts({ ...requiredParts, items: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                    placeholder="0"
                     min="0"
                   />
                 </div>
@@ -354,6 +373,38 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
               </div>
             </div>
           )}
+          
+          {/* 세트/상자 크기 설정 */}
+          <div>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">세트/상자 크기</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">세트 (낱개)</label>
+                <input
+                  type="number"
+                  value={formData.setSize || ''}
+                  onChange={(e) => setFormData({ ...formData, setSize: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                  placeholder="64"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">상자 (낱개)</label>
+                <input
+                  type="number"
+                  value={formData.boxSize || ''}
+                  onChange={(e) => setFormData({ ...formData, boxSize: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
+                  placeholder="3456"
+                  min="0"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              0이면 기본값 (세트: 64, 상자: 3456) 사용
+            </p>
+          </div>
           
           {/* 아이템 타입 */}
           <div>

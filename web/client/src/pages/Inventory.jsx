@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   Search, Plus, Trash2, Edit3, RotateCcw, Undo2, 
   ArrowUpDown, Filter, ChevronDown, ChevronRight,
-  Package, CheckCircle2, AlertCircle, Minus
+  Package, CheckCircle2, AlertCircle, Minus, Users, X
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '../services/api'
@@ -82,7 +82,9 @@ const ItemRow = ({
   onQuantitySet,
   onEdit, 
   onDelete,
-  onWorkerToggle 
+  onWorkerJoin,
+  onWorkerLeave,
+  customPresets = [1, 10, 64, 100]
 }) => {
   const { user } = useAuth()
   const [showPresets, setShowPresets] = useState(false)
@@ -93,7 +95,11 @@ const ItemRow = ({
   const progress = item.required > 0 ? Math.min((item.quantity / item.required) * 100, 100) : 0
   const tagColor = itemTag ? getTagColor(itemTag.color) : null
   
-  // 프리셋 버튼들
+  // 현재 유저가 작업 중인지 확인
+  const isUserWorking = item.workers?.some(w => w.userId === user?.id)
+  const workersCount = item.workers?.length || 0
+  
+  // 프리셋 버튼들 (커스텀 프리셋 + 세트/상자)
   const presetButtons = useMemo(() => {
     const presets = []
     
@@ -109,14 +115,14 @@ const ItemRow = ({
       presets.push({ label: '-1상자', delta: -item.boxSize })
     }
     
-    // 기본 프리셋
-    presets.push({ label: '+1', delta: 1 })
-    presets.push({ label: '+10', delta: 10 })
-    presets.push({ label: '-1', delta: -1 })
-    presets.push({ label: '-10', delta: -10 })
+    // 커스텀 프리셋
+    for (const p of customPresets) {
+      presets.push({ label: `+${p}`, delta: p })
+      presets.push({ label: `-${p}`, delta: -p })
+    }
     
     return presets
-  }, [item.boxSize, item.setSize])
+  }, [item.boxSize, item.setSize, customPresets])
 
   const handlePresetClick = (delta) => {
     onQuantityChange(item, delta)
@@ -158,28 +164,50 @@ const ItemRow = ({
                 {itemTag.name}
               </span>
             )}
-            {item.isWorkerTarget && (
+            {workersCount > 0 && (
               <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
-                작업 대상
+                작업 중 {workersCount}명
               </span>
             )}
           </div>
           {item.type && (
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{item.type}</p>
           )}
+          {/* 작업자 목록 */}
+          {workersCount > 0 && (
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              <Users size={12} className="text-blue-400" />
+              {item.workers.map((w, idx) => (
+                <span 
+                  key={w.userId} 
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded"
+                >
+                  {w.userName}
+                  {(w.userId === user?.id || user?.isAdmin) && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onWorkerLeave(item, w.userId); }}
+                      className="hover:text-red-400"
+                    >
+                      <X size={10} />
+                    </button>
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         
         {user && (
           <div className="flex items-center gap-1">
             <button
-              onClick={() => onWorkerToggle(item)}
+              onClick={() => isUserWorking ? onWorkerLeave(item, user.id) : onWorkerJoin(item)}
               className={clsx(
                 'p-1.5 rounded-lg transition-colors',
-                item.isWorkerTarget 
+                isUserWorking 
                   ? 'bg-blue-500/20 text-blue-400' 
                   : 'hover:bg-gray-100 dark:hover:bg-dark-200 text-gray-400'
               )}
-              title="작업 대상 설정"
+              title={isUserWorking ? '작업 중단' : '작업 참여'}
             >
               <Package size={16} />
             </button>
@@ -332,9 +360,11 @@ const CategorySection = ({
   onQuantitySet,
   onEdit,
   onDelete,
-  onWorkerToggle,
+  onWorkerJoin,
+  onWorkerLeave,
   onReset,
-  user
+  user,
+  customPresets
 }) => {
   // 카테고리 통계 계산
   const stats = useMemo(() => {
@@ -440,7 +470,9 @@ const CategorySection = ({
                 onQuantitySet={onQuantitySet}
                 onEdit={onEdit}
                 onDelete={onDelete}
-                onWorkerToggle={onWorkerToggle}
+                onWorkerJoin={onWorkerJoin}
+                onWorkerLeave={onWorkerLeave}
+                customPresets={customPresets}
               />
             ))}
           </div>
@@ -503,6 +535,16 @@ const Inventory = () => {
       return res.data.inventory || {}
     }
   })
+  
+  const { data: quantityPresetsData } = useQuery({
+    queryKey: ['settings', 'quantity-presets'],
+    queryFn: async () => {
+      const res = await api.get('/settings/quantity-presets')
+      return res.data
+    }
+  })
+  
+  const customPresets = quantityPresetsData?.presets || [1, 10, 64, 100]
   
   // 초기 확장 상태 설정 (첫 번째 카테고리만)
   useEffect(() => {
@@ -632,9 +674,9 @@ const Inventory = () => {
     }
   })
   
-  const workerMutation = useMutation({
+  const workerJoinMutation = useMutation({
     mutationFn: async (item) => {
-      const res = await api.patch(`/items/${item._id}`, { isWorkerTarget: !item.isWorkerTarget })
+      const res = await api.post(`/items/${item.type}/${item.category}/${item.name}/workers`)
       return res.data
     },
     onMutate: async (item) => {
@@ -642,7 +684,34 @@ const Inventory = () => {
       
       queryClient.setQueryData(['items', 'inventory', 'all'], old => 
         old?.map(i => i._id === item._id 
-          ? { ...i, isWorkerTarget: !i.isWorkerTarget }
+          ? { 
+              ...i, 
+              workers: [...(i.workers || []), { 
+                userId: user.id, 
+                userName: user.username,
+                startedAt: new Date() 
+              }] 
+            }
+          : i
+        )
+      )
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
+    }
+  })
+  
+  const workerLeaveMutation = useMutation({
+    mutationFn: async ({ item, userId }) => {
+      const res = await api.delete(`/items/${item.type}/${item.category}/${item.name}/workers/${userId}`)
+      return res.data
+    },
+    onMutate: async ({ item, userId }) => {
+      await queryClient.cancelQueries({ queryKey: ['items', 'inventory'] })
+      
+      queryClient.setQueryData(['items', 'inventory', 'all'], old => 
+        old?.map(i => i._id === item._id 
+          ? { ...i, workers: (i.workers || []).filter(w => w.userId !== userId) }
           : i
         )
       )
@@ -682,8 +751,12 @@ const Inventory = () => {
     }
   }
   
-  const handleWorkerToggle = (item) => {
-    workerMutation.mutate(item)
+  const handleWorkerJoin = (item) => {
+    workerJoinMutation.mutate(item)
+  }
+  
+  const handleWorkerLeave = (item, userId) => {
+    workerLeaveMutation.mutate({ item, userId })
   }
   
   const handleResetCategory = (category) => {
@@ -883,9 +956,11 @@ const Inventory = () => {
               onQuantitySet={handleQuantitySet}
               onEdit={handleEditItem}
               onDelete={handleDeleteItem}
-              onWorkerToggle={handleWorkerToggle}
+              onWorkerJoin={handleWorkerJoin}
+              onWorkerLeave={handleWorkerLeave}
               onReset={handleResetCategory}
               user={user}
+              customPresets={customPresets}
             />
           ))}
         </div>

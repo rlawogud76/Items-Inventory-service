@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Settings as SettingsIcon, Save, Package, Hammer, Trash2 } from 'lucide-react'
+import { Settings as SettingsIcon, Save, Package, Hammer, Trash2, Plus, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import api from '../services/api'
@@ -32,6 +32,12 @@ function Settings() {
     queryFn: () => api.get('/settings/category-emojis').then(res => res.data),
   })
 
+  // 수량 프리셋 조회
+  const { data: presetsData } = useQuery({
+    queryKey: ['settings', 'quantity-presets'],
+    queryFn: () => api.get('/settings/quantity-presets').then(res => res.data),
+  })
+
   const [formData, setFormData] = useState({
     uiMode: 'normal',
     barLength: 15,
@@ -42,6 +48,17 @@ function Settings() {
   // 이모지 편집 상태
   const [emojiEdits, setEmojiEdits] = useState({})
   const [activeEmojiTab, setActiveEmojiTab] = useState('inventory')
+  
+  // 프리셋 편집 상태
+  const [presetEdits, setPresetEdits] = useState([])
+  const [newPresetValue, setNewPresetValue] = useState('')
+  
+  // 프리셋 초기화
+  useEffect(() => {
+    if (presetsData?.presets) {
+      setPresetEdits(presetsData.presets)
+    }
+  }, [presetsData])
 
   useEffect(() => {
     if (settings) {
@@ -80,6 +97,18 @@ function Settings() {
       queryClient.invalidateQueries({ queryKey: ['settings', 'category-emojis'] })
     }
   })
+  
+  // 프리셋 저장 뮤테이션
+  const presetMutation = useMutation({
+    mutationFn: (presets) => api.patch('/settings/quantity-presets', { presets }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'quantity-presets'] })
+      alert('프리셋이 저장되었습니다.')
+    },
+    onError: (error) => {
+      alert(error.response?.data?.error || '프리셋 저장에 실패했습니다.')
+    }
+  })
 
   const handleEmojiSave = (type, category) => {
     const emoji = emojiEdits[`${type}-${category}`]
@@ -96,6 +125,24 @@ function Settings() {
   const handleEmojiDelete = (type, category) => {
     if (confirm(`"${category}" 카테고리의 이모지를 삭제하시겠습니까?`)) {
       emojiDeleteMutation.mutate({ type, category })
+    }
+  }
+  
+  const handlePresetAdd = () => {
+    const value = parseInt(newPresetValue)
+    if (!isNaN(value) && value > 0 && !presetEdits.includes(value)) {
+      setPresetEdits([...presetEdits, value].sort((a, b) => a - b))
+      setNewPresetValue('')
+    }
+  }
+  
+  const handlePresetRemove = (value) => {
+    setPresetEdits(presetEdits.filter(p => p !== value))
+  }
+  
+  const handlePresetSave = () => {
+    if (presetEdits.length > 0) {
+      presetMutation.mutate(presetEdits)
     }
   }
 
@@ -229,7 +276,73 @@ function Settings() {
       {user && (
         <div className="bg-white dark:bg-dark-300 rounded-xl p-6 border border-gray-200 dark:border-dark-100">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-white">
-            📦 카테고리 이모지 설정
+            � 수량 프리셋 설정
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            재고/제작 페이지에서 빠른 수량 증감에 사용할 프리셋 값을 설정합니다.
+          </p>
+          
+          {/* 현재 프리셋 목록 */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {presetEdits.map((preset) => (
+              <div
+                key={preset}
+                className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-dark-200 rounded-lg"
+              >
+                <span className="font-medium text-gray-900 dark:text-white">{preset}</span>
+                <button
+                  type="button"
+                  onClick={() => handlePresetRemove(preset)}
+                  className="p-0.5 hover:bg-red-500/20 rounded text-gray-400 hover:text-red-400 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+            {presetEdits.length === 0 && (
+              <span className="text-gray-500">프리셋이 없습니다.</span>
+            )}
+          </div>
+          
+          {/* 새 프리셋 추가 */}
+          <div className="flex gap-2 mb-4">
+            <input
+              type="number"
+              value={newPresetValue}
+              onChange={(e) => setNewPresetValue(e.target.value)}
+              placeholder="숫자 입력..."
+              min="1"
+              className="flex-1 px-4 py-2 bg-gray-50 dark:bg-dark-200 border border-gray-200 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-gray-900 dark:text-white"
+            />
+            <button
+              type="button"
+              onClick={handlePresetAdd}
+              disabled={!newPresetValue || isNaN(parseInt(newPresetValue)) || parseInt(newPresetValue) <= 0}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:dark:bg-dark-100 text-white disabled:text-gray-500 rounded-lg transition-colors"
+            >
+              <Plus size={18} />
+              추가
+            </button>
+          </div>
+          
+          {/* 저장 버튼 */}
+          <button
+            type="button"
+            onClick={handlePresetSave}
+            disabled={presetMutation.isPending || presetEdits.length === 0}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:dark:bg-dark-100 text-white disabled:text-gray-500 rounded-lg font-medium transition-colors"
+          >
+            <Save size={18} />
+            {presetMutation.isPending ? '저장 중...' : '프리셋 저장'}
+          </button>
+        </div>
+      )}
+
+      {/* 카테고리 이모지 설정 (관리자 전용) */}
+      {user && (
+        <div className="bg-white dark:bg-dark-300 rounded-xl p-6 border border-gray-200 dark:border-dark-100">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-white">
+            �📦 카테고리 이모지 설정
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             각 카테고리에 표시될 이모지를 설정합니다. Discord 이모지 문법 (예: :emoji_name:)도 지원됩니다.
