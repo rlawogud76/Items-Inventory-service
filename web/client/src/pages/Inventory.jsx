@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   Search, Plus, Trash2, Edit3, RotateCcw, Undo2, 
-  ArrowUpDown, Filter, ChevronDown, ChevronRight,
+  Filter, ChevronDown,
   Package, CheckCircle2, AlertCircle, Minus, Users, X, GripVertical
 } from 'lucide-react'
 import clsx from 'clsx'
@@ -18,15 +18,13 @@ import {
   KeyboardSensor,
   PointerSensor,
   useSensor,
-  useSensors,
-  DragOverlay
+  useSensors
 } from '@dnd-kit/core'
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
-  verticalListSortingStrategy,
   rectSortingStrategy
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -61,7 +59,14 @@ const ItemRow = ({
   const { user } = useAuth()
   const [showPresets, setShowPresets] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const [editValue, setEditValue] = useState('')
+  // 상자/세트/낱개 편집 상태
+  const [editBoxes, setEditBoxes] = useState(0)
+  const [editSets, setEditSets] = useState(0)
+  const [editItems, setEditItems] = useState(0)
+  
+  // 아이템별 커스텀 크기 (없으면 기본값)
+  const setSize = item.setSize || 64
+  const boxSize = item.boxSize || (setSize * 54)
   
   const isComplete = item.required > 0 && item.quantity >= item.required
   const progress = item.required > 0 ? Math.min((item.quantity / item.required) * 100, 100) : 0
@@ -91,15 +96,25 @@ const ItemRow = ({
 
   const handleEditSubmit = (e) => {
     e.preventDefault()
-    const newQty = parseInt(editValue, 10)
-    if (!isNaN(newQty) && newQty >= 0) {
-      onQuantitySet(item, newQty)
+    // 상자/세트/낱개를 총 수량으로 변환
+    const totalQty = (editBoxes * boxSize) + (editSets * setSize) + editItems
+    if (totalQty >= 0) {
+      onQuantitySet(item, totalQty)
     }
     setIsEditing(false)
   }
 
   const handleStartEdit = () => {
-    setEditValue(item.quantity.toString())
+    // 현재 수량을 상자/세트/낱개로 분해
+    let remaining = item.quantity
+    const boxes = Math.floor(remaining / boxSize)
+    remaining = remaining % boxSize
+    const sets = Math.floor(remaining / setSize)
+    remaining = remaining % setSize
+    
+    setEditBoxes(boxes)
+    setEditSets(sets)
+    setEditItems(remaining)
     setIsEditing(true)
   }
 
@@ -206,15 +221,38 @@ const ItemRow = ({
             ) : null}
             
             {isEditing ? (
-              <form onSubmit={handleEditSubmit} className="flex items-center gap-1">
-                <input
-                  type="number"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  className="w-20 px-2 py-1 text-sm bg-gray-100 dark:bg-dark-200 border border-gray-300 dark:border-dark-100 rounded focus:outline-none focus:border-primary-500"
-                  autoFocus
-                  min="0"
-                />
+              <form onSubmit={handleEditSubmit} className="flex items-center gap-1 flex-wrap">
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={editBoxes}
+                    onChange={(e) => setEditBoxes(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-14 px-2 py-1 text-sm bg-gray-100 dark:bg-dark-200 border border-gray-300 dark:border-dark-100 rounded focus:outline-none focus:border-primary-500 text-center"
+                    min="0"
+                  />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">상자</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={editSets}
+                    onChange={(e) => setEditSets(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-14 px-2 py-1 text-sm bg-gray-100 dark:bg-dark-200 border border-gray-300 dark:border-dark-100 rounded focus:outline-none focus:border-primary-500 text-center"
+                    autoFocus
+                    min="0"
+                  />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">세트</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={editItems}
+                    onChange={(e) => setEditItems(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-14 px-2 py-1 text-sm bg-gray-100 dark:bg-dark-200 border border-gray-300 dark:border-dark-100 rounded focus:outline-none focus:border-primary-500 text-center"
+                    min="0"
+                  />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">개</span>
+                </div>
                 <button type="submit" className="px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700">
                   확인
                 </button>
@@ -370,14 +408,16 @@ const SortableItemRow = ({
   )
 }
 
-// 카테고리 섹션 컴포넌트 (모던 익스팬더)
+// 카테고리 섹션 컴포넌트 (태그별 그룹화)
 const CategorySection = ({ 
   category, 
   emoji,
-  items, 
+  tagGroups, // { byTag: { tagName: items[] }, uncategorized: items[] }
   isExpanded, 
   onToggle,
-  itemTag,
+  expandedTags,
+  onToggleTag,
+  tags,
   getItemTagInfo,
   onQuantityChange,
   onQuantitySet,
@@ -401,11 +441,22 @@ const CategorySection = ({
       coordinateGetter: sortableKeyboardCoordinates
     })
   )
+  
+  // 전체 아이템 목록 (통계용)
+  const allItems = useMemo(() => {
+    const items = []
+    for (const tagItems of Object.values(tagGroups.byTag)) {
+      items.push(...tagItems)
+    }
+    items.push(...tagGroups.uncategorized)
+    return items
+  }, [tagGroups])
+  
   // 카테고리 통계 계산
   const stats = useMemo(() => {
-    const total = items.length
-    const completed = items.filter(item => item.required > 0 && item.quantity >= item.required).length
-    const totalProgress = items.reduce((acc, item) => {
+    const total = allItems.length
+    const completed = allItems.filter(item => item.required > 0 && item.quantity >= item.required).length
+    const totalProgress = allItems.reduce((acc, item) => {
       if (item.required > 0) {
         return acc + Math.min((item.quantity / item.required) * 100, 100)
       }
@@ -414,7 +465,84 @@ const CategorySection = ({
     const avgProgress = total > 0 ? totalProgress / total : 0
     
     return { total, completed, avgProgress }
-  }, [items])
+  }, [allItems])
+  
+  // 태그 정렬 (태그 순서대로, 미분류는 맨 아래)
+  const sortedTagNames = useMemo(() => {
+    const tagNames = Object.keys(tagGroups.byTag)
+    // 태그 목록 순서대로 정렬
+    tagNames.sort((a, b) => {
+      const idxA = tags.findIndex(t => t.name === a)
+      const idxB = tags.findIndex(t => t.name === b)
+      return idxA - idxB
+    })
+    return tagNames
+  }, [tagGroups.byTag, tags])
+
+  // 아이템 그리드 렌더링 헬퍼
+  const renderItemGrid = (items) => {
+    if (isDragMode) {
+      return (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={(event) => {
+            const { active, over } = event
+            if (active.id !== over?.id) {
+              const oldIndex = allItems.findIndex(i => `${i.category}-${i.name}` === active.id)
+              const newIndex = allItems.findIndex(i => `${i.category}-${i.name}` === over?.id)
+              if (oldIndex !== -1 && newIndex !== -1) {
+                const newItems = arrayMove(allItems, oldIndex, newIndex)
+                onReorder(category, newItems)
+              }
+            }
+          }}
+        >
+          <SortableContext
+            items={items.map(i => `${i.category}-${i.name}`)}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {items.map((item) => (
+                <SortableItemRow
+                  key={`${item.category}-${item.name}`}
+                  item={item}
+                  itemTag={getItemTagInfo(item.name)}
+                  onQuantityChange={onQuantityChange}
+                  onQuantitySet={onQuantitySet}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onWorkerJoin={onWorkerJoin}
+                  onWorkerLeave={onWorkerLeave}
+                  customPresets={customPresets}
+                  isDragMode={isDragMode}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )
+    }
+    
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {items.map((item) => (
+          <ItemRow
+            key={`${item.category}-${item.name}`}
+            item={item}
+            itemTag={getItemTagInfo(item.name)}
+            onQuantityChange={onQuantityChange}
+            onQuantitySet={onQuantitySet}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onWorkerJoin={onWorkerJoin}
+            onWorkerLeave={onWorkerLeave}
+            customPresets={customPresets}
+          />
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className={clsx(
@@ -445,7 +573,7 @@ const CategorySection = ({
               <DiscordText>{category}</DiscordText>
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              {stats.completed}/{stats.total} 완료  평균 {stats.avgProgress.toFixed(0)}% 진행
+              {stats.completed}/{stats.total} 완료 · 평균 {stats.avgProgress.toFixed(0)}% 진행
             </p>
           </div>
         </div>
@@ -476,7 +604,7 @@ const CategorySection = ({
         </div>
       </button>
       
-      {/* 아이템 목록 - 애니메이션 적용 */}
+      {/* 아이템 목록 - 태그별 그룹화 */}
       <div className={clsx(
         'transition-all duration-300 ease-in-out',
         isExpanded ? 'opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
@@ -495,63 +623,84 @@ const CategorySection = ({
             </div>
           )}
           
-          {isDragMode ? (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={(event) => {
-                const { active, over } = event
-                if (active.id !== over?.id) {
-                  const oldIndex = items.findIndex(i => `${i.category}-${i.name}` === active.id)
-                  const newIndex = items.findIndex(i => `${i.category}-${i.name}` === over?.id)
-                  if (oldIndex !== -1 && newIndex !== -1) {
-                    const newItems = arrayMove(items, oldIndex, newIndex)
-                    onReorder(category, newItems)
-                  }
-                }
-              }}
-            >
-              <SortableContext
-                items={items.map(i => `${i.category}-${i.name}`)}
-                strategy={rectSortingStrategy}
-              >
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {items.map((item) => (
-                    <SortableItemRow
-                      key={`${item.category}-${item.name}`}
-                      item={item}
-                      itemTag={getItemTagInfo(item.name)}
-                      onQuantityChange={onQuantityChange}
-                      onQuantitySet={onQuantitySet}
-                      onEdit={onEdit}
-                      onDelete={onDelete}
-                      onWorkerJoin={onWorkerJoin}
-                      onWorkerLeave={onWorkerLeave}
-                      customPresets={customPresets}
-                      isDragMode={isDragMode}
-                    />
-                  ))}
+          {/* 태그별 드롭다운 섹션들 */}
+          <div className="space-y-3">
+            {sortedTagNames.map((tagName) => {
+              const tagInfo = tags.find(t => t.name === tagName)
+              const tagColor = getTagColor(tagInfo?.color)
+              const tagItems = tagGroups.byTag[tagName]
+              const isTagExpanded = expandedTags[`${category}-${tagName}`] || false
+              
+              return (
+                <div key={tagName} className="border border-gray-200 dark:border-dark-100 rounded-xl overflow-hidden">
+                  {/* 태그 헤더 */}
+                  <button
+                    onClick={() => onToggleTag(category, tagName)}
+                    className={clsx(
+                      'w-full px-4 py-3 flex items-center justify-between transition-colors',
+                      isTagExpanded 
+                        ? 'bg-gray-100 dark:bg-dark-300' 
+                        : 'bg-gray-50 dark:bg-dark-350 hover:bg-gray-100 dark:hover:bg-dark-300'
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={clsx('w-3 h-3 rounded-full', tagColor.dot)} />
+                      <span className="font-medium text-gray-900 dark:text-white">{tagName}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">({tagItems.length}개)</span>
+                    </div>
+                    <div className={clsx(
+                      'transition-transform duration-200',
+                      isTagExpanded ? 'rotate-180' : ''
+                    )}>
+                      <ChevronDown size={18} className="text-gray-400" />
+                    </div>
+                  </button>
+                  
+                  {/* 태그 아이템 목록 */}
+                  {isTagExpanded && (
+                    <div className="p-3 bg-white dark:bg-dark-400">
+                      {renderItemGrid(tagItems)}
+                    </div>
+                  )}
                 </div>
-              </SortableContext>
-            </DndContext>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {items.map((item) => (
-                <ItemRow
-                  key={`${item.category}-${item.name}`}
-                  item={item}
-                  itemTag={getItemTagInfo(item.name)}
-                  onQuantityChange={onQuantityChange}
-                  onQuantitySet={onQuantitySet}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onWorkerJoin={onWorkerJoin}
-                  onWorkerLeave={onWorkerLeave}
-                  customPresets={customPresets}
-                />
-              ))}
-            </div>
-          )}
+              )
+            })}
+            
+            {/* 미분류 섹션 (맨 아래) */}
+            {tagGroups.uncategorized.length > 0 && (
+              <div className="border border-gray-200 dark:border-dark-100 rounded-xl overflow-hidden">
+                {/* 미분류 헤더 */}
+                <button
+                  onClick={() => onToggleTag(category, '__uncategorized__')}
+                  className={clsx(
+                    'w-full px-4 py-3 flex items-center justify-between transition-colors',
+                    expandedTags[`${category}-__uncategorized__`]
+                      ? 'bg-gray-100 dark:bg-dark-300' 
+                      : 'bg-gray-50 dark:bg-dark-350 hover:bg-gray-100 dark:hover:bg-dark-300'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-gray-400" />
+                    <span className="font-medium text-gray-900 dark:text-white">미분류</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">({tagGroups.uncategorized.length}개)</span>
+                  </div>
+                  <div className={clsx(
+                    'transition-transform duration-200',
+                    expandedTags[`${category}-__uncategorized__`] ? 'rotate-180' : ''
+                  )}>
+                    <ChevronDown size={18} className="text-gray-400" />
+                  </div>
+                </button>
+                
+                {/* 미분류 아이템 목록 */}
+                {expandedTags[`${category}-__uncategorized__`] && (
+                  <div className="p-3 bg-white dark:bg-dark-400">
+                    {renderItemGrid(tagGroups.uncategorized)}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -565,9 +714,9 @@ const Inventory = () => {
   
   // 상태
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortBy, setSortBy] = useState('default')
   const [filterTag, setFilterTag] = useState('')
   const [expandedCategories, setExpandedCategories] = useState({})
+  const [expandedTags, setExpandedTags] = useState({}) // 태그별 확장 상태 (기본: 모두 접힘)
   const [undoStack, setUndoStack] = useState([])
   const [showUndo, setShowUndo] = useState(false)
   const [isDragMode, setIsDragMode] = useState(false)
@@ -903,39 +1052,13 @@ const Inventory = () => {
     }
   }, [showUndo, undoStack])
   
-  // 정렬 함수
-  const sortItems = (itemList) => {
-    const sorted = [...itemList]
-    
-    switch (sortBy) {
-      case 'name':
-        sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-        break
-      case 'type':
-        sorted.sort((a, b) => (a.type || '').localeCompare(b.type || '', 'ko'))
-        break
-      case 'tag':
-        sorted.sort((a, b) => {
-          const tagA = getItemTag(a.name) || 'zzz'
-          const tagB = getItemTag(b.name) || 'zzz'
-          return tagA.localeCompare(tagB, 'ko')
-        })
-        break
-      case 'quantity':
-        sorted.sort((a, b) => b.quantity - a.quantity)
-        break
-      case 'progress':
-        sorted.sort((a, b) => {
-          const progressA = a.required > 0 ? a.quantity / a.required : 1
-          const progressB = b.required > 0 ? b.quantity / b.required : 1
-          return progressA - progressB
-        })
-        break
-      default:
-        sorted.sort((a, b) => (a.order || 0) - (b.order || 0))
-    }
-    
-    return sorted
+  // 태그 토글
+  const toggleTag = (category, tagName) => {
+    const key = `${category}-${tagName}`
+    setExpandedTags(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }))
   }
   
   // 필터링된 아이템
@@ -947,30 +1070,53 @@ const Inventory = () => {
     })
   }, [allItems, searchQuery, filterTag, tags])
   
-  // 카테고리별 그룹핑 + 정렬
+  // 카테고리별 + 태그별 그룹핑
   const groupedItems = useMemo(() => {
     const grouped = {}
     
     for (const item of filteredItems) {
       if (!grouped[item.category]) {
-        grouped[item.category] = []
+        grouped[item.category] = { byTag: {}, uncategorized: [] }
       }
-      grouped[item.category].push(item)
+      
+      const itemTagName = getItemTag(item.name)
+      if (itemTagName) {
+        if (!grouped[item.category].byTag[itemTagName]) {
+          grouped[item.category].byTag[itemTagName] = []
+        }
+        grouped[item.category].byTag[itemTagName].push(item)
+      } else {
+        grouped[item.category].uncategorized.push(item)
+      }
     }
     
-    // 각 카테고리 내 아이템 정렬
+    // 각 그룹 내 아이템 order순 정렬
     for (const cat of Object.keys(grouped)) {
-      grouped[cat] = sortItems(grouped[cat])
+      for (const tagName of Object.keys(grouped[cat].byTag)) {
+        grouped[cat].byTag[tagName].sort((a, b) => (a.order || 0) - (b.order || 0))
+      }
+      grouped[cat].uncategorized.sort((a, b) => (a.order || 0) - (b.order || 0))
     }
     
     return grouped
-  }, [filteredItems, sortBy])
+  }, [filteredItems, tags])
   
-  // 카테고리 정렬 (첫 번째 아이템의 order 기준)
+  // 카테고리 정렬
   const sortedCategories = useMemo(() => {
     return Object.keys(groupedItems).sort((a, b) => {
-      const orderA = groupedItems[a][0]?.order || 0
-      const orderB = groupedItems[b][0]?.order || 0
+      // 각 카테고리의 첫 번째 아이템 order 기준
+      const getFirstOrder = (catData) => {
+        const tagNames = Object.keys(catData.byTag)
+        if (tagNames.length > 0 && catData.byTag[tagNames[0]].length > 0) {
+          return catData.byTag[tagNames[0]][0]?.order || 0
+        }
+        if (catData.uncategorized.length > 0) {
+          return catData.uncategorized[0]?.order || 0
+        }
+        return 0
+      }
+      const orderA = getFirstOrder(groupedItems[a])
+      const orderB = getFirstOrder(groupedItems[b])
       return orderA - orderB
     })
   }, [groupedItems])
@@ -1022,23 +1168,6 @@ const Inventory = () => {
               className="w-full sm:w-64 pl-10 pr-4 py-2.5 bg-white dark:bg-dark-300 border border-gray-200 dark:border-dark-100 rounded-xl focus:outline-none focus:border-primary-500 text-gray-900 dark:text-white"
             />
           </div>
-          
-          {/* 정렬 */}
-          <div className="relative">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="appearance-none pl-9 pr-8 py-2.5 bg-white dark:bg-dark-300 border border-gray-200 dark:border-dark-100 rounded-xl focus:outline-none focus:border-primary-500 cursor-pointer text-gray-900 dark:text-white"
-            >
-              <option value="default">기본순</option>
-              <option value="name">가나다순</option>
-              <option value="type">타입순</option>
-              <option value="tag">태그순</option>
-              <option value="quantity">수량순</option>
-              <option value="progress">진행률순</option>
-            </select>
-            <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-          </div>
 
           {/* 태그 필터 */}
           {tags.length > 0 && (
@@ -1071,9 +1200,12 @@ const Inventory = () => {
               key={cat}
               category={cat}
               emoji={categoryEmojis[cat]}
-              items={groupedItems[cat]}
+              tagGroups={groupedItems[cat]}
               isExpanded={expandedCategories[cat] || false}
               onToggle={() => toggleCategory(cat)}
+              expandedTags={expandedTags}
+              onToggleTag={toggleTag}
+              tags={tags}
               getItemTagInfo={getItemTagInfo}
               onQuantityChange={handleQuantityChange}
               onQuantitySet={handleQuantitySet}
