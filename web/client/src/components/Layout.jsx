@@ -82,7 +82,7 @@ function Layout() {
   })
 
   return (
-    <div className="min-h-screen bg-light-100 dark:bg-dark-400 transition-colors">
+    <div className="h-screen overflow-hidden bg-light-100 dark:bg-dark-400 transition-colors flex flex-col">
       {/* 상단 헤더 */}
       <header className="fixed top-0 left-0 right-0 h-16 bg-white dark:bg-dark-300 border-b border-light-300 dark:border-dark-100 z-50 transition-colors">
         <div className="h-full px-4 flex items-center justify-between">
@@ -251,6 +251,30 @@ function Layout() {
         />
       )}
 
+      {/* 데스크탑 사이드바 (고정) */}
+      <aside className="hidden lg:block fixed top-16 left-0 bottom-0 w-64 bg-white dark:bg-dark-300 border-r border-light-300 dark:border-dark-100 z-30 overflow-y-auto">
+        <nav className="p-4 flex flex-col gap-2">
+          {filteredNavItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === '/'}
+              className={({ isActive }) =>
+                clsx(
+                  'px-4 py-3 rounded-lg flex items-center gap-3 transition-colors',
+                  isActive
+                    ? 'bg-primary-600 text-white'
+                    : 'hover:bg-light-200 dark:hover:bg-dark-200 text-gray-600 dark:text-gray-300'
+                )
+              }
+            >
+              <item.icon size={20} />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
+
       {/* 모바일 사이드바 */}
       <aside
         className={clsx(
@@ -282,8 +306,8 @@ function Layout() {
       </aside>
 
       {/* 메인 콘텐츠 */}
-      <main className="pt-16 min-h-screen">
-        <div className="p-4 lg:p-6 pb-20">
+      <main className="pt-16 lg:pl-64 flex-1 overflow-y-auto">
+        <div className="p-4 lg:p-6 pb-24">
           <Outlet />
         </div>
       </main>

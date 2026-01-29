@@ -402,7 +402,7 @@ export default function Crafting() {
   // 대시보드 데이터 조회
   const { data: dashboard, isLoading } = useQuery({
     queryKey: ['crafting', 'dashboard', category],
-    queryFn: () => api.get(`/items/crafting/dashboard${category ? `?category=${category}` : ''}`).then(res => res.data),
+    queryFn: () => api.get(`/items/crafting/dashboard${category ? `?category=${encodeURIComponent(category)}` : ''}`).then(res => res.data),
   })
   
   // 카테고리 목록 조회
@@ -446,7 +446,7 @@ export default function Crafting() {
   
   // 전체 삭제 뮤테이션
   const deleteAllMutation = useMutation({
-    mutationFn: () => api.delete(`/items/crafting/all${category ? `?category=${category}` : ''}`),
+    mutationFn: () => api.delete(`/items/crafting/all${category ? `?category=${encodeURIComponent(category)}` : ''}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crafting'] })
       queryClient.invalidateQueries({ queryKey: ['items', 'crafting'] })
