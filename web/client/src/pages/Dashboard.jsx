@@ -99,7 +99,7 @@ function Dashboard() {
       <h1 className="text-2xl font-bold">대시보드</h1>
 
       {/* 통계 카드 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div data-tour="dashboard-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="재고 카테고리"
           value={inventoryCategories.length}
@@ -129,7 +129,7 @@ function Dashboard() {
       </div>
 
       {/* 진행 상황 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div data-tour="dashboard-progress" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 재고 진행률 */}
         <div className="bg-white dark:bg-dark-300 rounded-xl p-6 border border-light-300 dark:border-dark-100 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-4">
@@ -172,7 +172,7 @@ function Dashboard() {
       </div>
 
       {/* 기여도 TOP 5 */}
-      <div className="bg-white dark:bg-dark-300 rounded-xl p-6 border border-light-300 dark:border-dark-100 shadow-sm dark:shadow-none">
+      <div data-tour="dashboard-contributions" className="bg-white dark:bg-dark-300 rounded-xl p-6 border border-light-300 dark:border-dark-100 shadow-sm dark:shadow-none">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <TrendingUp size={20} className="text-yellow-500" />

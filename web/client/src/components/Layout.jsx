@@ -20,29 +20,33 @@ import {
   Bell,
   Sun,
   Moon,
-  BookOpen
+  BookOpen,
+  HelpCircle,
+  ChevronDown
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useSocket } from '../contexts/SocketContext'
 import { useTheme } from '../contexts/ThemeContext'
+import { useTour } from '../contexts/TourContext'
+import Tour from './Tour'
 import api from '../services/api'
 import clsx from 'clsx'
 
 // 전체 네비게이션 아이템 (사이드바용)
 const navItems = [
-  { path: '/', icon: LayoutDashboard, label: '대시보드' },
-  { path: '/inventory', icon: Package, label: '재고' },
-  { path: '/crafting', icon: Hammer, label: '제작' },
-  { path: '/recipes', icon: BookOpen, label: '레시피' },
-  { path: '/calendar', icon: Calendar, label: '일정' },
-  { path: '/tags', icon: Tag, label: '태그' },
-  { path: '/contributions', icon: Trophy, label: '기여도', featureKey: 'contribution' },
-  { path: '/history', icon: History, label: '수정내역', featureKey: 'history' },
-  { path: '/settings', icon: Settings, label: '설정' },
-  { path: '/points', icon: Star, label: '배점', adminOnly: true },
-  { path: '/permissions', icon: Shield, label: '권한', adminOnly: true },
-  { path: '/users', icon: Users, label: '유저', adminOnly: true },
+  { path: '/', icon: LayoutDashboard, label: '대시보드', tourId: 'nav-dashboard' },
+  { path: '/inventory', icon: Package, label: '재고', tourId: 'nav-inventory' },
+  { path: '/crafting', icon: Hammer, label: '제작', tourId: 'nav-crafting' },
+  { path: '/recipes', icon: BookOpen, label: '레시피', tourId: 'nav-recipes' },
+  { path: '/calendar', icon: Calendar, label: '일정', tourId: 'nav-calendar' },
+  { path: '/tags', icon: Tag, label: '태그', tourId: 'nav-tags' },
+  { path: '/contributions', icon: Trophy, label: '기여도', featureKey: 'contribution', tourId: 'nav-contributions' },
+  { path: '/history', icon: History, label: '수정내역', featureKey: 'history', tourId: 'nav-history' },
+  { path: '/settings', icon: Settings, label: '설정', tourId: 'nav-settings' },
+  { path: '/points', icon: Star, label: '배점', adminOnly: true, tourId: 'nav-points' },
+  { path: '/permissions', icon: Shield, label: '권한', adminOnly: true, tourId: 'nav-permissions' },
+  { path: '/users', icon: Users, label: '유저', adminOnly: true, tourId: 'nav-users' },
 ]
 
 // 헤더에 표시할 핵심 메뉴 (경로 기준)
@@ -56,10 +60,13 @@ function Layout() {
     return saved === 'true'
   })
   const [notificationOpen, setNotificationOpen] = useState(false)
+  const [guideMenuOpen, setGuideMenuOpen] = useState(false)
   const notificationRef = useRef(null)
+  const guideMenuRef = useRef(null)
   const { user, logout, hasFeature, getRoleName } = useAuth()
   const { connected, toasts, removeToast } = useSocket()
   const { isDark, toggleTheme } = useTheme()
+  const { startTour } = useTour()
   const location = useLocation()
   
   // 사이드바 토글 (데스크톱)
@@ -82,6 +89,9 @@ function Layout() {
     function handleClickOutside(event) {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setNotificationOpen(false)
+      }
+      if (guideMenuRef.current && !guideMenuRef.current.contains(event.target)) {
+        setGuideMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -149,11 +159,53 @@ function Layout() {
             ))}
           </nav>
 
-          {/* 오른쪽: 테마 + 알림 + 상태 + 유저 */}
+          {/* 오른쪽: 가이드 + 테마 + 알림 + 상태 + 유저 */}
           <div className="flex items-center gap-4">
+            {/* 가이드 버튼 */}
+            <div className="relative" ref={guideMenuRef}>
+              <button
+                onClick={() => setGuideMenuOpen(!guideMenuOpen)}
+                className="p-2 hover:bg-light-200 dark:hover:bg-dark-200 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-500 transition-colors flex items-center gap-1"
+                title="사용법 가이드"
+                data-tour="guide-button"
+              >
+                <HelpCircle size={20} />
+                <ChevronDown size={14} className={clsx('transition-transform', guideMenuOpen && 'rotate-180')} />
+              </button>
+
+              {/* 가이드 드롭다운 */}
+              {guideMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-dark-300 border border-light-300 dark:border-dark-100 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      setGuideMenuOpen(false)
+                      startTour('main')
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-light-200 dark:hover:bg-dark-200 transition-colors flex items-center gap-2"
+                  >
+                    <HelpCircle size={18} className="text-primary-500" />
+                    <span>사용법 가이드</span>
+                  </button>
+                  {(user?.isAdmin || user?.isServerOwner) && (
+                    <button
+                      onClick={() => {
+                        setGuideMenuOpen(false)
+                        startTour('admin')
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-light-200 dark:hover:bg-dark-200 transition-colors flex items-center gap-2 border-t border-light-300 dark:border-dark-100"
+                    >
+                      <Shield size={18} className="text-yellow-500" />
+                      <span>관리자 가이드</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* 테마 토글 */}
             <button
               onClick={toggleTheme}
+              data-tour="theme-toggle"
               className="p-2 hover:bg-light-200 dark:hover:bg-dark-200 rounded-lg text-gray-500 dark:text-gray-400 hover:text-yellow-500 transition-colors"
               title={isDark ? '라이트 모드로 전환' : '다크 모드로 전환'}
             >
@@ -162,7 +214,7 @@ function Layout() {
 
             {/* 알림 벨 */}
             {user && (
-              <div className="relative" ref={notificationRef}>
+              <div className="relative" ref={notificationRef} data-tour="notifications">
                 <button
                   onClick={() => setNotificationOpen(!notificationOpen)}
                   className="relative p-2 hover:bg-light-200 dark:hover:bg-dark-200 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
@@ -279,10 +331,13 @@ function Layout() {
       )}
 
       {/* 데스크탑 사이드바 (토글 가능) */}
-      <aside className={clsx(
-        'hidden lg:flex flex-col fixed top-16 left-0 bottom-0 bg-white dark:bg-dark-300 border-r border-light-300 dark:border-dark-100 z-30 overflow-y-auto transition-all duration-300',
-        sidebarCollapsed ? 'w-16' : 'w-64'
-      )}>
+      <aside 
+        data-tour="sidebar"
+        className={clsx(
+          'hidden lg:flex flex-col fixed top-16 left-0 bottom-0 bg-white dark:bg-dark-300 border-r border-light-300 dark:border-dark-100 z-30 overflow-y-auto transition-all duration-300',
+          sidebarCollapsed ? 'w-16' : 'w-64'
+        )}
+      >
         <nav className="p-2 flex flex-col gap-1 flex-1">
           {filteredNavItems.map((item) => (
             <NavLink
@@ -290,6 +345,7 @@ function Layout() {
               to={item.path}
               end={item.path === '/'}
               title={sidebarCollapsed ? item.label : undefined}
+              data-tour={item.tourId}
               className={({ isActive }) =>
                 clsx(
                   'rounded-lg flex items-center gap-3 transition-colors',
@@ -368,6 +424,9 @@ function Layout() {
           </div>
         ))}
       </div>
+
+      {/* 인터랙티브 투어 */}
+      <Tour />
     </div>
   )
 }

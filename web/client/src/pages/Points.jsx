@@ -155,7 +155,7 @@ function Points() {
       </p>
 
       {/* 재고 배점 */}
-      <div className="bg-white dark:bg-dark-300 rounded-xl border border-gray-200 dark:border-dark-100 overflow-hidden">
+      <div data-tour="points-settings" className="bg-white dark:bg-dark-300 rounded-xl border border-gray-200 dark:border-dark-100 overflow-hidden">
         <div className="p-4 bg-gray-100 dark:bg-dark-200 border-b border-gray-200 dark:border-dark-100">
           <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
              재고 배점

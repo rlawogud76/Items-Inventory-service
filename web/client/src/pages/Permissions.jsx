@@ -183,7 +183,7 @@ function Permissions() {
           : ' 관리자는 멤버 권한만 수정할 수 있습니다.'}
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" data-tour="permissions-settings">
         {/* 관리자 목록 - 서버장만 수정 가능 */}
         <div className={`bg-white dark:bg-dark-300 rounded-xl p-6 border border-gray-200 dark:border-dark-100 ${!user?.isServerOwner ? 'opacity-60' : ''}`}>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-white">

@@ -17,6 +17,7 @@ import Login from './pages/Login'
 import AuthCallback from './pages/AuthCallback'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
+import { TourProvider } from './contexts/TourContext'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -66,7 +67,9 @@ function App() {
   return (
     <AuthProvider>
       <SocketProvider>
-        <AppRoutes />
+        <TourProvider>
+          <AppRoutes />
+        </TourProvider>
       </SocketProvider>
     </AuthProvider>
   )

@@ -986,6 +986,7 @@ const Inventory = () => {
           {user && (
             <button
               onClick={handleAddItem}
+              data-tour="inventory-add"
               className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl transition-colors font-medium"
             >
               <Plus size={20} />
@@ -997,6 +998,7 @@ const Inventory = () => {
           {user && (
             <button
               onClick={() => setIsDragMode(!isDragMode)}
+              data-tour="inventory-sort"
               className={clsx(
                 'flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors font-medium',
                 isDragMode 
@@ -1010,7 +1012,7 @@ const Inventory = () => {
           )}
           
           {/* 검색 */}
-          <div className="relative">
+          <div className="relative" data-tour="inventory-search">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
@@ -1040,7 +1042,7 @@ const Inventory = () => {
 
           {/* 태그 필터 */}
           {tags.length > 0 && (
-            <div className="relative">
+            <div className="relative" data-tour="inventory-filter">
               <select
                 value={filterTag}
                 onChange={(e) => setFilterTag(e.target.value)}
@@ -1063,8 +1065,8 @@ const Inventory = () => {
           <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500"></div>
         </div>
       ) : sortedCategories.length > 0 ? (
-        <div className="space-y-4">
-          {sortedCategories.map((cat) => (
+        <div className="space-y-4" data-tour="inventory-item">
+          {sortedCategories.map((cat, catIndex) => (
             <CategorySection
               key={cat}
               category={cat}

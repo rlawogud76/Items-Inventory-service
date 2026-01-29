@@ -560,7 +560,7 @@ export default function Crafting() {
       
       {/* 카테고리 탭 */}
       {categories.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+        <div data-tour="crafting-tiers" className="flex items-center gap-2 overflow-x-auto pb-2">
           <NavLink
             to="/crafting"
             end
@@ -651,7 +651,7 @@ export default function Crafting() {
       
       {/* 칸반 보드 */}
       {totalItems > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div data-tour="crafting-item" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <TierColumn
             tier={1}
             items={tier1Items}
