@@ -1017,6 +1017,13 @@ async function getCraftingDashboard(category = null) {
       return acc;
     }, {});
     
+    // crafting 아이템도 맵에 추가 (제작 계획 내 재료 재고용)
+    const craftingMap = items.reduce((acc, item) => {
+      const key = `${item.category}:${item.name}`;
+      acc[key] = item;
+      return acc;
+    }, {});
+    
     // 연동된 이벤트 조회
     const eventIds = [...new Set(items.filter(i => i.eventId).map(i => i.eventId.toString()))];
     let linkedEvents = [];
@@ -1052,15 +1059,19 @@ async function getCraftingDashboard(category = null) {
       const recipe = recipeMap[item.name];
       if (recipe) {
         item.recipe = recipe;
-        // 재료별 인벤토리 보유량 추가
+        // 재료별 보유량 추가 (crafting에서 먼저 찾고, 없으면 inventory에서 찾기)
         if (recipe.materials) {
           item.materialsWithStock = recipe.materials.map(mat => {
-            const invKey = `${mat.category || item.category}:${mat.name}`;
-            const invItem = inventoryMap[invKey];
+            const key = `${mat.category || item.category}:${mat.name}`;
+            // crafting 아이템에서 먼저 찾기 (제작 계획 내 재료)
+            const craftingItem = craftingMap[key];
+            // 없으면 inventory에서 찾기
+            const invItem = inventoryMap[key];
+            const stockItem = craftingItem || invItem;
             return {
               ...mat,
-              emoji: invItem?.emoji || null,
-              stock: invItem?.quantity || 0,
+              emoji: stockItem?.emoji || null,
+              stock: stockItem?.quantity || 0,
               needed: mat.quantity * Math.max(0, item.required - item.quantity)
             };
           });
