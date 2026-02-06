@@ -424,6 +424,14 @@ export default function Crafting() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crafting', 'dashboard'] })
     },
+    onError: (error) => {
+      if (error.response?.data?.missing) {
+        const missing = error.response.data.missing
+        alert(`재료 부족!\n${missing.map(m => `${m.name}: ${m.available}/${m.required} (${m.shortage}개 부족)`).join('\n')}`)
+      } else {
+        alert(error.response?.data?.error || '수량 변경 실패')
+      }
+    },
   })
   
   // 수량 직접 설정 뮤테이션
@@ -432,6 +440,14 @@ export default function Crafting() {
       api.patch(`/items/${item.type}/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}/quantity/set`, { value }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crafting', 'dashboard'] })
+    },
+    onError: (error) => {
+      if (error.response?.data?.missing) {
+        const missing = error.response.data.missing
+        alert(`재료 부족!\n${missing.map(m => `${m.name}: ${m.available}/${m.required} (${m.shortage}개 부족)`).join('\n')}`)
+      } else {
+        alert(error.response?.data?.error || '수량 설정 실패')
+      }
     },
   })
   

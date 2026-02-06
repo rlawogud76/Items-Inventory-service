@@ -581,6 +581,185 @@ async function removeRecipe(category, resultName) {
 // ============ 제작 계획 관련 함수들 ============
 
 /**
+ * 레시피 재료 검증 (재귀적) - 모든 하위 재료가 충분한지 확인
+ * @param {string} type - 아이템 타입 (crafting/inventory)
+ * @param {string} category - 카테고리
+ * @param {string} itemName - 제작할 아이템 이름
+ * @param {number} craftAmount - 제작할 수량
+ * @param {number} depth - 재귀 깊이 (무한 루프 방지)
+ * @returns {Object} { valid: boolean, missing: [{name, category, required, available, shortage}] }
+ */
+async function validateMaterialsRecursive(type, category, itemName, craftAmount, depth = 0) {
+  try {
+    if (depth > 5 || craftAmount <= 0) return { valid: true, missing: [] };
+    
+    const recipes = await Recipe.find({}).lean();
+    const recipe = recipes.find(r => r.resultName === itemName && r.category === category);
+    
+    if (!recipe || !recipe.materials || recipe.materials.length === 0) {
+      return { valid: true, missing: [] };
+    }
+    
+    const missing = [];
+    
+    for (const mat of recipe.materials) {
+      const materialItem = await Item.findOne({ 
+        type, 
+        category: mat.category, 
+        name: mat.name 
+      }).lean();
+      
+      const available = materialItem?.quantity || 0;
+      const required = mat.quantity * craftAmount;
+      
+      if (available < required) {
+        missing.push({
+          name: mat.name,
+          category: mat.category,
+          required,
+          available,
+          shortage: required - available
+        });
+      }
+    }
+    
+    return { valid: missing.length === 0, missing };
+  } catch (error) {
+    console.error('❌ 재료 검증 실패:', error);
+    return { valid: false, missing: [{ name: itemName, error: error.message }] };
+  }
+}
+
+/**
+ * 레시피 재료 차감 (재귀적) - 모든 하위 재료 자동 차감
+ * @param {string} type - 아이템 타입 (crafting/inventory)  
+ * @param {string} category - 카테고리
+ * @param {string} itemName - 제작 아이템 이름
+ * @param {number} craftAmount - 제작 수량 (양수: 제작, 음수: 취소)
+ * @param {string} userName - 작업자
+ * @param {number} depth - 재귀 깊이
+ * @param {string} batchId - 히스토리 그룹화용 배치 ID
+ * @returns {Object} { success: boolean, changes: [{name, delta}] }
+ */
+async function syncMaterialsRecursive(type, category, itemName, craftAmount, userName, depth = 0, batchId = null) {
+  try {
+    if (depth > 5) return { success: true, changes: [] };
+    
+    const recipes = await Recipe.find({}).lean();
+    const recipe = recipes.find(r => r.resultName === itemName && r.category === category);
+    
+    if (!recipe || !recipe.materials || recipe.materials.length === 0) {
+      return { success: true, changes: [] };
+    }
+    
+    const changes = [];
+    const batch = batchId || `batch_${Date.now()}`;
+    
+    for (const mat of recipe.materials) {
+      const materialDelta = -(craftAmount * mat.quantity);
+      
+      const materialItem = await Item.findOne({ 
+        type, 
+        category: mat.category, 
+        name: mat.name 
+      });
+      
+      if (materialItem) {
+        const newQuantity = Math.max(0, materialItem.quantity + materialDelta);
+        const actualDelta = newQuantity - materialItem.quantity;
+        
+        if (actualDelta !== 0) {
+          await Item.findOneAndUpdate(
+            { type, category: mat.category, name: mat.name },
+            { $set: { quantity: newQuantity, updatedAt: new Date() } }
+          );
+          
+          await addHistoryEntry({
+            timestamp: new Date().toISOString(),
+            type,
+            category: mat.category,
+            itemName: mat.name,
+            action: 'recipe_sync',
+            details: `[${batch}] ${itemName} ${craftAmount > 0 ? '제작' : '취소'}: ${actualDelta > 0 ? '+' : ''}${actualDelta}개`,
+            userName
+          });
+          
+          changes.push({ name: mat.name, category: mat.category, delta: actualDelta });
+        }
+        
+        // 하위 재료도 재귀적으로 차감
+        const subResult = await syncMaterialsRecursive(
+          type, mat.category, mat.name, craftAmount * mat.quantity, userName, depth + 1, batch
+        );
+        changes.push(...subResult.changes);
+      }
+    }
+    
+    notifyChangeListeners();
+    return { success: true, changes };
+  } catch (error) {
+    console.error('❌ 재료 동기화 실패:', error);
+    return { success: false, changes: [], error: error.message };
+  }
+}
+
+/**
+ * 제작 미리보기 - 제작 시 영향받는 모든 재료 목록 반환
+ * @param {string} type - 아이템 타입
+ * @param {string} category - 카테고리
+ * @param {string} itemName - 제작 아이템
+ * @param {number} craftAmount - 제작 수량
+ * @returns {Object} { materials: [{name, category, currentStock, required, afterStock, shortage}], hasShortage }
+ */
+async function getCraftingPreview(type, category, itemName, craftAmount) {
+  try {
+    const recipes = await Recipe.find({}).lean();
+    const materials = [];
+    
+    const collectMaterials = async (name, cat, amount, depth = 0) => {
+      if (depth > 5) return;
+      
+      const recipe = recipes.find(r => r.resultName === name && r.category === cat);
+      if (!recipe || !recipe.materials) return;
+      
+      for (const mat of recipe.materials) {
+        const item = await Item.findOne({ type, category: mat.category, name: mat.name }).lean();
+        const currentStock = item?.quantity || 0;
+        const required = mat.quantity * amount;
+        
+        const existing = materials.find(m => m.name === mat.name && m.category === mat.category);
+        if (existing) {
+          existing.required += required;
+          existing.afterStock = Math.max(0, existing.currentStock - existing.required);
+          existing.shortage = Math.max(0, existing.required - existing.currentStock);
+        } else {
+          materials.push({
+            name: mat.name,
+            category: mat.category,
+            currentStock,
+            required,
+            afterStock: Math.max(0, currentStock - required),
+            shortage: Math.max(0, required - currentStock)
+          });
+        }
+        
+        await collectMaterials(mat.name, mat.category, required, depth + 1);
+      }
+    };
+    
+    await collectMaterials(itemName, category, craftAmount);
+    
+    return { 
+      materials,
+      hasShortage: materials.some(m => m.shortage > 0)
+    };
+  } catch (error) {
+    console.error('❌ 제작 미리보기 실패:', error);
+    throw error;
+  }
+}
+
+/**
  * 3차 제작품 목표 기준으로 모든 티어 필요량 계산
  * @param {string} category - 카테고리
  * @param {Array} tier3Goals - [{name, quantity}] 3차 제작품 목표
@@ -662,22 +841,17 @@ async function recalculateCraftingRequirements(category, itemName, tier, newRequ
     const recipe = recipeMap[itemName];
     if (!recipe || !recipe.materials) return { success: true, updated: 0 };
     
-    const updates = [];
+    // 누적 계산을 위한 맵 (기존 set → inc로 변경)
+    const requiredMap = {};
     
-    // 직접 재료 업데이트
+    // 직접 재료 계산
     for (const mat of recipe.materials) {
-      const neededPerUnit = mat.quantity;
-      const totalNeeded = neededPerUnit * newRequired;
+      const totalNeeded = mat.quantity * newRequired;
       
-      // 하위 티어 아이템의 required 업데이트
-      updates.push({
-        type: 'crafting',
-        category,
-        itemName: mat.name,
-        field: 'required',
-        operation: 'set',
-        value: totalNeeded
-      });
+      if (!requiredMap[mat.name]) {
+        requiredMap[mat.name] = 0;
+      }
+      requiredMap[mat.name] += totalNeeded;
       
       // 2단계 하위 재료 (3차 -> 2차 -> 1차)
       if (tier === 3) {
@@ -685,18 +859,24 @@ async function recalculateCraftingRequirements(category, itemName, tier, newRequ
         if (subRecipe && subRecipe.materials) {
           for (const subMat of subRecipe.materials) {
             const subNeeded = subMat.quantity * totalNeeded;
-            updates.push({
-              type: 'crafting',
-              category,
-              itemName: subMat.name,
-              field: 'required',
-              operation: 'set',
-              value: subNeeded
-            });
+            if (!requiredMap[subMat.name]) {
+              requiredMap[subMat.name] = 0;
+            }
+            requiredMap[subMat.name] += subNeeded;
           }
         }
       }
     }
+    
+    // 누적된 값으로 업데이트 생성
+    const updates = Object.entries(requiredMap).map(([name, value]) => ({
+      type: 'crafting',
+      category,
+      itemName: name,
+      field: 'required',
+      operation: 'set',
+      value
+    }));
     
     if (updates.length > 0) {
       await updateMultipleItems(updates, []);
@@ -1338,6 +1518,9 @@ module.exports = {
   createCraftingPlan,
   deleteCraftingItems,
   getCraftingDashboard,
+  validateMaterialsRecursive,
+  syncMaterialsRecursive,
+  getCraftingPreview,
   
   // 설정
   getSettings,

@@ -95,6 +95,22 @@ router.post('/crafting/calculate', authenticate, async (req, res, next) => {
   }
 });
 
+// 제작 미리보기 - 제작 시 영향받는 재료 목록
+router.get('/crafting/preview', authenticate, async (req, res, next) => {
+  try {
+    const { type = 'crafting', category, name, amount } = req.query;
+    
+    if (!category || !name || !amount) {
+      return res.status(400).json({ error: '카테고리, 아이템명, 수량이 필요합니다.' });
+    }
+    
+    const preview = await db.getCraftingPreview(type, category, name, parseInt(amount) || 1);
+    res.json(preview);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // 제작 아이템 전체 삭제
 router.delete('/crafting/all', authenticate, requireFeature('manage'), async (req, res, next) => {
   try {
@@ -208,7 +224,7 @@ router.post('/', authenticate, requireFeature('manage'), async (req, res, next) 
 router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('quantity'), async (req, res, next) => {
   try {
     const { type, category, name } = req.params;
-    const { delta, action = 'update_quantity', syncMaterials = true, syncLinked = true } = req.body;
+    const { delta, action = 'update_quantity', syncMaterials = true, syncLinked = true, forceSync = false } = req.body;
     
     if (typeof delta !== 'number') {
       return res.status(400).json({ error: 'delta는 숫자여야 합니다.' });
@@ -216,7 +232,7 @@ router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('qu
     
     const actionText = delta > 0 ? `추가: +${delta}개` : `차감: ${delta}개`;
     
-    // 아이템 정보 조회 (레시피 연동 여부 확인)
+    // 아이템 정보 조회
     const items = await db.getItems(type);
     const item = items.find(i => i.name === name && i.category === category);
     
@@ -224,30 +240,27 @@ router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('qu
       return res.status(404).json({ error: '아이템을 찾을 수 없습니다.' });
     }
     
-    // 레시피가 있으면 재료 연동 (모든 티어에서 작동)
-    if (syncMaterials && delta !== 0) {
-      const recipes = await db.getRecipes(category);
-      const recipe = recipes.find(r => r.resultName === name);
+    // 레시피가 있으면 재료 연동 (재귀적)
+    if (syncMaterials && delta > 0) {
+      // 제작 시 (수량 증가) - 재료 검증 후 차감
+      const validation = await db.validateMaterialsRecursive(type, category, name, delta);
       
-      if (recipe && recipe.materials && recipe.materials.length > 0) {
-        // 수량 증가 시 재료 차감, 수량 감소 시 재료 복구
-        for (const material of recipe.materials) {
-          const materialDelta = -(delta * material.quantity); // 역방향
-          
-          // crafting 타입이면 같은 crafting에서, 아니면 inventory에서 재료 차감
-          const materialType = type === 'crafting' ? 'crafting' : 'inventory';
-          
-          await db.updateItemQuantity(
-            materialType,
-            material.category,
-            material.name,
-            materialDelta,
-            req.user.username,
-            'recipe_sync',
-            `[레시피 연동] ${name} ${delta > 0 ? '제작' : '취소'}: ${materialDelta > 0 ? '+' : ''}${materialDelta}개`
-          );
-        }
+      if (!validation.valid && !forceSync) {
+        return res.status(400).json({ 
+          error: '재료가 부족합니다.', 
+          missing: validation.missing 
+        });
       }
+      
+      // 재귀적으로 모든 하위 재료 차감
+      const syncResult = await db.syncMaterialsRecursive(type, category, name, delta, req.user.username);
+      
+      if (!syncResult.success) {
+        return res.status(500).json({ error: '재료 동기화 실패', details: syncResult.error });
+      }
+    } else if (syncMaterials && delta < 0) {
+      // 취소 시 (수량 감소) - 재료 복구 (재귀적)
+      await db.syncMaterialsRecursive(type, category, name, delta, req.user.username);
     }
     
     // 분야 간 연동 (inventory <-> crafting)
@@ -257,7 +270,6 @@ router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('qu
       const linkedItem = otherItems.find(i => i.name === name && i.category === category);
       
       if (linkedItem) {
-        // 연동된 아이템 수량도 같이 변경 (무한 루프 방지를 위해 syncLinked: false)
         await db.updateItemQuantity(
           otherType,
           category,
@@ -309,13 +321,13 @@ router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('qu
 router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature('quantity'), async (req, res, next) => {
   try {
     const { type, category, name } = req.params;
-    const { value, syncMaterials = true, syncLinked = true } = req.body;
+    const { value, syncMaterials = true, syncLinked = true, forceSync = false } = req.body;
     
     if (typeof value !== 'number' || value < 0) {
       return res.status(400).json({ error: 'value는 0 이상의 숫자여야 합니다.' });
     }
     
-    // 아이템 정보 조회 (레시피 연동 여부 확인)
+    // 아이템 정보 조회
     const items = await db.getItems(type);
     const item = items.find(i => i.name === name && i.category === category);
     
@@ -325,29 +337,23 @@ router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature
     
     const delta = value - item.quantity; // 변화량 계산
     
-    // 레시피가 있으면 재료 연동 (모든 티어에서 작동)
-    if (syncMaterials && delta !== 0) {
-      const recipes = await db.getRecipes(category);
-      const recipe = recipes.find(r => r.resultName === name);
+    // 레시피가 있으면 재료 연동 (재귀적)
+    if (syncMaterials && delta > 0) {
+      // 제작 시 (수량 증가) - 재료 검증 후 차감
+      const validation = await db.validateMaterialsRecursive(type, category, name, delta);
       
-      if (recipe && recipe.materials && recipe.materials.length > 0) {
-        for (const material of recipe.materials) {
-          const materialDelta = -(delta * material.quantity);
-          
-          // crafting 타입이면 같은 crafting에서, 아니면 inventory에서 재료 차감
-          const materialType = type === 'crafting' ? 'crafting' : 'inventory';
-          
-          await db.updateItemQuantity(
-            materialType,
-            material.category,
-            material.name,
-            materialDelta,
-            req.user.username,
-            'recipe_sync',
-            `[레시피 연동] ${name} ${delta > 0 ? '제작' : '취소'}: ${materialDelta > 0 ? '+' : ''}${materialDelta}개`
-          );
-        }
+      if (!validation.valid && !forceSync) {
+        return res.status(400).json({ 
+          error: '재료가 부족합니다.', 
+          missing: validation.missing 
+        });
       }
+      
+      // 재귀적으로 모든 하위 재료 차감
+      await db.syncMaterialsRecursive(type, category, name, delta, req.user.username);
+    } else if (syncMaterials && delta < 0) {
+      // 취소 시 (수량 감소) - 재료 복구 (재귀적)
+      await db.syncMaterialsRecursive(type, category, name, delta, req.user.username);
     }
     
     // 분야 간 연동 (inventory <-> crafting)
@@ -357,7 +363,6 @@ router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature
       const linkedItem = otherItems.find(i => i.name === name && i.category === category);
       
       if (linkedItem) {
-        // 연동된 아이템도 같은 값으로 설정
         await db.setItemQuantity(
           otherType,
           category,
