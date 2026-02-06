@@ -247,7 +247,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                       value={quantityParts.boxes || ''}
                       onChange={(e) => setQuantityParts({ ...quantityParts, boxes: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
-                      placeholder="0"
+                      placeholder=""
                       min="0"
                     />
                   </div>
@@ -258,7 +258,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                       value={quantityParts.sets || ''}
                       onChange={(e) => setQuantityParts({ ...quantityParts, sets: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
-                      placeholder="0"
+                      placeholder=""
                       min="0"
                     />
                   </div>
@@ -269,7 +269,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                       value={quantityParts.items || ''}
                       onChange={(e) => setQuantityParts({ ...quantityParts, items: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
-                      placeholder="0"
+                      placeholder=""
                       min="0"
                     />
                   </div>
@@ -289,7 +289,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                       value={requiredParts.boxes || ''}
                       onChange={(e) => setRequiredParts({ ...requiredParts, boxes: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
-                      placeholder="0"
+                      placeholder=""
                       min="0"
                     />
                   </div>
@@ -300,7 +300,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                       value={requiredParts.sets || ''}
                       onChange={(e) => setRequiredParts({ ...requiredParts, sets: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
-                      placeholder="0"
+                      placeholder=""
                       min="0"
                     />
                   </div>
@@ -311,7 +311,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                       value={requiredParts.items || ''}
                       onChange={(e) => setRequiredParts({ ...requiredParts, items: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
-                      placeholder="0"
+                      placeholder=""
                       min="0"
                     />
                   </div>
@@ -335,7 +335,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     value={requiredParts.boxes || ''}
                     onChange={(e) => setRequiredParts({ ...requiredParts, boxes: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
-                    placeholder="0"
+                    placeholder=""
                     min="0"
                   />
                 </div>
@@ -346,7 +346,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     value={requiredParts.sets || ''}
                     onChange={(e) => setRequiredParts({ ...requiredParts, sets: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
-                    placeholder="0"
+                    placeholder=""
                     min="0"
                   />
                 </div>
@@ -357,7 +357,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
                     value={requiredParts.items || ''}
                     onChange={(e) => setRequiredParts({ ...requiredParts, items: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500 text-center"
-                    placeholder="0"
+                    placeholder=""
                     min="0"
                   />
                 </div>

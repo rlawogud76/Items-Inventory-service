@@ -225,8 +225,8 @@ const ItemRow = ({
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
-                    value={editBoxes}
-                    onChange={(e) => setEditBoxes(Math.max(0, parseInt(e.target.value) || 0))}
+                    value={editBoxes || ''}
+                    onChange={(e) => setEditBoxes(e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value) || 0))}
                     className="w-14 px-2 py-1 text-sm bg-gray-100 dark:bg-dark-200 border border-gray-300 dark:border-dark-100 rounded focus:outline-none focus:border-primary-500 text-center"
                     min="0"
                   />
@@ -235,8 +235,8 @@ const ItemRow = ({
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
-                    value={editSets}
-                    onChange={(e) => setEditSets(Math.max(0, parseInt(e.target.value) || 0))}
+                    value={editSets || ''}
+                    onChange={(e) => setEditSets(e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value) || 0))}
                     className="w-14 px-2 py-1 text-sm bg-gray-100 dark:bg-dark-200 border border-gray-300 dark:border-dark-100 rounded focus:outline-none focus:border-primary-500 text-center"
                     autoFocus
                     min="0"
@@ -246,8 +246,8 @@ const ItemRow = ({
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
-                    value={editItems}
-                    onChange={(e) => setEditItems(Math.max(0, parseInt(e.target.value) || 0))}
+                    value={editItems || ''}
+                    onChange={(e) => setEditItems(e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value) || 0))}
                     className="w-14 px-2 py-1 text-sm bg-gray-100 dark:bg-dark-200 border border-gray-300 dark:border-dark-100 rounded focus:outline-none focus:border-primary-500 text-center"
                     min="0"
                   />
