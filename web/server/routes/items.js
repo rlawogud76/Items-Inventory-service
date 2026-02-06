@@ -234,9 +234,11 @@ router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('qu
         for (const material of recipe.materials) {
           const materialDelta = -(delta * material.quantity); // 역방향
           
-          // 재료는 inventory 타입에서 찾기
+          // crafting 타입이면 같은 crafting에서, 아니면 inventory에서 재료 차감
+          const materialType = type === 'crafting' ? 'crafting' : 'inventory';
+          
           await db.updateItemQuantity(
-            'inventory',
+            materialType,
             material.category,
             material.name,
             materialDelta,
@@ -332,8 +334,11 @@ router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature
         for (const material of recipe.materials) {
           const materialDelta = -(delta * material.quantity);
           
+          // crafting 타입이면 같은 crafting에서, 아니면 inventory에서 재료 차감
+          const materialType = type === 'crafting' ? 'crafting' : 'inventory';
+          
           await db.updateItemQuantity(
-            'inventory',
+            materialType,
             material.category,
             material.name,
             materialDelta,
