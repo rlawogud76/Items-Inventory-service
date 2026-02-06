@@ -690,11 +690,9 @@ async function syncMaterialsRecursive(type, category, itemName, craftAmount, use
           changes.push({ name: mat.name, category: mat.category, delta: actualDelta });
         }
         
-        // 하위 재료도 재귀적으로 차감
-        const subResult = await syncMaterialsRecursive(
-          type, mat.category, mat.name, craftAmount * mat.quantity, userName, depth + 1, batch
-        );
-        changes.push(...subResult.changes);
+        // 하위 재료도 재귀적으로 차감 (재료가 레시피가 있는 경우만)
+        // 주의: 하위 재료는 이미 위에서 처리되었으므로 재귀 호출 불필요
+        // 제작 계획에서는 1차 재료만 차감하면 됨 (계층 구조가 아님)
       }
     }
     
