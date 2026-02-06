@@ -41,11 +41,12 @@ router.get('/discord/callback', async (req, res) => {
       })
     });
     
-    if (!tokenResponse.ok) {
-      throw new Error(`토큰 교환 실패: ${tokenResponse.status}`);
-    }
-    
     const tokenData = await tokenResponse.json();
+    
+    if (!tokenResponse.ok) {
+      console.error('❌ Discord 토큰 교환 실패:', tokenResponse.status, tokenData);
+      throw new Error(`토큰 교환 실패: ${tokenResponse.status} - ${JSON.stringify(tokenData)}`);
+    }
     
     if (!tokenData.access_token) {
       throw new Error('토큰 교환 실패: access_token 없음');
