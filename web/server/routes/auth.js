@@ -130,6 +130,14 @@ router.get('/me', async (req, res) => {
     const SERVER_OWNER_ID = process.env.SERVER_OWNER_ID;
     const isServerOwner = decoded.id === SERVER_OWNER_ID || decoded.id === settings?.serverOwnerId;
     
+    console.log('🔍 /me 권한 체크:', {
+      userId: decoded.id,
+      SERVER_OWNER_ID,
+      settingsOwnerId: settings?.serverOwnerId,
+      isServerOwner,
+      isAdmin
+    });
+    
     // 역할 결정
     let role = 'member';
     if (isServerOwner) role = 'owner';
