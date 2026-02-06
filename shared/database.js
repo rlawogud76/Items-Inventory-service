@@ -609,7 +609,10 @@ async function validateMaterialsRecursive(type, category, itemName, craftAmount,
         name: mat.name 
       }).lean();
       
-      const available = materialItem?.quantity || 0;
+      // 해당 재료가 제작 계획에 없으면 검증 스킵 (외부 재료)
+      if (!materialItem) continue;
+      
+      const available = materialItem.quantity || 0;
       const required = mat.quantity * craftAmount;
       
       if (available < required) {
