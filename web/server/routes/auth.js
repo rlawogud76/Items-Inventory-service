@@ -9,6 +9,12 @@ const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'http://localho
 
 // Discord OAuth2 URL 생성
 router.get('/discord', (req, res) => {
+  console.log('🔐 OAuth 설정:', {
+    client_id: DISCORD_CLIENT_ID,
+    redirect_uri: DISCORD_REDIRECT_URI,
+    has_secret: !!DISCORD_CLIENT_SECRET
+  });
+  
   const params = new URLSearchParams({
     client_id: DISCORD_CLIENT_ID,
     redirect_uri: DISCORD_REDIRECT_URI,
@@ -29,6 +35,13 @@ router.get('/discord/callback', async (req, res) => {
   
   try {
     // 토큰 교환
+    console.log('🔄 토큰 교환 시도:', {
+      client_id: DISCORD_CLIENT_ID,
+      redirect_uri: DISCORD_REDIRECT_URI,
+      has_secret: !!DISCORD_CLIENT_SECRET,
+      code_length: code?.length
+    });
+    
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -41,7 +54,16 @@ router.get('/discord/callback', async (req, res) => {
       })
     });
     
-    const tokenData = await tokenResponse.json();
+    // 먼저 텍스트로 받아서 확인
+    const responseText = await tokenResponse.text();
+    console.log('📥 Discord 응답:', tokenResponse.status, responseText.substring(0, 500));
+    
+    let tokenData;
+    try {
+      tokenData = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error(`Discord가 JSON이 아닌 응답 반환: ${responseText.substring(0, 200)}`);
+    }
     
     if (!tokenResponse.ok) {
       console.error('❌ Discord 토큰 교환 실패:', tokenResponse.status, tokenData);
