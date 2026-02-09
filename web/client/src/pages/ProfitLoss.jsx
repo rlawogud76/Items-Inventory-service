@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Save, FileText, Calculator, TrendingUp, TrendingDown, Download, RefreshCw } from 'lucide-react'
+import { Plus, Trash2, Save, FileText, Calculator, TrendingUp, TrendingDown, Download, RefreshCw, RotateCcw } from 'lucide-react'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { useSocket } from '../contexts/SocketContext'
@@ -24,14 +24,17 @@ function ProfitLoss() {
   const { socket } = useSocket()
   const queryClient = useQueryClient()
   
-  // 현재 편집 중인 문서 ID
-  const [currentId, setCurrentId] = useState(null)
+  // 현재 편집 중인 문서 ID (localStorage에서 초기화)
+  const [currentId, setCurrentId] = useState(() => {
+    return localStorage.getItem('profitloss_currentId') || null
+  })
   const [title, setTitle] = useState('손익계산서')
   const [recordDate, setRecordDate] = useState(new Date().toISOString().split('T')[0])
   const [income, setIncome] = useState([])
   const [expense, setExpense] = useState([])
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState(null)
+  const [initialized, setInitialized] = useState(false)
 
   // 목록 조회
   const { data: profitLossList = [], isLoading } = useQuery({
@@ -62,6 +65,7 @@ function ProfitLoss() {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['profitloss'] })
       setCurrentId(res.data._id)
+      localStorage.setItem('profitloss_currentId', res.data._id)
       setLastSaved(new Date())
     }
   })
@@ -121,6 +125,7 @@ function ProfitLoss() {
   // 새 문서
   const handleNew = useCallback(() => {
     setCurrentId(null)
+    localStorage.removeItem('profitloss_currentId')
     setTitle('손익계산서')
     setRecordDate(new Date().toISOString().split('T')[0])
     setIncome(defaultIncomeItems.map(item => ({ ...createEmptyEntry(), item })))
@@ -128,12 +133,37 @@ function ProfitLoss() {
     setLastSaved(null)
   }, [])
 
-  // 초기 로드
+  // 입력값만 초기화 (문서는 유지)
+  const handleReset = useCallback(() => {
+    setIncome(income.map(entry => ({ ...createEmptyEntry(), item: entry.item })))
+    setExpense(expense.map(entry => ({ ...createEmptyEntry(), item: entry.item })))
+  }, [income, expense])
+
+  // 초기 로드: 저장된 문서가 없으면 가장 최근 문서 로드
   useEffect(() => {
-    if (!currentId && income.length === 0) {
-      handleNew()
+    if (initialized) return
+    
+    if (profitLossList.length > 0 && !currentId) {
+      // 가장 최근 문서 자동 로드
+      const latestDoc = profitLossList[0]
+      setCurrentId(latestDoc._id)
+      localStorage.setItem('profitloss_currentId', latestDoc._id)
+    } else if (profitLossList.length === 0 && !currentId && !isLoading) {
+      // 문서가 없으면 빈 폼 초기화
+      setIncome(defaultIncomeItems.map(item => ({ ...createEmptyEntry(), item })))
+      setExpense(defaultExpenseItems.map(item => ({ ...createEmptyEntry(), item })))
     }
-  }, [currentId, income.length, handleNew])
+    
+    if (!isLoading) {
+      setInitialized(true)
+    }
+  }, [profitLossList, currentId, isLoading, initialized])
+
+  // 문서 선택 시 localStorage 업데이트
+  const handleSelectDocument = (id) => {
+    setCurrentId(id)
+    localStorage.setItem('profitloss_currentId', id)
+  }
 
   // 저장
   const handleSave = async () => {
@@ -332,6 +362,13 @@ function ProfitLoss() {
           >
             <RefreshCw className="w-4 h-4" />
             새 문서
+          </button>
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-600 dark:text-orange-400 rounded-lg transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" />
+            초기화
           </button>
           <button
             onClick={handleExport}
@@ -560,7 +597,7 @@ function ProfitLoss() {
               return (
                 <div
                   key={doc._id}
-                  onClick={() => setCurrentId(doc._id)}
+                  onClick={() => handleSelectDocument(doc._id)}
                   className={clsx(
                     'flex items-center justify-between p-4 cursor-pointer transition-colors',
                     currentId === doc._id
