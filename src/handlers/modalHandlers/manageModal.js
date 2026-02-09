@@ -371,19 +371,19 @@ export async function handleAddItemTypeButton(interaction) {
       .setPlaceholder('물품 유형을 선택하세요')
       .addOptions([
         {
-          label: '📦 재료',
+          label: '1차 (재료)',
           value: 'material',
           description: '채굴/수집하는 기본 재료 (재고에만 등록)',
           emoji: '📦'
         },
         {
-          label: '🔄 중간 제작품',
+          label: '2차 (중간재)',
           value: 'intermediate', 
           description: '제작하며, 다른 제작의 재료로도 사용 (재고+제작 연동)',
           emoji: '🔄'
         },
         {
-          label: '⭐ 최종 제작품',
+          label: '3차 (완성품)',
           value: 'final',
           description: '최종 완성품, 재료로 사용 안함 (제작에만 등록)',
           emoji: '⭐'
@@ -401,9 +401,9 @@ export async function handleAddItemTypeButton(interaction) {
         ``,
         `물품의 용도에 따라 유형을 선택하세요:`,
         ``,
-        `📦 **재료** - 기본 재료 (철광석, 나무 등)`,
-        `🔄 **중간 제작품** - 제작하면서 재료로도 사용 (철괴, 판자 등)`,
-        `⭐ **최종 제작품** - 완성품 (검, 갑옷, 음식 등)`
+        `📦 **1차 (재료)** - 기본 재료 (철광석, 나무 등)`,
+        `🔄 **2차 (중간재)** - 제작하면서 재료로도 사용 (철괴, 판자 등)`,
+        `⭐ **3차 (완성품)** - 최종 완성품 (검, 갑옷, 음식 등)`
       ].join('\n'));
     
     await interaction.update({ embeds: [embed], components: [row] });

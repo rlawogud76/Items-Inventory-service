@@ -47,6 +47,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
     itemType: normalizeItemType(item?.itemType)
   })
   
+  // 레시피 설정 상태
+  const [showRecipe, setShowRecipe] = useState(false)
+  const [recipeMaterials, setRecipeMaterials] = useState([{ name: '', category: '', quantity: 1 }])
+  
   // 분리된 수량 입력 상태
   const [quantityParts, setQuantityParts] = useState({ items: 0, sets: 0, boxes: 0 })
   const [requiredParts, setRequiredParts] = useState({ items: 0, sets: 0, boxes: 0 })
@@ -68,6 +72,9 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
         itemType: normalizeItemType(item?.itemType)
       })
       setError('')
+      // 레시피 초기화
+      setShowRecipe(false)
+      setRecipeMaterials([{ name: '', category: '', quantity: 1 }])
     }
   }, [isOpen, item])
   
@@ -84,13 +91,50 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
 
   const addMutation = useMutation({
     mutationFn: (data) => api.post('/items', data),
-    onSuccess: () => {
+    onSuccess: (res, variables) => {
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      
+      // 레시피도 저장하는 경우
+      if (showRecipe) {
+        const validMaterials = recipeMaterials.filter(m => m.name.trim())
+        if (validMaterials.length > 0) {
+          const category = variables.category
+          const tierMap = { material: 1, intermediate: 2, final: 3 }
+          recipeSaveMutation.mutate({
+            category,
+            resultName: variables.name,
+            tier: tierMap[variables.itemType] || 1,
+            materials: validMaterials
+          })
+          return // 레시피 저장 완료 후 onClose
+        }
+      }
       onClose()
     },
     onError: (err) => {
       setError(err.response?.data?.error || '추가 실패')
     }
+  })
+  
+  // 레시피 저장 mutation
+  const recipeSaveMutation = useMutation({
+    mutationFn: (data) => api.post('/recipes', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] })
+      onClose()
+    },
+    onError: (err) => {
+      // 레시피 저장 실패해도 아이템은 이미 추가됨
+      console.error('레시피 저장 실패:', err)
+      onClose()
+    }
+  })
+  
+  // 재고 아이템 목록 (레시피 재료 선택용)
+  const { data: inventoryItemsList = [] } = useQuery({
+    queryKey: ['items', 'inventory'],
+    queryFn: () => api.get('/items/inventory').then(res => res.data),
+    enabled: isOpen && !isEdit,
   })
 
   const updateMutation = useMutation({
@@ -376,16 +420,95 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
               onChange={(e) => setFormData({ ...formData, itemType: e.target.value })}
               className="w-full px-3 py-2 bg-light-100 dark:bg-dark-200 border border-light-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary-500"
             >
-              <option value="material">재료</option>
-              <option value="intermediate">중간재료</option>
-              <option value="finished">완성품</option>
+              <option value="material">1차 (재료)</option>
+              <option value="intermediate">2차 (중간재)</option>
+              <option value="final">3차 (완성품)</option>
             </select>
             <p className="text-xs text-gray-500 mt-1">
-              {formData.itemType === 'material' && '기본 재료입니다.'}
-              {formData.itemType === 'intermediate' && '제작 시 재료가 자동 차감됩니다.'}
-              {formData.itemType === 'finished' && '제작 시 재료가 자동 차감됩니다.'}
+              {formData.itemType === 'material' && '📦 채굴/수집하는 기본 재료입니다.'}
+              {formData.itemType === 'intermediate' && '🔄 제작하며, 다른 제작의 재료로도 사용됩니다.'}
+              {formData.itemType === 'final' && '⭐ 최종 완성품입니다.'}
             </p>
           </div>
+          
+          {/* 레시피 설정 (추가 모드 & 2차/3차만) */}
+          {!isEdit && (formData.itemType === 'intermediate' || formData.itemType === 'final') && (
+            <div className="border border-light-300 dark:border-dark-100 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowRecipe(!showRecipe)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-light-100 dark:bg-dark-200 hover:bg-light-200 dark:hover:bg-dark-100 transition-colors"
+              >
+                <span className="text-sm font-medium">📝 레시피 설정 (선택)</span>
+                <span className="text-xs text-gray-500">{showRecipe ? '접기 ▲' : '펼치기 ▼'}</span>
+              </button>
+              
+              {showRecipe && (
+                <div className="p-4 space-y-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    이 아이템을 만드는 데 필요한 재료를 설정하세요
+                  </p>
+                  
+                  {/* 재료 목록 */}
+                  <div className="space-y-2">
+                    {recipeMaterials.map((mat, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <select
+                          value={mat.name}
+                          onChange={(e) => {
+                            const selectedItem = inventoryItemsList.find(i => i.name === e.target.value)
+                            const newMaterials = [...recipeMaterials]
+                            newMaterials[idx] = { 
+                              ...newMaterials[idx], 
+                              name: e.target.value,
+                              category: selectedItem?.category || mat.category
+                            }
+                            setRecipeMaterials(newMaterials)
+                          }}
+                          className="flex-1 px-3 py-2 bg-light-100 dark:bg-dark-300 rounded-lg border border-light-300 dark:border-dark-200 focus:border-primary-500 outline-none text-sm"
+                        >
+                          <option value="">재료 선택...</option>
+                          {inventoryItemsList.map(item => (
+                            <option key={`${item.category}-${item.name}`} value={item.name}>
+                              {item.name} ({item.category})
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          value={mat.quantity}
+                          onChange={(e) => {
+                            const newMaterials = [...recipeMaterials]
+                            newMaterials[idx] = { ...newMaterials[idx], quantity: parseInt(e.target.value) || 1 }
+                            setRecipeMaterials(newMaterials)
+                          }}
+                          min="1"
+                          className="w-20 px-3 py-2 bg-light-100 dark:bg-dark-300 rounded-lg border border-light-300 dark:border-dark-200 focus:border-primary-500 outline-none text-sm text-center"
+                        />
+                        {recipeMaterials.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setRecipeMaterials(recipeMaterials.filter((_, i) => i !== idx))}
+                            className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                          >
+                            <X size={16} className="text-red-400" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setRecipeMaterials([...recipeMaterials, { name: '', category: '', quantity: 1 }])}
+                    className="text-xs text-primary-400 hover:text-primary-300"
+                  >
+                    + 재료 추가
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           
           {/* 버튼 */}
           <div className="flex gap-3 pt-2">
@@ -398,10 +521,10 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
             </button>
             <button
               type="submit"
-              disabled={addMutation.isPending || updateMutation.isPending}
+              disabled={addMutation.isPending || updateMutation.isPending || recipeSaveMutation.isPending}
               className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50 text-white"
             >
-              {addMutation.isPending || updateMutation.isPending ? '처리 중...' : (isEdit ? '수정' : '추가')}
+              {addMutation.isPending || updateMutation.isPending || recipeSaveMutation.isPending ? '처리 중...' : (isEdit ? '수정' : '추가')}
             </button>
           </div>
         </form>
@@ -513,9 +636,11 @@ export function RecipeModal({
   const inventoryCategories = [...new Set(inventoryItems.map(i => i.category))]
   
   // 모달 열릴 때 데이터 초기화
-  useState(() => {
+  useEffect(() => {
     if (isOpen) {
-      setMaterials(recipe?.materials || [])
+      setMaterials(recipe?.materials?.map(m => ({ ...m })) || [])
+      setShowItemPicker(false)
+      setSelectedCategory('')
     }
   }, [isOpen, recipe])
 

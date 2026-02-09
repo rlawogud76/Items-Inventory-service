@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { 
   BookOpen, 
   Plus, 
@@ -109,11 +109,25 @@ function RecipeCard({ recipe, onEdit, onDelete, canManage }) {
 function RecipeModal({ isOpen, onClose, recipe, category, existingItems }) {
   const queryClient = useQueryClient()
   const [formData, setFormData] = useState({
-    resultName: recipe?.resultName || '',
-    tier: recipe?.tier || 2,
-    materials: recipe?.materials || [{ name: '', category: category || '', quantity: 1 }]
+    resultName: '',
+    tier: 2,
+    materials: [{ name: '', category: category || '', quantity: 1 }]
   })
   const [error, setError] = useState('')
+  
+  // 모달이 열릴 때마다 form 상태 초기화
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        resultName: recipe?.resultName || '',
+        tier: recipe?.tier || 2,
+        materials: recipe?.materials?.length > 0 
+          ? recipe.materials.map(m => ({ ...m }))
+          : [{ name: '', category: category || '', quantity: 1 }]
+      })
+      setError('')
+    }
+  }, [isOpen, recipe, category])
   
   const saveMutation = useMutation({
     mutationFn: (data) => {
@@ -248,19 +262,24 @@ function RecipeModal({ isOpen, onClose, recipe, category, existingItems }) {
             <div className="space-y-2">
               {formData.materials.map((mat, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <input
-                    type="text"
+                  <select
                     value={mat.name}
-                    onChange={(e) => handleMaterialChange(idx, 'name', e.target.value)}
-                    placeholder="재료 이름"
+                    onChange={(e) => {
+                      const selectedItem = existingItems?.find(i => i.name === e.target.value)
+                      handleMaterialChange(idx, 'name', e.target.value)
+                      if (selectedItem) {
+                        handleMaterialChange(idx, 'category', selectedItem.category)
+                      }
+                    }}
                     className="flex-1 px-3 py-2 bg-light-100 dark:bg-dark-300 rounded-lg border border-light-300 dark:border-dark-200 focus:border-primary-500 outline-none text-sm"
-                    list={`materials-${idx}`}
-                  />
-                  <datalist id={`materials-${idx}`}>
+                  >
+                    <option value="">재료 선택...</option>
                     {existingItems?.map(item => (
-                      <option key={item.name} value={item.name} />
+                      <option key={`${item.category}-${item.name}`} value={item.name}>
+                        {item.name} ({item.category})
+                      </option>
                     ))}
-                  </datalist>
+                  </select>
                   <input
                     type="number"
                     value={mat.quantity}
