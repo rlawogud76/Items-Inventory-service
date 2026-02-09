@@ -34,7 +34,7 @@ router.get('/:category/:resultName', async (req, res, next) => {
 // 레시피 추가/수정
 router.post('/', authenticate, requireFeature('recipe'), async (req, res, next) => {
   try {
-    const { category, resultName, materials } = req.body;
+    const { category, resultName, tier, materials } = req.body;
     
     if (!category || !resultName || !materials) {
       return res.status(400).json({ error: '필수 필드가 누락되었습니다.' });
@@ -44,7 +44,7 @@ router.post('/', authenticate, requireFeature('recipe'), async (req, res, next) 
       return res.status(400).json({ error: '재료가 필요합니다.' });
     }
     
-    const recipe = await db.saveRecipe(category, resultName, materials);
+    const recipe = await db.saveRecipe(category, resultName, materials, tier);
     res.status(201).json(recipe);
   } catch (error) {
     next(error);
@@ -55,13 +55,20 @@ router.post('/', authenticate, requireFeature('recipe'), async (req, res, next) 
 router.put('/:category/:resultName', authenticate, requireFeature('recipe'), async (req, res, next) => {
   try {
     const { category, resultName } = req.params;
-    const { materials } = req.body;
+    const { resultName: newResultName, tier, materials } = req.body;
     
     if (!Array.isArray(materials)) {
       return res.status(400).json({ error: '재료는 배열이어야 합니다.' });
     }
     
-    const recipe = await db.saveRecipe(category, resultName, materials);
+    // 이름이 변경된 경우: 기존 레시피 삭제 후 새로 생성
+    if (newResultName && newResultName !== resultName) {
+      await db.removeRecipe(category, resultName);
+      const recipe = await db.saveRecipe(category, newResultName, materials, tier);
+      return res.json(recipe);
+    }
+    
+    const recipe = await db.saveRecipe(category, resultName, materials, tier);
     res.json(recipe);
   } catch (error) {
     next(error);

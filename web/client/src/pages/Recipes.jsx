@@ -207,7 +207,6 @@ function RecipeModal({ isOpen, onClose, recipe, category, existingItems }) {
               onChange={(e) => setFormData(prev => ({ ...prev, resultName: e.target.value }))}
               placeholder="제작 결과물 이름"
               className="w-full px-3 py-2 bg-light-100 dark:bg-dark-300 rounded-lg border border-light-300 dark:border-dark-200 focus:border-primary-500 outline-none"
-              disabled={!!recipe}
             />
           </div>
           

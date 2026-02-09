@@ -540,19 +540,26 @@ async function updateItemDetails(type, category, oldName, updates) {
 }
 
 // 레시피 저장
-async function saveRecipe(category, resultName, materials) {
+async function saveRecipe(category, resultName, materials, tier = null) {
   try {
+    const updateData = {
+      category,
+      resultName,
+      materials: materials.map(m => ({
+        name: m.name,
+        category: m.category,
+        quantity: m.quantity
+      }))
+    };
+    
+    // 티어가 지정된 경우에만 업데이트
+    if (tier !== null) {
+      updateData.tier = tier;
+    }
+    
     const recipe = await Recipe.findOneAndUpdate(
       { category, resultName },
-      {
-        category,
-        resultName,
-        materials: materials.map(m => ({
-          name: m.name,
-          category: m.category,
-          quantity: m.quantity
-        }))
-      },
+      updateData,
       { upsert: true, new: true }
     );
     

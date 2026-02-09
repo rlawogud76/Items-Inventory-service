@@ -19,6 +19,7 @@ const contributionRoutes = require('./routes/contributions');
 const historyRoutes = require('./routes/history');
 const settingRoutes = require('./routes/settings');
 const eventRoutes = require('./routes/events');
+const profitLossRoutes = require('./routes/profitloss');
 
 const app = express();
 const server = http.createServer(app);
@@ -94,6 +95,7 @@ app.use('/api/contributions', contributionRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/profitloss', profitLossRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
