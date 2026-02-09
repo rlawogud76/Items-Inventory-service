@@ -10,7 +10,9 @@ import {
   Search,
   Calendar,
   CheckCircle2,
-  Target
+  Target,
+  ShoppingCart,
+  Edit3
 } from 'lucide-react'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -22,8 +24,10 @@ import { TIER_CONFIG } from '../utils/tierConfig'
 import clsx from 'clsx'
 
 // 개별 아이템 카드
-function CraftingCard({ item, onQuantityChange, onQuantitySet, onRequiredChange }) {
+function CraftingCard({ item, onQuantityChange, onQuantitySet, onRequiredChange, onPurchaseChange, onPurchaseSet }) {
   const [showInput, setShowInput] = useState(false)
+  const [showPurchase, setShowPurchase] = useState(false)
+  const [showPurchaseEdit, setShowPurchaseEdit] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [inputMode, setInputMode] = useState('add') // 'add', 'subtract', 'set', 'required'
   const [showMaterials, setShowMaterials] = useState(false)
@@ -100,6 +104,7 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet, onRequiredChange 
         
         {/* 빠른 조작 버튼 */}
         {!showInput ? (
+          <>
           <div className="flex gap-1 mt-2">
             <button
               onClick={() => handleQuickChange(1)}
@@ -125,7 +130,92 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet, onRequiredChange 
           >
             ...
           </button>
+          <button
+            onClick={() => { setShowPurchase(!showPurchase); setShowInput(false); setShowPurchaseEdit(false) }}
+            className={clsx(
+              'px-2 py-1 text-xs rounded transition-colors flex items-center gap-0.5',
+              showPurchase ? 'bg-orange-500 text-white' : 'bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200'
+            )}
+          >
+            <ShoppingCart className="w-3 h-3" />
+          </button>
+          <button
+            onClick={() => { setShowPurchaseEdit(!showPurchaseEdit); setShowInput(false); setShowPurchase(false) }}
+            className={clsx(
+              'px-2 py-1 text-xs rounded transition-colors flex items-center gap-0.5',
+              showPurchaseEdit ? 'bg-orange-500 text-white' : 'bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200'
+            )}
+          >
+            <Edit3 className="w-3 h-3" />
+          </button>
         </div>
+        
+        {/* 구매증감 프리셋 */}
+        {showPurchase && (
+          <div className="mt-2 space-y-1">
+            <span className="block text-xs text-orange-400">구매증감 (기여도 미반영)</span>
+            <div className="flex flex-wrap gap-1">
+              {[1, 5, 10, 32, 64, 100, 640, 3456].map((amount) => (
+                <button
+                  key={`add-${amount}`}
+                  onClick={() => onPurchaseChange(item, amount)}
+                  className="px-2 py-1 text-xs rounded transition-colors bg-orange-500/20 hover:bg-orange-500/30 text-orange-400"
+                >
+                  +{amount}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {[1, 5, 10, 32, 64, 100, 640, 3456].map((amount) => (
+                <button
+                  key={`sub-${amount}`}
+                  onClick={() => onPurchaseChange(item, -amount)}
+                  className="px-2 py-1 text-xs rounded transition-colors bg-red-500/20 hover:bg-red-500/30 text-red-400"
+                >
+                  -{amount}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* 구매수정 입력 */}
+        {showPurchaseEdit && (
+          <div className="mt-2 space-y-1">
+            <span className="block text-xs text-orange-400">구매수정 (기여도 미반영) - 현재: {item.quantity}개</span>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                const val = parseInt(e.target.purchaseQty.value)
+                if (!isNaN(val) && val >= 0) {
+                  onPurchaseSet(item, val)
+                  setShowPurchaseEdit(false)
+                }
+              }}
+              className="flex gap-1"
+            >
+              <input
+                name="purchaseQty"
+                type="number"
+                min="0"
+                defaultValue={item.quantity}
+                className="flex-1 px-2 py-1 text-xs bg-light-200 dark:bg-dark-200 border border-orange-400/50 rounded focus:outline-none focus:border-orange-500 text-center"
+                autoFocus
+              />
+              <button type="submit" className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors">
+                설정
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPurchaseEdit(false)}
+                className="px-2 py-1 text-xs bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200 rounded transition-colors"
+              >
+                ✕
+              </button>
+            </form>
+          </div>
+        )}
+          </>
       ) : (
         <form onSubmit={handleSubmit} className="mt-2 space-y-2">
           <div className="flex gap-1">
@@ -249,7 +339,7 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet, onRequiredChange 
 }
 
 // 티어 컬럼 컴포넌트
-function TierColumn({ tier, items, onQuantityChange, onQuantitySet, onRequiredChange }) {
+function TierColumn({ tier, items, onQuantityChange, onQuantitySet, onRequiredChange, onPurchaseChange, onPurchaseSet }) {
   const config = TIER_CONFIG[tier]
   const Icon = config.icon
   
@@ -296,6 +386,8 @@ function TierColumn({ tier, items, onQuantityChange, onQuantitySet, onRequiredCh
               onQuantityChange={onQuantityChange}
               onQuantitySet={onQuantitySet}
               onRequiredChange={onRequiredChange}
+              onPurchaseChange={onPurchaseChange}
+              onPurchaseSet={onPurchaseSet}
             />
           ))
         )}
@@ -447,6 +539,42 @@ export default function Crafting() {
   
   const handleRequiredChange = (item, value) => {
     requiredMutation.mutate({ item, value })
+  }
+  
+  // 구매증감 뮤테이션 (기여도 미반영)
+  const purchaseMutation = useMutation({
+    mutationFn: ({ item, delta }) => 
+      api.patch(`/items/${item.type}/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}/quantity`, { 
+        delta, 
+        action: 'purchase',
+        syncMaterials: false,
+        syncLinked: false 
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crafting', 'dashboard'] })
+    },
+  })
+  
+  // 구매수정 뮤테이션 (기여도 미반영)
+  const purchaseSetMutation = useMutation({
+    mutationFn: ({ item, value }) => 
+      api.patch(`/items/${item.type}/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}/quantity/set`, { 
+        value, 
+        action: 'purchase_set',
+        syncMaterials: false,
+        syncLinked: false 
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crafting', 'dashboard'] })
+    },
+  })
+  
+  const handlePurchaseChange = (item, delta) => {
+    purchaseMutation.mutate({ item, delta })
+  }
+  
+  const handlePurchaseSet = (item, value) => {
+    purchaseSetMutation.mutate({ item, value })
   }
   
   // 티어별 아이템 분류 및 필터링
@@ -640,6 +768,8 @@ export default function Crafting() {
             onQuantityChange={handleQuantityChange}
             onQuantitySet={handleQuantitySet}
             onRequiredChange={handleRequiredChange}
+            onPurchaseChange={handlePurchaseChange}
+            onPurchaseSet={handlePurchaseSet}
           />
           <TierColumn
             tier={2}
@@ -647,6 +777,8 @@ export default function Crafting() {
             onQuantityChange={handleQuantityChange}
             onQuantitySet={handleQuantitySet}
             onRequiredChange={handleRequiredChange}
+            onPurchaseChange={handlePurchaseChange}
+            onPurchaseSet={handlePurchaseSet}
           />
           <TierColumn
             tier={3}
@@ -654,6 +786,8 @@ export default function Crafting() {
             onQuantityChange={handleQuantityChange}
             onQuantitySet={handleQuantitySet}
             onRequiredChange={handleRequiredChange}
+            onPurchaseChange={handlePurchaseChange}
+            onPurchaseSet={handlePurchaseSet}
           />
           <CompletedColumn items={completedItems} />
         </div>
