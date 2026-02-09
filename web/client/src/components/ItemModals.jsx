@@ -184,8 +184,8 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-dark-300 rounded-xl w-full max-w-md border border-light-300 dark:border-dark-100">
-        <div className="flex items-center justify-between p-4 border-b border-light-300 dark:border-dark-100">
+      <div className="bg-white dark:bg-dark-300 rounded-xl w-full max-w-md border border-light-300 dark:border-dark-100 max-h-[85vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-light-300 dark:border-dark-100 shrink-0">
           <h2 className="text-lg font-semibold">
             {isEdit ? '아이템 수정' : '아이템 추가'}
           </h2>
@@ -194,7 +194,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
           {error && (
             <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-500 dark:text-red-400 text-sm">
               {error}
@@ -508,7 +508,7 @@ export function ItemModal({ isOpen, onClose, type, categories = [], item = null 
           )}
           
           {/* 버튼 */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-2 sticky bottom-0 bg-white dark:bg-dark-300 pb-1">
             <button
               type="button"
               onClick={onClose}
