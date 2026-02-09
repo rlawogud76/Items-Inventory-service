@@ -1,7 +1,7 @@
 // 초기화 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { loadInventory, updateMultipleItems } from '../../database.js';
-import { getItemIcon, sendTemporaryReply, getTimeoutSettings, validateEmoji, safeDeleteReply, safeErrorReply, getDisplayName } from '../../utils.js';
+import { getItemIcon, sendTemporaryReply, getTimeoutSettings, validateEmoji, getDisplayName } from '../../utils.js';
 
 /**
  * 초기화 버튼 핸들러

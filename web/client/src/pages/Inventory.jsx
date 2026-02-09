@@ -1249,7 +1249,9 @@ const Inventory = () => {
         onClose={() => setResetModalOpen(false)}
         onConfirm={handleReset}
         categoryName={resetCategory}
-        itemCount={resetCategory ? groupedItems[resetCategory]?.length || 0 : 0}
+        itemCount={resetCategory && groupedItems[resetCategory]
+          ? Object.values(groupedItems[resetCategory].byTag).reduce((sum, arr) => sum + arr.length, 0) + groupedItems[resetCategory].uncategorized.length
+          : 0}
         isPending={resetMutation.isPending}
       />
       

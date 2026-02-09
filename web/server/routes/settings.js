@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('shared/database');
-const { authenticate, requireAdmin, requireServerOwner, requireFeature } = require('../middleware/auth');
+const { authenticate, requireAdmin, requireFeature } = require('../middleware/auth');
 
 // 설정 조회
 router.get('/', async (req, res, next) => {

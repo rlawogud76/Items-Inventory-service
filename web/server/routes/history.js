@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('shared/database');
-const { authenticate, optionalAuth, requireFeature } = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth');
 
 // 히스토리 조회 - 권한 체크 추가
 router.get('/', optionalAuth, async (req, res, next) => {

@@ -2,7 +2,7 @@
 
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
 import { loadInventory, getItemPoints, resetAllItemPoints } from '../../database.js';
-import { getTimeoutSettings, isAdmin, safeErrorReply } from '../../utils.js';
+import { isAdmin, safeErrorReply } from '../../utils.js';
 
 // 활성 타이머 저장소 (messageId -> timerId)
 const activeTimers = new Map();
@@ -41,7 +41,6 @@ export async function handlePointsManageButton(interaction, isBackButton = false
     console.log('⭐ 배점 관리 버튼 핸들러 시작, isBackButton:', isBackButton);
     
     // getTimeoutSettingsAsync() 사용 (DB에서 로드)
-    const { loadInventory } = await import('../../database.js');
     const inventory = await loadInventory();
     const selectTimeout = (inventory?.settings?.selectMessageTimeout || 30) * 1000;
     const infoTimeout = (inventory?.settings?.infoMessageTimeout || 15) * 1000;

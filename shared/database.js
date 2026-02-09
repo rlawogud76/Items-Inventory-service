@@ -5,7 +5,7 @@ const { Setting } = require('./models/Setting');
 const { User } = require('./models/User');
 const { Event } = require('./models/Event');
 const { ProfitLoss } = require('./models/ProfitLoss');
-const { DB_CONFIG } = require('./constants');
+const { DB_CONFIG, LIMITS } = require('./constants');
 
 // 변경 감지 관련
 let watchIntervalId = null;
@@ -92,10 +92,10 @@ const History = mongoose.models.InventoryHistory || mongoose.model('InventoryHis
 async function addHistoryEntry(entry) {
   try {
     await History.create(entry);
-    // 최신 100개만 유지 - 단일 쿼리로 오래된 항목 삭제 (race condition 방지)
+    // 최신 N개만 유지 - 단일 쿼리로 오래된 항목 삭제 (race condition 방지)
     const keepIds = await History.find()
       .sort({ timestamp: -1 })
-      .limit(100)
+      .limit(LIMITS.HISTORY_MAX_ENTRIES)
       .select('_id')
       .lean();
     await History.deleteMany({ 

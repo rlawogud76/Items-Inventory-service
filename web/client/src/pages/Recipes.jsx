@@ -8,9 +8,6 @@ import {
   Search,
   ChevronDown,
   ChevronRight,
-  Package,
-  Layers,
-  Star,
   X,
   Save,
   AlertCircle
@@ -18,14 +15,9 @@ import {
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { DiscordText } from '../utils/discordEmoji'
+import { DeleteConfirmModal } from '../components/ItemModals'
 import clsx from 'clsx'
-
-// 티어 설정
-const TIER_CONFIG = {
-  1: { name: '1차 재료', icon: Package, color: 'bg-blue-500', textColor: 'text-blue-400' },
-  2: { name: '2차 중간재', icon: Layers, color: 'bg-purple-500', textColor: 'text-purple-400' },
-  3: { name: '3차 완성품', icon: Star, color: 'bg-yellow-500', textColor: 'text-yellow-400' }
-}
+import { TIER_CONFIG } from '../utils/tierConfig'
 
 // 레시피 카드 컴포넌트
 function RecipeCard({ recipe, onEdit, onDelete, canManage }) {
@@ -316,37 +308,6 @@ function RecipeModal({ isOpen, onClose, recipe, category, existingItems }) {
   )
 }
 
-// 삭제 확인 모달
-function DeleteModal({ isOpen, onClose, onConfirm, recipeName, isLoading }) {
-  if (!isOpen) return null
-  
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-dark-400 rounded-xl w-full max-w-sm p-6">
-        <h3 className="text-lg font-bold mb-2">레시피 삭제</h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-4">
-          <span className="text-white font-medium">{recipeName}</span> 레시피를 삭제하시겠습니까?
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200 rounded-lg transition-colors"
-          >
-            취소
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={isLoading}
-            className="flex-1 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 rounded-lg transition-colors"
-          >
-            {isLoading ? '삭제 중...' : '삭제'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // 메인 페이지
 export default function Recipes() {
   const { hasFeature } = useAuth()
@@ -595,12 +556,14 @@ export default function Recipes() {
       />
       
       {/* 삭제 확인 모달 */}
-      <DeleteModal
+      <DeleteConfirmModal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate(deleteTarget)}
-        recipeName={deleteTarget?.resultName}
-        isLoading={deleteMutation.isPending}
+        itemName={deleteTarget?.resultName}
+        title="레시피 삭제"
+        message={<><DiscordText className="font-medium">{deleteTarget?.resultName}</DiscordText><br />이 레시피를 삭제하시겠습니까?</>}
+        isPending={deleteMutation.isPending}
       />
     </div>
   )

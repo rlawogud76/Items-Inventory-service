@@ -54,21 +54,6 @@ export function formatQuantity(quantity, options = {}) {
 }
 
 /**
- * 간단한 수량 포맷팅 (개수만)
- * @param {number} quantity - 수량
- * @returns {string} 포맷팅된 문자열
- */
-export function formatSimpleQuantity(quantity) {
-  if (quantity >= 1000000) {
-    return `${(quantity / 1000000).toFixed(1)}M`
-  }
-  if (quantity >= 1000) {
-    return `${(quantity / 1000).toFixed(1)}K`
-  }
-  return String(quantity)
-}
-
-/**
  * D-Day 계산
  * @param {Date|string} targetDate - 목표 날짜
  * @returns {string} D-Day 문자열

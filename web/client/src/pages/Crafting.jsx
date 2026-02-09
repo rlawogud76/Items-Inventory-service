@@ -3,7 +3,6 @@ import { useParams, NavLink } from 'react-router-dom'
 import { useState, useMemo } from 'react'
 import { 
   Plus, 
-  Minus, 
   Trash2,
   FolderOpen,
   ChevronRight,
@@ -11,13 +10,7 @@ import {
   Search,
   Calendar,
   CheckCircle2,
-  Clock,
-  Target,
-  Package,
-  Layers,
-  Star,
-  AlertCircle,
-  Settings
+  Target
 } from 'lucide-react'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -25,35 +18,8 @@ import { DiscordText } from '../utils/discordEmoji'
 import { CraftingPlanModal, DeleteConfirmModal } from '../components/ItemModals'
 import { ProgressBar } from '../components/ProgressBar'
 import { formatQuantity, calculateDDay } from '../utils/formatting'
+import { TIER_CONFIG } from '../utils/tierConfig'
 import clsx from 'clsx'
-
-// 티어 설정
-const TIER_CONFIG = {
-  1: { 
-    name: '1차 재료', 
-    icon: Package, 
-    color: 'bg-blue-500', 
-    bgColor: 'bg-blue-500/10',
-    borderColor: 'border-blue-500/30',
-    textColor: 'text-blue-400'
-  },
-  2: { 
-    name: '2차 중간재', 
-    icon: Layers, 
-    color: 'bg-purple-500', 
-    bgColor: 'bg-purple-500/10',
-    borderColor: 'border-purple-500/30',
-    textColor: 'text-purple-400'
-  },
-  3: { 
-    name: '3차 완성품', 
-    icon: Star, 
-    color: 'bg-yellow-500', 
-    bgColor: 'bg-yellow-500/10',
-    borderColor: 'border-yellow-500/30',
-    textColor: 'text-yellow-400'
-  }
-}
 
 // 개별 아이템 카드
 function CraftingCard({ item, onQuantityChange, onQuantitySet, onRequiredChange }) {

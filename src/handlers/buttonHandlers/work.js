@@ -1,7 +1,7 @@
 // 수집/제작 작업 핸들러
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { loadInventory, updateItemWorker } from '../../database.js';
-import { getItemIcon, formatQuantity, getAllTags, getItemsByTag, getItemTag, getTimeoutSettings, validateEmoji, safeDeleteReply, safeErrorReply, getDisplayName } from '../../utils.js';
+import { getItemIcon, getAllTags, getItemsByTag, getItemTag, getTimeoutSettings, validateEmoji, safeDeleteReply, safeErrorReply, getDisplayName } from '../../utils.js';
 
 /**
  * 수집/제작 시작 버튼 핸들러

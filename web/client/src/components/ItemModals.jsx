@@ -3,28 +3,25 @@ import { X, Plus, Trash2 } from 'lucide-react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import api from '../services/api'
 import { DiscordText } from '../utils/discordEmoji'
+import { SET_SIZE, BOX_SIZE } from '../utils/formatting'
 
 // 분리된 수량을 총 수량으로 변환 (아이템별 크기 지원)
-function calculateTotal(items, sets, boxes, setSize = 64, boxSize = 3456) {
-  const ss = setSize > 0 ? setSize : 64
-  const bs = boxSize > 0 ? boxSize : 3456
+function calculateTotal(items, sets, boxes, setSize = SET_SIZE, boxSize = BOX_SIZE) {
+  const ss = setSize > 0 ? setSize : SET_SIZE
+  const bs = boxSize > 0 ? boxSize : BOX_SIZE
   return (parseInt(items) || 0) + (parseInt(sets) || 0) * ss + (parseInt(boxes) || 0) * bs
 }
 
 // 총 수량을 분리된 수량으로 변환 (아이템별 크기 지원)
-function splitQuantity(total, setSize = 64, boxSize = 3456) {
-  const ss = setSize > 0 ? setSize : 64
-  const bs = boxSize > 0 ? boxSize : 3456
+function splitQuantity(total, setSize = SET_SIZE, boxSize = BOX_SIZE) {
+  const ss = setSize > 0 ? setSize : SET_SIZE
+  const bs = boxSize > 0 ? boxSize : BOX_SIZE
   const boxes = Math.floor(total / bs)
   const remaining = total % bs
   const sets = Math.floor(remaining / ss)
   const items = remaining % ss
   return { items, sets, boxes }
 }
-
-// 고정 상수
-const SET_SIZE = 64
-const BOX_SIZE = 3456
 
 export function ItemModal({ isOpen, onClose, type, categories = [], item = null }) {
   const queryClient = useQueryClient()

@@ -143,12 +143,3 @@ export function stripDiscordEmojis(text) {
   const regex = new RegExp(EMOJI_PATTERN.source, 'g');
   return text.replace(regex, '').trim();
 }
-
-export default {
-  parseDiscordEmojis,
-  DiscordText,
-  getEmojiUrl,
-  hasDiscordEmoji,
-  stripDiscordEmojis,
-  normalizeEmojiFormat
-};
