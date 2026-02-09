@@ -699,7 +699,7 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
   const [category, setCategory] = useState(initialCategory || '')
   const [newCategory, setNewCategory] = useState('')
   const [useNewCategory, setUseNewCategory] = useState(false)
-  const [goals, setGoals] = useState([{ name: '', quantity: 1, emoji: '' }])
+  const [goals, setGoals] = useState([{ name: '', quantity: 1 }])
   const [eventId, setEventId] = useState('')
   const [previewData, setPreviewData] = useState(null)
   const [error, setError] = useState('')
@@ -761,7 +761,7 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
     setCategory('')
     setNewCategory('')
     setUseNewCategory(false)
-    setGoals([{ name: '', quantity: 1, emoji: '' }])
+    setGoals([{ name: '', quantity: 1 }])
     setEventId('')
     setPreviewData(null)
     setError('')
@@ -783,7 +783,7 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
   }, [isOpen, initialCategory])
   
   const handleAddGoal = () => {
-    setGoals([...goals, { name: '', quantity: 1, emoji: '' }])
+    setGoals([...goals, { name: '', quantity: 1 }])
   }
   
   const handleRemoveGoal = (index) => {
@@ -1081,26 +1081,18 @@ export function CraftingPlanModal({ isOpen, onClose, category: initialCategory }
             <div className="space-y-2">
               {goals.map((goal, index) => (
                 <div key={index} className="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    value={goal.emoji}
-                    onChange={(e) => handleGoalChange(index, 'emoji', e.target.value)}
-                    placeholder="🎯"
-                    className="w-12 px-2 py-2 bg-light-100 dark:bg-dark-200 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none text-center"
-                  />
-                  <input
-                    type="text"
+                  <select
                     value={goal.name}
                     onChange={(e) => handleGoalChange(index, 'name', e.target.value)}
-                    placeholder="제작품 이름"
                     className="flex-1 px-3 py-2 bg-light-100 dark:bg-dark-200 rounded-lg border border-light-300 dark:border-dark-100 focus:border-primary-500 outline-none"
-                    list={`recipes-${index}`}
-                  />
-                  <datalist id={`recipes-${index}`}>
+                  >
+                    <option value="">제작품 선택...</option>
                     {tier3Recipes.map(r => (
-                      <option key={r.resultName} value={r.resultName} />
+                      <option key={r.resultName} value={r.resultName}>
+                        {r.resultName}
+                      </option>
                     ))}
-                  </datalist>
+                  </select>
                   <input
                     type="number"
                     value={goal.quantity}
