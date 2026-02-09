@@ -248,7 +248,7 @@ router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('qu
     }
     
     // 레시피가 있으면 재료 연동 (재귀적)
-    if (syncMaterials && delta > 0) {
+    if (shouldSyncMaterials && delta > 0) {
       // 제작 시 (수량 증가) - 재료 검증 후 차감
       const validation = await db.validateMaterialsRecursive(type, category, name, delta);
       
@@ -265,13 +265,13 @@ router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('qu
       if (!syncResult.success) {
         return res.status(500).json({ error: '재료 동기화 실패', details: syncResult.error });
       }
-    } else if (syncMaterials && delta < 0) {
+    } else if (shouldSyncMaterials && delta < 0) {
       // 취소 시 (수량 감소) - 재료 복구 (재귀적)
       await db.syncMaterialsRecursive(type, category, name, delta, req.user.username);
     }
     
     // 분야 간 연동 (inventory <-> crafting)
-    if (syncLinked && delta !== 0) {
+    if (shouldSyncLinked && delta !== 0) {
       const otherType = type === 'inventory' ? 'crafting' : 'inventory';
       const otherItems = await db.getItems(otherType);
       const linkedItem = otherItems.find(i => i.name === name && i.category === category);
@@ -328,11 +328,13 @@ router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('qu
 router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature('quantity'), async (req, res, next) => {
   try {
     const { type, category, name } = req.params;
-    const { value, syncMaterials = true, syncLinked = true, forceSync = false } = req.body;
+    const { value, action = 'set_quantity', syncMaterials = true, syncLinked = true, forceSync = false } = req.body;
     
     if (typeof value !== 'number' || value < 0) {
       return res.status(400).json({ error: 'value는 0 이상의 숫자여야 합니다.' });
     }
+    
+    const isPurchaseSet = action === 'purchase_set';
     
     // 아이템 정보 조회
     const items = await db.getItems(type);
@@ -344,8 +346,12 @@ router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature
     
     const delta = value - item.quantity; // 변화량 계산
     
+    // 구매수정일 경우 재료 연동 및 분야 연동 스킵
+    const shouldSyncMaterials = isPurchaseSet ? false : syncMaterials;
+    const shouldSyncLinked = isPurchaseSet ? false : syncLinked;
+    
     // 레시피가 있으면 재료 연동 (재귀적)
-    if (syncMaterials && delta > 0) {
+    if (shouldSyncMaterials && delta > 0) {
       // 제작 시 (수량 증가) - 재료 검증 후 차감
       const validation = await db.validateMaterialsRecursive(type, category, name, delta);
       
@@ -358,13 +364,13 @@ router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature
       
       // 재귀적으로 모든 하위 재료 차감
       await db.syncMaterialsRecursive(type, category, name, delta, req.user.username);
-    } else if (syncMaterials && delta < 0) {
+    } else if (shouldSyncMaterials && delta < 0) {
       // 취소 시 (수량 감소) - 재료 복구 (재귀적)
       await db.syncMaterialsRecursive(type, category, name, delta, req.user.username);
     }
     
     // 분야 간 연동 (inventory <-> crafting)
-    if (syncLinked && delta !== 0) {
+    if (shouldSyncLinked && delta !== 0) {
       const otherType = type === 'inventory' ? 'crafting' : 'inventory';
       const otherItems = await db.getItems(otherType);
       const linkedItem = otherItems.find(i => i.name === name && i.category === category);
@@ -382,14 +388,19 @@ router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature
       }
     }
     
+    const actualAction = isPurchaseSet ? 'purchase_set' : 'set_quantity';
+    const actionText = isPurchaseSet
+      ? `[구매] 수량 설정: ${value}개`
+      : `수량 설정: ${value}개`;
+    
     const success = await db.setItemQuantity(
       type, 
       category, 
       name, 
       value, 
       req.user.username,
-      'set_quantity',
-      `수량 설정: ${value}개`
+      actualAction,
+      actionText
     );
     
     if (!success) {

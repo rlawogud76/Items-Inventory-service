@@ -51,6 +51,7 @@ const ItemRow = ({
   onQuantityChange, 
   onQuantitySet,
   onPurchaseChange,
+  onPurchaseSet,
   onEdit, 
   onDelete,
   onWorkerJoin,
@@ -60,6 +61,7 @@ const ItemRow = ({
   const { user } = useAuth()
   const [showPresets, setShowPresets] = useState(false)
   const [showPurchase, setShowPurchase] = useState(false)
+  const [showPurchaseEdit, setShowPurchaseEdit] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   // 상자/세트/낱개 편집 상태
   const [editBoxes, setEditBoxes] = useState(0)
@@ -317,7 +319,7 @@ const ItemRow = ({
           
           {/* 프리셋 토글 */}
           <button
-            onClick={() => { setShowPresets(!showPresets); setShowPurchase(false) }}
+            onClick={() => { setShowPresets(!showPresets); setShowPurchase(false); setShowPurchaseEdit(false) }}
             className={clsx(
               'px-3 h-8 text-sm rounded-lg transition-colors',
               showPresets 
@@ -328,9 +330,9 @@ const ItemRow = ({
             더보기
           </button>
           
-          {/* 구매추가 토글 */}
+          {/* 구매증감 토글 */}
           <button
-            onClick={() => { setShowPurchase(!showPurchase); setShowPresets(false) }}
+            onClick={() => { setShowPurchase(!showPurchase); setShowPresets(false); setShowPurchaseEdit(false) }}
             className={clsx(
               'px-3 h-8 text-sm rounded-lg transition-colors flex items-center gap-1',
               showPurchase 
@@ -339,7 +341,21 @@ const ItemRow = ({
             )}
           >
             <ShoppingCart size={14} />
-            구매추가
+            구매증감
+          </button>
+          
+          {/* 구매수정 토글 */}
+          <button
+            onClick={() => { setShowPurchaseEdit(!showPurchaseEdit); setShowPresets(false); setShowPurchase(false) }}
+            className={clsx(
+              'px-3 h-8 text-sm rounded-lg transition-colors flex items-center gap-1',
+              showPurchaseEdit 
+                ? 'bg-orange-500 text-white' 
+                : 'bg-gray-100 dark:bg-dark-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-100'
+            )}
+          >
+            <Edit3 size={14} />
+            구매수정
           </button>
           
           {/* 프리셋 버튼들 */}
@@ -362,19 +378,65 @@ const ItemRow = ({
             </div>
           )}
           
-          {/* 구매추가 프리셋 */}
+          {/* 구매증감 프리셋 */}
           {showPurchase && (
             <div className="flex flex-wrap gap-1 w-full mt-1">
-              <span className="w-full text-xs text-orange-400 mb-1">구매추가 (기여도 미반영)</span>
+              <span className="w-full text-xs text-orange-400 mb-1">구매증감 (기여도 미반영)</span>
               {[1, 5, 10, 32, 64, 100, 640, 3456].map((amount) => (
                 <button
-                  key={amount}
+                  key={`add-${amount}`}
                   onClick={() => onPurchaseChange(item, amount)}
                   className="px-3 py-1.5 text-sm rounded-lg transition-colors bg-orange-500/20 hover:bg-orange-500/30 text-orange-400"
                 >
                   +{amount}
                 </button>
               ))}
+              {[1, 5, 10, 32, 64, 100, 640, 3456].map((amount) => (
+                <button
+                  key={`sub-${amount}`}
+                  onClick={() => onPurchaseChange(item, -amount)}
+                  className="px-3 py-1.5 text-sm rounded-lg transition-colors bg-red-500/20 hover:bg-red-500/30 text-red-400"
+                >
+                  -{amount}
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {/* 구매수정 입력 */}
+          {showPurchaseEdit && (
+            <div className="flex flex-wrap gap-1 w-full mt-1">
+              <span className="w-full text-xs text-orange-400 mb-1">구매수정 (기여도 미반영) - 현재: {item.quantity}개</span>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const val = parseInt(e.target.purchaseQty.value)
+                  if (!isNaN(val) && val >= 0) {
+                    onPurchaseSet(item, val)
+                    setShowPurchaseEdit(false)
+                  }
+                }}
+                className="flex items-center gap-2 w-full"
+              >
+                <input
+                  name="purchaseQty"
+                  type="number"
+                  min="0"
+                  defaultValue={item.quantity}
+                  className="w-24 px-3 py-1.5 text-sm bg-gray-100 dark:bg-dark-200 border border-orange-400/50 rounded-lg focus:outline-none focus:border-orange-500 text-center text-gray-900 dark:text-white"
+                  autoFocus
+                />
+                <button type="submit" className="px-3 py-1.5 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                  설정
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPurchaseEdit(false)}
+                  className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-dark-200 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-dark-100 transition-colors"
+                >
+                  취소
+                </button>
+              </form>
             </div>
           )}
         </div>
@@ -390,6 +452,7 @@ const SortableItemRow = ({
   onQuantityChange, 
   onQuantitySet,
   onPurchaseChange,
+  onPurchaseSet,
   onEdit, 
   onDelete,
   onWorkerJoin,
@@ -431,6 +494,7 @@ const SortableItemRow = ({
           onQuantityChange={onQuantityChange}
           onQuantitySet={onQuantitySet}
           onPurchaseChange={onPurchaseChange}
+          onPurchaseSet={onPurchaseSet}
           onEdit={onEdit}
           onDelete={onDelete}
           onWorkerJoin={onWorkerJoin}
@@ -456,6 +520,7 @@ const CategorySection = ({
   onQuantityChange,
   onQuantitySet,
   onPurchaseChange,
+  onPurchaseSet,
   onEdit,
   onDelete,
   onWorkerJoin,
@@ -546,6 +611,7 @@ const CategorySection = ({
                   onQuantityChange={onQuantityChange}
                   onQuantitySet={onQuantitySet}
                   onPurchaseChange={onPurchaseChange}
+                  onPurchaseSet={onPurchaseSet}
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onWorkerJoin={onWorkerJoin}
@@ -570,6 +636,7 @@ const CategorySection = ({
             onQuantityChange={onQuantityChange}
             onQuantitySet={onQuantitySet}
             onPurchaseChange={onPurchaseChange}
+            onPurchaseSet={onPurchaseSet}
             onEdit={onEdit}
             onDelete={onDelete}
             onWorkerJoin={onWorkerJoin}
@@ -1008,7 +1075,7 @@ const Inventory = () => {
     }
   })
   
-  // 구매추가 뮤테이션 (기여도 미반영)
+  // 구매증감 뮤테이션 (기여도 미반영)
   const purchaseMutation = useMutation({
     mutationFn: async ({ item, delta }) => {
       const res = await api.patch(`/items/${item.type}/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}/quantity`, { 
@@ -1032,7 +1099,44 @@ const Inventory = () => {
         type: 'quantity',
         item,
         oldQuantity: item.quantity,
-        description: `${item.name} 구매추가 (+${delta})`
+        description: `${item.name} 구매증감 (${delta > 0 ? '+' : ''}${delta})`
+      }, ...prev.slice(0, 4)])
+      setShowUndo(true)
+      return { previousItems }
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['items', 'inventory', 'all'], context.previousItems)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
+    }
+  })
+  
+  // 구매수정 뮤테이션 (기여도 미반영, 절대값 설정)
+  const purchaseSetMutation = useMutation({
+    mutationFn: async ({ item, quantity }) => {
+      const res = await api.patch(`/items/${item.type}/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}/quantity/set`, { 
+        value: quantity, 
+        action: 'purchase_set',
+        syncMaterials: false,
+        syncLinked: false 
+      })
+      return res.data
+    },
+    onMutate: async ({ item, quantity }) => {
+      await queryClient.cancelQueries({ queryKey: ['items', 'inventory'] })
+      const previousItems = queryClient.getQueryData(['items', 'inventory', 'all'])
+      queryClient.setQueryData(['items', 'inventory', 'all'], old => 
+        old?.map(i => i._id === item._id 
+          ? { ...i, quantity }
+          : i
+        )
+      )
+      setUndoStack(prev => [{
+        type: 'quantity',
+        item,
+        oldQuantity: item.quantity,
+        description: `${item.name} 구매수정 (${item.quantity}→${quantity})`
       }, ...prev.slice(0, 4)])
       setShowUndo(true)
       return { previousItems }
@@ -1056,6 +1160,10 @@ const Inventory = () => {
   
   const handlePurchaseChange = (item, delta) => {
     purchaseMutation.mutate({ item, delta })
+  }
+  
+  const handlePurchaseSet = (item, quantity) => {
+    purchaseSetMutation.mutate({ item, quantity })
   }
   
   const handleAddItem = () => {
@@ -1288,6 +1396,7 @@ const Inventory = () => {
               onQuantityChange={handleQuantityChange}
               onQuantitySet={handleQuantitySet}
               onPurchaseChange={handlePurchaseChange}
+              onPurchaseSet={handlePurchaseSet}
               onEdit={handleEditItem}
               onDelete={handleDeleteItem}
               onWorkerJoin={handleWorkerJoin}
