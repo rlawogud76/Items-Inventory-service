@@ -7,6 +7,31 @@ const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'http://localhost:3001/api/auth/discord/callback';
 
+// 재시도 함수 (Cloudflare 오류 대응)
+async function fetchWithRetry(url, options, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await fetch(url, options);
+      const text = await response.text();
+      
+      // Cloudflare HTML 응답 감지
+      if (text.includes('<!DOCTYPE html>') || text.includes('cloudflare')) {
+        console.log(`⚠️ Cloudflare 응답 감지, 재시도 ${i + 1}/${maxRetries}...`);
+        if (i < maxRetries - 1) {
+          await new Promise(r => setTimeout(r, 1000 * (i + 1))); // 지수 백오프
+          continue;
+        }
+        throw new Error('Discord API가 일시적으로 차단됨 (Cloudflare). 잠시 후 다시 시도해주세요.');
+      }
+      
+      return { response, text };
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+    }
+  }
+}
+
 // Discord OAuth2 URL 생성
 router.get('/discord', (req, res) => {
   console.log('🔐 OAuth 설정:', {
@@ -42,20 +67,21 @@ router.get('/discord/callback', async (req, res) => {
       code_length: code?.length
     });
     
-    const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: DISCORD_CLIENT_ID,
-        client_secret: DISCORD_CLIENT_SECRET,
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: DISCORD_REDIRECT_URI
-      })
-    });
+    const { response: tokenResponse, text: responseText } = await fetchWithRetry(
+      'https://discord.com/api/oauth2/token',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: DISCORD_CLIENT_ID,
+          client_secret: DISCORD_CLIENT_SECRET,
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: DISCORD_REDIRECT_URI
+        })
+      }
+    );
     
-    // 먼저 텍스트로 받아서 확인
-    const responseText = await tokenResponse.text();
     console.log('📥 Discord 응답:', tokenResponse.status, responseText.substring(0, 500));
     
     let tokenData;
@@ -75,15 +101,16 @@ router.get('/discord/callback', async (req, res) => {
     }
     
     // 사용자 정보 가져오기
-    const userResponse = await fetch('https://discord.com/api/users/@me', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` }
-    });
+    const { response: userResponse, text: userText } = await fetchWithRetry(
+      'https://discord.com/api/users/@me',
+      { headers: { Authorization: `Bearer ${tokenData.access_token}` } }
+    );
     
     if (!userResponse.ok) {
       throw new Error(`사용자 정보 조회 실패: ${userResponse.status}`);
     }
     
-    const userData = await userResponse.json();
+    const userData = JSON.parse(userText);
     
     // JWT 생성
     const token = jwt.sign(
