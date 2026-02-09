@@ -105,53 +105,59 @@ function CraftingCard({ item, onQuantityChange, onQuantitySet, onRequiredChange,
         {/* 빠른 조작 버튼 */}
         {!showInput ? (
           <>
-          <div className="flex gap-1 mt-2">
-            <button
-              onClick={() => handleQuickChange(1)}
-              className="flex-1 py-1 text-xs bg-green-600/20 hover:bg-green-600/40 text-green-400 rounded transition-colors"
-          >
-            +1
-          </button>
-          <button
-            onClick={() => handleQuickChange(64)}
-            className="flex-1 py-1 text-xs bg-green-600/20 hover:bg-green-600/40 text-green-400 rounded transition-colors"
-          >
-            +64
-          </button>
-          <button
-            onClick={() => handleQuickChange(-1)}
-            className="flex-1 py-1 text-xs bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded transition-colors"
-          >
-            -1
-          </button>
-          <button
-            onClick={() => setShowInput(true)}
-            className="px-2 py-1 text-xs bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200 rounded transition-colors"
-          >
-            ...
-          </button>
-          <button
-            onClick={() => { setShowPurchase(!showPurchase); setShowInput(false); setShowPurchaseEdit(false) }}
-            className={clsx(
-              'px-2 py-1 text-xs rounded transition-colors flex items-center gap-0.5',
-              showPurchase ? 'bg-orange-500 text-white' : 'bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200'
-            )}
-          >
-            <ShoppingCart className="w-3 h-3" />
-          </button>
-          <button
-            onClick={() => { setShowPurchaseEdit(!showPurchaseEdit); setShowInput(false); setShowPurchase(false) }}
-            className={clsx(
-              'px-2 py-1 text-xs rounded transition-colors flex items-center gap-0.5',
-              showPurchaseEdit ? 'bg-orange-500 text-white' : 'bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200'
-            )}
-          >
-            <Edit3 className="w-3 h-3" />
-          </button>
-        </div>
+          <div className="mt-2 space-y-1">
+            <div className="flex gap-1">
+              {[1, 12, 64].map((n) => (
+                <button
+                  key={`add-${n}`}
+                  onClick={() => handleQuickChange(n)}
+                  className="flex-1 py-1 text-xs bg-green-600/20 hover:bg-green-600/40 text-green-400 rounded transition-colors"
+                >
+                  +{n}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1">
+              {[1, 12, 64].map((n) => (
+                <button
+                  key={`sub-${n}`}
+                  onClick={() => handleQuickChange(-n)}
+                  className="flex-1 py-1 text-xs bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded transition-colors"
+                >
+                  -{n}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setShowInput(true)}
+                className="flex-1 px-2 py-1 text-xs bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200 rounded transition-colors"
+              >
+                ...
+              </button>
+              <button
+                onClick={() => { setShowPurchase(!showPurchase); setShowInput(false); setShowPurchaseEdit(false) }}
+                className={clsx(
+                  'px-2 py-1 text-xs rounded transition-colors flex items-center gap-0.5',
+                  showPurchase ? 'bg-orange-500 text-white' : 'bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200'
+                )}
+              >
+                <ShoppingCart className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => { setShowPurchaseEdit(!showPurchaseEdit); setShowInput(false); setShowPurchase(false) }}
+                className={clsx(
+                  'px-2 py-1 text-xs rounded transition-colors flex items-center gap-0.5',
+                  showPurchaseEdit ? 'bg-orange-500 text-white' : 'bg-light-200 dark:bg-dark-300 hover:bg-light-300 dark:hover:bg-dark-200'
+                )}
+              >
+                <Edit3 className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
         
-        {/* 구매증감 프리셋 */}
-        {showPurchase && (
+          {/* 구매증감 프리셋 */}
+          {showPurchase && (
           <div className="mt-2 space-y-1">
             <span className="block text-xs text-orange-400">구매증감 (기여도 미반영)</span>
             <div className="flex flex-wrap gap-1">
