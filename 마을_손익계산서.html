@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>마을 공동은행 손익계산서</title>
+<style>
+* { box-sizing: border-box; }
+body { 
+    font-family: 맑은 고딕, Arial; 
+    background: #212121;
+    color: #ececec;
+    padding: 20px;
+    min-height: 100vh;
+}
+.container { max-width: 900px; margin: 0 auto; }
+h1 { 
+    text-align: center; 
+    color: #ececec; 
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+.subtitle { text-align: center; color: #8e8e8e; margin-bottom: 20px; }
+.info-bar {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.info-bar input {
+    padding: 12px 16px;
+    border: 1px solid #3a3a3a;
+    border-radius: 24px;
+    background: #2f2f2f;
+    color: #ececec;
+    flex: 1;
+    min-width: 200px;
+}
+.info-bar input:focus {
+    outline: none;
+    border-color: #5a5a5a;
+}
+.info-bar input::placeholder { color: #8e8e8e; }
+table { 
+    border-collapse: collapse; 
+    width: 100%; 
+    margin-bottom: 20px;
+    background: #2f2f2f;
+    border-radius: 12px;
+    overflow: hidden;
+}
+th, td { 
+    border: 1px solid #3a3a3a; 
+    padding: 12px; 
+    text-align: center; 
+}
+th { 
+    background: #383838; 
+    color: #ececec; 
+    font-weight: 500;
+}
+.section-title {
+    background: #2f2f2f;
+    color: #ececec;
+    font-size: 1em;
+    padding: 14px 18px;
+    margin-top: 24px;
+    border-radius: 12px 12px 0 0;
+    font-weight: 500;
+    border: 1px solid #3a3a3a;
+    border-bottom: none;
+}
+input[type="number"], input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    background: #383838;
+    color: #ececec;
+    text-align: center;
+}
+input[type="number"]:focus, input[type="text"]:focus {
+    outline: none;
+    border-color: #5a5a5a;
+    background: #404040;
+}
+input[type="number"]::placeholder, input[type="text"]::placeholder { color: #8e8e8e; }
+.total-row { 
+    background: #383838 !important; 
+    font-weight: 500; 
+}
+.total-row td { color: #ececec; font-size: 1.05em; }
+.profit-positive { background: #2a3a2a !important; color: #a0c0a0 !important; }
+.profit-negative { background: #3a2a2a !important; color: #c0a0a0 !important; }
+.summary-card {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+}
+.card {
+    background: #2f2f2f;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid #3a3a3a;
+}
+.card-label { color: #8e8e8e; font-size: 0.85em; margin-bottom: 8px; }
+.card-value { font-size: 1.6em; font-weight: 500; }
+.card-income { border-left: none; }
+.card-income .card-value { color: #8bc38b; }
+.card-expense { border-left: none; }
+.card-expense .card-value { color: #c38b8b; }
+.card-profit { border-left: none; }
+.card-profit .card-value { color: #ececec; }
+.btn-group {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+.btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+.btn:hover { opacity: 0.85; }
+.btn-save { background: #4a4a4a; color: #ececec; }
+.btn-load { background: #4a4a4a; color: #ececec; }
+.btn-clear { background: #3a3a3a; color: #b0b0b0; }
+.btn-add { background: #4a4a4a; color: #ececec; }
+.btn-export { background: #4a4a4a; color: #ececec; }
+.delete-btn {
+    background: #353535;
+    color: #a0a0a0;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+.delete-btn:hover { background: #4a4a4a; color: #ececec; }
+.history-section {
+    background: #2f2f2f;
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 20px;
+    border: 1px solid #3a3a3a;
+}
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #3a3a3a;
+}
+.history-item:last-child { border-bottom: none; }
+@media (max-width: 600px) {
+    .summary-card { grid-template-columns: 1fr; }
+    .btn-group { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⛏️ 마을 공동은행 손익계산서</h1>
+    <p class="subtitle">마인크래프트 마을 경영을 위한 간단한 회계 도구</p>
+
+    <div class="info-bar">
+        <input type="text" id="villageName" placeholder="마을 이름" oninput="saveData()">
+        <input type="date" id="recordDate" oninput="saveData()">
+        <input type="text" id="recorder" placeholder="작성자" oninput="saveData()">
+    </div>
+
+    <div class="summary-card">
+        <div class="card card-income">
+            <div class="card-label">💰 총 수입</div>
+            <div class="card-value" id="totalIncomeDisplay">0</div>
+        </div>
+        <div class="card card-expense">
+            <div class="card-label">💸 총 지출</div>
+            <div class="card-value" id="totalExpenseDisplay">0</div>
+        </div>
+        <div class="card card-profit">
+            <div class="card-label">📊 순이익</div>
+            <div class="card-value" id="netProfitDisplay">0</div>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn btn-save" onclick="saveToHistory()">💾 기록 저장</button>
+        <button class="btn btn-export" onclick="exportData()">📄 내보내기</button>
+        <button class="btn btn-clear" onclick="clearAll()">🗑️ 초기화</button>
+    </div>
+
+    <div class="section-title">💰 수입 (Income)</div>
+    <table id="incomeTable">
+        <thead>
+            <tr><th>항목</th><th>단가</th><th>수량</th><th>직접입력</th><th>소계</th><th>비고</th><th></th></tr>
+        </thead>
+        <tbody id="incomeBody">
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="4">수입 합계</td>
+                <td id="incomeTotal">0</td>
+                <td colspan="2"></td>
+            </tr>
+        </tfoot>
+    </table>
+    <button class="btn btn-add" onclick="addRow('income')">+ 수입 항목 추가</button>
+
+    <div class="section-title">💸 지출 (Expenses)</div>
+    <table id="expenseTable">
+        <thead>
+            <tr><th>항목</th><th>단가</th><th>수량</th><th>직접입력</th><th>소계</th><th>비고</th><th></th></tr>
+        </thead>
+        <tbody id="expenseBody">
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="4">지출 합계</td>
+                <td id="expenseTotal">0</td>
+                <td colspan="2"></td>
+            </tr>
+        </tfoot>
+    </table>
+    <button class="btn btn-add" onclick="addRow('expense')">+ 지출 항목 추가</button>
+
+    <div class="section-title">📜 저장된 기록</div>
+    <div class="history-section">
+        <div id="historyList">
+            <p style="color: #888; text-align: center;">저장된 기록이 없습니다</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// 기본 항목들
+const defaultIncomeItems = ['아이템 판매', '재료 판매', '서비스 수수료', '농작물 판매', '기타 수입'];
+const defaultExpenseItems = ['재료 구매', '장비 구매', '수리/유지비', '인건비', '건축 자재', '기타 지출'];
+
+// 초기화
+document.addEventListener('DOMContentLoaded', () => {
+    loadData();
+    if (document.querySelectorAll('#incomeBody tr').length === 0) {
+        defaultIncomeItems.forEach(item => addRow('income', item));
+    }
+    if (document.querySelectorAll('#expenseBody tr').length === 0) {
+        defaultExpenseItems.forEach(item => addRow('expense', item));
+    }
+    loadHistory();
+    document.getElementById('recordDate').valueAsDate = new Date();
+});
+
+function addRow(type, itemName = '') {
+    const tbody = document.getElementById(type + 'Body');
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td><input type="text" value="${itemName}" placeholder="항목명" oninput="saveData()"></td>
+        <td><input type="number" min="0" placeholder="단가" oninput="calculate(); saveData()"></td>
+        <td><input type="number" min="0" placeholder="수량" oninput="calculate(); saveData()"></td>
+        <td><input type="number" min="0" placeholder="또는 금액" class="direct-input" oninput="calculate(); saveData()"></td>
+        <td class="subtotal">0</td>
+        <td><input type="text" placeholder="메모" oninput="saveData()"></td>
+        <td><button class="delete-btn" onclick="deleteRow(this)">✕</button></td>
+    `;
+    tbody.appendChild(row);
+    calculate();
+}
+
+function deleteRow(btn) {
+    btn.closest('tr').remove();
+    calculate();
+    saveData();
+}
+
+function calculate() {
+    let incomeTotal = 0;
+    let expenseTotal = 0;
+
+    // 수입 계산
+    document.querySelectorAll('#incomeBody tr').forEach(row => {
+        const inputs = row.querySelectorAll('input[type="number"]');
+        const price = parseFloat(inputs[0].value) || 0;
+        const qty = parseFloat(inputs[1].value) || 0;
+        const direct = parseFloat(inputs[2].value) || 0;
+        const subtotal = (price * qty) > 0 ? (price * qty) : direct;
+        row.querySelector('.subtotal').textContent = subtotal.toLocaleString();
+        incomeTotal += subtotal;
+    });
+
+    // 지출 계산
+    document.querySelectorAll('#expenseBody tr').forEach(row => {
+        const inputs = row.querySelectorAll('input[type="number"]');
+        const price = parseFloat(inputs[0].value) || 0;
+        const qty = parseFloat(inputs[1].value) || 0;
+        const direct = parseFloat(inputs[2].value) || 0;
+        const subtotal = (price * qty) > 0 ? (price * qty) : direct;
+        row.querySelector('.subtotal').textContent = subtotal.toLocaleString();
+        expenseTotal += subtotal;
+    });
+
+    const netProfit = incomeTotal - expenseTotal;
+
+    document.getElementById('incomeTotal').textContent = incomeTotal.toLocaleString();
+    document.getElementById('expenseTotal').textContent = expenseTotal.toLocaleString();
+    document.getElementById('totalIncomeDisplay').textContent = incomeTotal.toLocaleString();
+    document.getElementById('totalExpenseDisplay').textContent = expenseTotal.toLocaleString();
+    
+    const profitDisplay = document.getElementById('netProfitDisplay');
+    profitDisplay.textContent = (netProfit >= 0 ? '+' : '') + netProfit.toLocaleString();
+    profitDisplay.style.color = netProfit >= 0 ? '#4CAF50' : '#f44336';
+}
+
+function saveData() {
+    const data = {
+        villageName: document.getElementById('villageName').value,
+        recordDate: document.getElementById('recordDate').value,
+        recorder: document.getElementById('recorder').value,
+        income: getTableData('incomeBody'),
+        expense: getTableData('expenseBody')
+    };
+    localStorage.setItem('villageBank_current', JSON.stringify(data));
+}
+
+function getTableData(tbodyId) {
+    const rows = [];
+    document.querySelectorAll(`#${tbodyId} tr`).forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        rows.push({
+            item: inputs[0].value,
+            price: inputs[1].value,
+            qty: inputs[2].value,
+            direct: inputs[3].value,
+            note: inputs[4].value
+        });
+    });
+    return rows;
+}
+
+function loadData() {
+    const saved = localStorage.getItem('villageBank_current');
+    if (saved) {
+        const data = JSON.parse(saved);
+        document.getElementById('villageName').value = data.villageName || '';
+        document.getElementById('recordDate').value = data.recordDate || '';
+        document.getElementById('recorder').value = data.recorder || '';
+        
+        if (data.income && data.income.length > 0) {
+            data.income.forEach(item => {
+                addRow('income', item.item);
+                const lastRow = document.querySelector('#incomeBody tr:last-child');
+                const inputs = lastRow.querySelectorAll('input');
+                inputs[1].value = item.price && item.price != '0' ? item.price : '';
+                inputs[2].value = item.qty && item.qty != '0' ? item.qty : '';
+                inputs[3].value = item.direct && item.direct != '0' ? item.direct : '';
+                inputs[4].value = item.note || '';
+            });
+        }
+        
+        if (data.expense && data.expense.length > 0) {
+            data.expense.forEach(item => {
+                addRow('expense', item.item);
+                const lastRow = document.querySelector('#expenseBody tr:last-child');
+                const inputs = lastRow.querySelectorAll('input');
+                inputs[1].value = item.price && item.price != '0' ? item.price : '';
+                inputs[2].value = item.qty && item.qty != '0' ? item.qty : '';
+                inputs[3].value = item.direct && item.direct != '0' ? item.direct : '';
+                inputs[4].value = item.note || '';
+            });
+        }
+        calculate();
+    }
+}
+
+function saveToHistory() {
+    const history = JSON.parse(localStorage.getItem('villageBank_history') || '[]');
+    const current = JSON.parse(localStorage.getItem('villageBank_current') || '{}');
+    
+    if (!current.recordDate) {
+        alert('날짜를 입력해주세요!');
+        return;
+    }
+    
+    current.savedAt = new Date().toISOString();
+    current.totalIncome = document.getElementById('incomeTotal').textContent;
+    current.totalExpense = document.getElementById('expenseTotal').textContent;
+    current.netProfit = document.getElementById('netProfitDisplay').textContent;
+    
+    history.unshift(current);
+    if (history.length > 50) history.pop(); // 최대 50개 보관
+    
+    localStorage.setItem('villageBank_history', JSON.stringify(history));
+    loadHistory();
+    alert('기록이 저장되었습니다! ✅');
+}
+
+function loadHistory() {
+    const history = JSON.parse(localStorage.getItem('villageBank_history') || '[]');
+    const container = document.getElementById('historyList');
+    
+    if (history.length === 0) {
+        container.innerHTML = '<p style="color: #888; text-align: center;">저장된 기록이 없습니다</p>';
+        return;
+    }
+    
+    container.innerHTML = history.map((item, idx) => `
+        <div class="history-item">
+            <div>
+                <strong>${item.recordDate}</strong> - ${item.villageName || '마을'}
+                <br><small style="color: #888;">수입: ${item.totalIncome} | 지출: ${item.totalExpense} | 순이익: ${item.netProfit}</small>
+            </div>
+            <div>
+                <button class="btn btn-load" style="padding: 5px 10px; font-size: 0.8em;" onclick="loadFromHistory(${idx})">불러오기</button>
+                <button class="delete-btn" onclick="deleteHistory(${idx})">✕</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function loadFromHistory(idx) {
+    const history = JSON.parse(localStorage.getItem('villageBank_history') || '[]');
+    if (history[idx]) {
+        localStorage.setItem('villageBank_current', JSON.stringify(history[idx]));
+        location.reload();
+    }
+}
+
+function deleteHistory(idx) {
+    if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+    const history = JSON.parse(localStorage.getItem('villageBank_history') || '[]');
+    history.splice(idx, 1);
+    localStorage.setItem('villageBank_history', JSON.stringify(history));
+    loadHistory();
+}
+
+function clearAll() {
+    if (!confirm('모든 입력 내용을 초기화하시겠습니까?')) return;
+    localStorage.removeItem('villageBank_current');
+    location.reload();
+}
+
+function exportData() {
+    const villageName = document.getElementById('villageName').value || '마을';
+    const recordDate = document.getElementById('recordDate').value || new Date().toISOString().split('T')[0];
+    const recorder = document.getElementById('recorder').value || '';
+    
+    let text = `${villageName} 손익계산서\n`;
+    text += `날짜: ${recordDate}\n`;
+    text += `작성자: ${recorder}\n\n`;
+    
+    text += `=== 수입 ===\n`;
+    document.querySelectorAll('#incomeBody tr').forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const subtotal = row.querySelector('.subtotal').textContent;
+        text += `${inputs[0].value}: ${inputs[1].value} x ${inputs[2].value} = ${subtotal} (${inputs[3].value})\n`;
+    });
+    text += `수입 합계: ${document.getElementById('incomeTotal').textContent}\n\n`;
+    
+    text += `=== 지출 ===\n`;
+    document.querySelectorAll('#expenseBody tr').forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const subtotal = row.querySelector('.subtotal').textContent;
+        text += `${inputs[0].value}: ${inputs[1].value} x ${inputs[2].value} = ${subtotal} (${inputs[3].value})\n`;
+    });
+    text += `지출 합계: ${document.getElementById('expenseTotal').textContent}\n\n`;
+    
+    text += `=== 요약 ===\n`;
+    text += `순이익: ${document.getElementById('netProfitDisplay').textContent}\n`;
+    
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${villageName}_손익계산서_${recordDate}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>
