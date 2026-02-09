@@ -100,6 +100,20 @@ router.get('/discord/callback', async (req, res) => {
     
     if (!tokenResponse.ok) {
       console.error('❌ Discord 토큰 교환 실패:', tokenResponse.status, tokenData);
+      
+      // invalid_grant: 코드가 이미 사용되었거나 만료됨
+      if (tokenData.error === 'invalid_grant') {
+        console.log('🔄 invalid_grant - 새로운 인증 시작');
+        // Discord OAuth 처음부터 다시 시작
+        const params = new URLSearchParams({
+          client_id: DISCORD_CLIENT_ID,
+          redirect_uri: DISCORD_REDIRECT_URI,
+          response_type: 'code',
+          scope: 'identify'
+        });
+        return res.redirect(`https://discord.com/api/oauth2/authorize?${params}`);
+      }
+      
       throw new Error(`토큰 교환 실패: ${tokenResponse.status} - ${JSON.stringify(tokenData)}`);
     }
     
@@ -210,7 +224,12 @@ router.get('/me', async (req, res) => {
 
 // 로그아웃
 router.post('/logout', (req, res) => {
-  res.clearCookie('token');
+  // 쿠키 삭제 시 설정과 동일한 옵션 필요
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  });
   res.json({ success: true });
 });
 
