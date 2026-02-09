@@ -143,8 +143,8 @@ router.patch('/points/:type/:category/:itemName', authenticate, requireFeature('
     const { type, category, itemName } = req.params;
     const { points } = req.body;
     
-    if (typeof points !== 'number' || points < 1 || points > 100) {
-      return res.status(400).json({ error: '배점은 1~100 사이의 숫자여야 합니다.' });
+    if (typeof points !== 'number' || points < 0 || points > 100) {
+      return res.status(400).json({ error: '배점은 0~100 사이의 숫자여야 합니다.' });
     }
     
     await db.updateItemPoints(type, category, itemName, points);

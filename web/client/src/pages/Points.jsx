@@ -49,15 +49,15 @@ function Points() {
 
   const handlePointChange = (type, category, itemName, value) => {
     const key = `${type}:${category}:${itemName}`
-    const numValue = parseInt(value) || 1
-    const clampedValue = Math.max(1, Math.min(100, numValue))
+    const numValue = parseInt(value) || 0
+    const clampedValue = Math.max(0, Math.min(100, numValue))
     
     setEditingPoints(prev => ({
       ...prev,
       [key]: clampedValue
     }))
 
-    const originalValue = points?.[type]?.[category]?.[itemName] || 1
+    const originalValue = points?.[type]?.[category]?.[itemName] ?? 1
     if (clampedValue !== originalValue) {
       setPendingChanges(prev => ({
         ...prev,
@@ -95,7 +95,7 @@ function Points() {
     if (editingPoints[key] !== undefined) {
       return editingPoints[key]
     }
-    return points?.[type]?.[category]?.[itemName] || 1
+    return points?.[type]?.[category]?.[itemName] ?? 1
   }
 
   if (!user?.isAdmin) {
@@ -151,7 +151,7 @@ function Points() {
       </div>
 
       <p className="text-gray-500 dark:text-gray-400 text-sm">
-        아이템별 배점을 설정합니다. 배점은 기여도 계산에 사용됩니다. (1~100)
+        아이템별 배점을 설정합니다. 배점은 기여도 계산에 사용됩니다. (0~100)
       </p>
 
       {/* 재고 배점 */}
@@ -192,16 +192,17 @@ function Points() {
                           <div key={itemName} className="flex items-center justify-between py-2 px-3 bg-gray-100 dark:bg-dark-200 rounded-lg">
                             <span className="text-sm text-gray-900 dark:text-white">{itemName}</span>
                             <div className="flex items-center gap-2">
-                              <input
-                                type="number"
-                                min="1"
-                                max="100"
+                              <select
                                 value={getItemPoint('inventory', category, itemName)}
                                 onChange={(e) => handlePointChange('inventory', category, itemName, e.target.value)}
-                                className={`w-20 px-3 py-1 text-center bg-white dark:bg-dark-100 border rounded text-sm focus:outline-none focus:border-primary-500 text-gray-900 dark:text-white ${
+                                className={`w-20 px-2 py-1 text-center bg-white dark:bg-dark-100 border rounded text-sm focus:outline-none focus:border-primary-500 text-gray-900 dark:text-white appearance-none cursor-pointer ${
                                   hasChange ? 'border-yellow-500' : 'border-gray-300 dark:border-dark-50'
                                 }`}
-                              />
+                              >
+                                {Array.from({ length: 101 }, (_, i) => (
+                                  <option key={i} value={i}>{i}</option>
+                                ))}
+                              </select>
                               <span className="text-gray-500 text-xs">점</span>
                             </div>
                           </div>
@@ -258,16 +259,17 @@ function Points() {
                           <div key={itemName} className="flex items-center justify-between py-2 px-3 bg-gray-100 dark:bg-dark-200 rounded-lg">
                             <span className="text-sm text-gray-900 dark:text-white">{itemName}</span>
                             <div className="flex items-center gap-2">
-                              <input
-                                type="number"
-                                min="1"
-                                max="100"
+                              <select
                                 value={getItemPoint('crafting', category, itemName)}
                                 onChange={(e) => handlePointChange('crafting', category, itemName, e.target.value)}
-                                className={`w-20 px-3 py-1 text-center bg-white dark:bg-dark-100 border rounded text-sm focus:outline-none focus:border-primary-500 text-gray-900 dark:text-white ${
+                                className={`w-20 px-2 py-1 text-center bg-white dark:bg-dark-100 border rounded text-sm focus:outline-none focus:border-primary-500 text-gray-900 dark:text-white appearance-none cursor-pointer ${
                                   hasChange ? 'border-yellow-500' : 'border-gray-300 dark:border-dark-50'
                                 }`}
-                              />
+                              >
+                                {Array.from({ length: 101 }, (_, i) => (
+                                  <option key={i} value={i}>{i}</option>
+                                ))}
+                              </select>
                               <span className="text-gray-500 text-xs">점</span>
                             </div>
                           </div>
