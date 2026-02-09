@@ -15,7 +15,7 @@ function parseQuantityFromDetails(action, details) {
       return match ? parseInt(match[1]) : 0;
     }
     
-    if (action === 'update_quantity' || action === 'update_required' || action === 'edit_required') {
+    if (action === 'update_quantity' || action === 'update_required' || action === 'edit_required' || action === 'set_quantity') {
       // 추가는 양수
       const addPlusMatch = details.match(/추가:\s*\+(\d+)개/);
       if (addPlusMatch) return parseInt(addPlusMatch[1]);

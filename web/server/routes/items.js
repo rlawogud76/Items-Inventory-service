@@ -390,8 +390,8 @@ router.patch('/:type/:category/:name/quantity/set', authenticate, requireFeature
     
     const actualAction = isPurchaseSet ? 'purchase_set' : 'set_quantity';
     const actionText = isPurchaseSet
-      ? `[구매] 수량 설정: ${value}개`
-      : `수량 설정: ${value}개`;
+      ? `[구매] 수량 설정: ${item.quantity}개 → ${value}개`
+      : `수량 설정: ${item.quantity}개 → ${value}개`;
     
     const success = await db.setItemQuantity(
       type, 
