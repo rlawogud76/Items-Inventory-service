@@ -9,16 +9,23 @@ const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'http://localho
 
 // 재시도 함수 (Cloudflare 오류 대응)
 async function fetchWithRetry(url, options, maxRetries = 3) {
+  // User-Agent 헤더 추가 (Cloudflare 우회)
+  const headers = {
+    ...options.headers,
+    'User-Agent': 'DiscordBot (https://angelabot.com, 1.0.0)',
+    'Accept': 'application/json'
+  };
+  
   for (let i = 0; i < maxRetries; i++) {
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, { ...options, headers });
       const text = await response.text();
       
       // Cloudflare HTML 응답 감지
       if (text.includes('<!DOCTYPE html>') || text.includes('cloudflare')) {
         console.log(`⚠️ Cloudflare 응답 감지, 재시도 ${i + 1}/${maxRetries}...`);
         if (i < maxRetries - 1) {
-          await new Promise(r => setTimeout(r, 1000 * (i + 1))); // 지수 백오프
+          await new Promise(r => setTimeout(r, 2000 * (i + 1))); // 더 긴 백오프
           continue;
         }
         throw new Error('Discord API가 일시적으로 차단됨 (Cloudflare). 잠시 후 다시 시도해주세요.');
@@ -27,7 +34,7 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
       return { response, text };
     } catch (error) {
       if (i === maxRetries - 1) throw error;
-      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+      await new Promise(r => setTimeout(r, 2000 * (i + 1)));
     }
   }
 }
