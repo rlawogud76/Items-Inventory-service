@@ -22,7 +22,8 @@ import {
   Moon,
   BookOpen,
   HelpCircle,
-  ChevronDown
+  ChevronDown,
+  Calculator
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
@@ -39,6 +40,7 @@ const navItems = [
   { path: '/inventory', icon: Package, label: '재고', tourId: 'nav-inventory' },
   { path: '/crafting', icon: Hammer, label: '제작', tourId: 'nav-crafting' },
   { path: '/recipes', icon: BookOpen, label: '레시피', tourId: 'nav-recipes' },
+  { path: '/profitloss', icon: Calculator, label: '손익', tourId: 'nav-profitloss' },
   { path: '/calendar', icon: Calendar, label: '일정', tourId: 'nav-calendar' },
   { path: '/tags', icon: Tag, label: '태그', tourId: 'nav-tags' },
   { path: '/contributions', icon: Trophy, label: '기여도', featureKey: 'contribution', tourId: 'nav-contributions' },

@@ -4,6 +4,7 @@ const { Recipe } = require('./models/Recipe');
 const { Setting } = require('./models/Setting');
 const { User } = require('./models/User');
 const { Event } = require('./models/Event');
+const { ProfitLoss } = require('./models/ProfitLoss');
 const { DB_CONFIG } = require('./constants');
 
 // 변경 감지 관련
@@ -1489,6 +1490,73 @@ async function deleteEvent(id) {
   }
 }
 
+// ========== 손익계산서 (ProfitLoss) ==========
+
+// 손익계산서 목록 조회
+async function getProfitLossList(limit = 50) {
+  try {
+    const list = await ProfitLoss.find()
+      .sort({ recordDate: -1 })
+      .limit(limit)
+      .lean();
+    return list;
+  } catch (error) {
+    console.error('❌ 손익계산서 목록 조회 실패:', error);
+    return [];
+  }
+}
+
+// 손익계산서 상세 조회
+async function getProfitLoss(id) {
+  try {
+    const doc = await ProfitLoss.findById(id).lean();
+    return doc;
+  } catch (error) {
+    console.error('❌ 손익계산서 조회 실패:', error);
+    return null;
+  }
+}
+
+// 손익계산서 생성
+async function createProfitLoss(data) {
+  try {
+    const doc = await ProfitLoss.create(data);
+    console.log('✅ 손익계산서 생성:', doc._id);
+    return doc;
+  } catch (error) {
+    console.error('❌ 손익계산서 생성 실패:', error);
+    throw error;
+  }
+}
+
+// 손익계산서 수정
+async function updateProfitLoss(id, data) {
+  try {
+    const doc = await ProfitLoss.findByIdAndUpdate(id, data, { new: true });
+    if (doc) {
+      console.log('✅ 손익계산서 수정:', doc._id);
+    }
+    return doc;
+  } catch (error) {
+    console.error('❌ 손익계산서 수정 실패:', error);
+    throw error;
+  }
+}
+
+// 손익계산서 삭제
+async function deleteProfitLoss(id) {
+  try {
+    const doc = await ProfitLoss.findByIdAndDelete(id);
+    if (doc) {
+      console.log('✅ 손익계산서 삭제:', doc._id);
+    }
+    return doc;
+  } catch (error) {
+    console.error('❌ 손익계산서 삭제 실패:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   // 연결
   connectDatabase,
@@ -1560,10 +1628,18 @@ module.exports = {
   updateEvent,
   deleteEvent,
   
+  // 손익계산서
+  getProfitLossList,
+  getProfitLoss,
+  createProfitLoss,
+  updateProfitLoss,
+  deleteProfitLoss,
+  
   // 모델 (직접 접근용)
   Item,
   Recipe,
   Setting,
   History,
-  Event
+  Event,
+  ProfitLoss
 };
