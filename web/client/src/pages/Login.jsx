@@ -1,15 +1,30 @@
-﻿import { useState } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
-import { Package, LogIn } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Package, LogIn, AlertCircle } from 'lucide-react'
 
 function Login() {
   const { devLogin } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // URL 파라미터에서 에러 확인
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam === 'oauth_failed') {
+      setError('Discord 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    } else if (errorParam === 'no_code') {
+      setError('Discord 인증 코드가 없습니다.')
+    } else if (errorParam) {
+      setError('로그인 중 오류가 발생했습니다.')
+    }
+  }, [searchParams])
 
   const handleDiscordLogin = () => {
+    setError('')
     window.location.href = '/api/auth/discord'
   }
 
@@ -36,6 +51,14 @@ function Login() {
         </div>
 
         <div className="bg-white dark:bg-dark-300 rounded-xl p-6 border border-gray-200 dark:border-dark-100 space-y-6">
+          {/* 에러 메시지 */}
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-500 dark:text-red-400 text-sm">
+              <AlertCircle size={18} />
+              {error}
+            </div>
+          )}
+          
           {/* Discord 로그인 */}
           <button
             onClick={handleDiscordLogin}
