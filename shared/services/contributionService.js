@@ -127,7 +127,7 @@ function calculateContributions(historyEntries, itemPoints, options = {}) {
     if (!userName) continue;
     
     const quantity = parseQuantityFromDetails(action, details);
-    if (quantity <= 0) continue;
+    if (quantity === 0) continue;
     
     const pointMultiplier = itemPoints?.[entryType]?.[category]?.[itemName] ?? 1;
     const score = quantity * pointMultiplier;
@@ -138,7 +138,7 @@ function calculateContributions(historyEntries, itemPoints, options = {}) {
     
     contributions[userName].total += score;
     contributions[userName][entryType] += score;
-    contributions[userName].actions += 1;
+    contributions[userName].actions += (quantity > 0 ? 1 : 0);
   }
   
   return contributions;
