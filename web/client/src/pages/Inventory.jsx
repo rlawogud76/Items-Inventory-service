@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   Search, Plus, Trash2, Edit3, RotateCcw, Undo2, 
   Filter, ChevronDown,
-  Package, CheckCircle2, AlertCircle, Minus, Users, X, GripVertical
+  Package, CheckCircle2, AlertCircle, Minus, Users, X, GripVertical, ShoppingCart
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '../services/api'
@@ -50,6 +50,7 @@ const ItemRow = ({
   itemTag,
   onQuantityChange, 
   onQuantitySet,
+  onPurchaseChange,
   onEdit, 
   onDelete,
   onWorkerJoin,
@@ -58,6 +59,7 @@ const ItemRow = ({
 }) => {
   const { user } = useAuth()
   const [showPresets, setShowPresets] = useState(false)
+  const [showPurchase, setShowPurchase] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   // 상자/세트/낱개 편집 상태
   const [editBoxes, setEditBoxes] = useState(0)
@@ -315,7 +317,7 @@ const ItemRow = ({
           
           {/* 프리셋 토글 */}
           <button
-            onClick={() => setShowPresets(!showPresets)}
+            onClick={() => { setShowPresets(!showPresets); setShowPurchase(false) }}
             className={clsx(
               'px-3 h-8 text-sm rounded-lg transition-colors',
               showPresets 
@@ -324,6 +326,20 @@ const ItemRow = ({
             )}
           >
             더보기
+          </button>
+          
+          {/* 구매추가 토글 */}
+          <button
+            onClick={() => { setShowPurchase(!showPurchase); setShowPresets(false) }}
+            className={clsx(
+              'px-3 h-8 text-sm rounded-lg transition-colors flex items-center gap-1',
+              showPurchase 
+                ? 'bg-orange-500 text-white' 
+                : 'bg-gray-100 dark:bg-dark-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-100'
+            )}
+          >
+            <ShoppingCart size={14} />
+            구매추가
           </button>
           
           {/* 프리셋 버튼들 */}
@@ -345,6 +361,22 @@ const ItemRow = ({
               ))}
             </div>
           )}
+          
+          {/* 구매추가 프리셋 */}
+          {showPurchase && (
+            <div className="flex flex-wrap gap-1 w-full mt-1">
+              <span className="w-full text-xs text-orange-400 mb-1">구매추가 (기여도 미반영)</span>
+              {[1, 5, 10, 32, 64, 100, 640, 3456].map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => onPurchaseChange(item, amount)}
+                  className="px-3 py-1.5 text-sm rounded-lg transition-colors bg-orange-500/20 hover:bg-orange-500/30 text-orange-400"
+                >
+                  +{amount}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -357,6 +389,7 @@ const SortableItemRow = ({
   itemTag,
   onQuantityChange, 
   onQuantitySet,
+  onPurchaseChange,
   onEdit, 
   onDelete,
   onWorkerJoin,
@@ -397,6 +430,7 @@ const SortableItemRow = ({
           itemTag={itemTag}
           onQuantityChange={onQuantityChange}
           onQuantitySet={onQuantitySet}
+          onPurchaseChange={onPurchaseChange}
           onEdit={onEdit}
           onDelete={onDelete}
           onWorkerJoin={onWorkerJoin}
@@ -421,6 +455,7 @@ const CategorySection = ({
   getItemTagInfo,
   onQuantityChange,
   onQuantitySet,
+  onPurchaseChange,
   onEdit,
   onDelete,
   onWorkerJoin,
@@ -510,6 +545,7 @@ const CategorySection = ({
                   itemTag={getItemTagInfo(item.name)}
                   onQuantityChange={onQuantityChange}
                   onQuantitySet={onQuantitySet}
+                  onPurchaseChange={onPurchaseChange}
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onWorkerJoin={onWorkerJoin}
@@ -533,6 +569,7 @@ const CategorySection = ({
             itemTag={getItemTagInfo(item.name)}
             onQuantityChange={onQuantityChange}
             onQuantitySet={onQuantitySet}
+            onPurchaseChange={onPurchaseChange}
             onEdit={onEdit}
             onDelete={onDelete}
             onWorkerJoin={onWorkerJoin}
@@ -971,6 +1008,43 @@ const Inventory = () => {
     }
   })
   
+  // 구매추가 뮤테이션 (기여도 미반영)
+  const purchaseMutation = useMutation({
+    mutationFn: async ({ item, delta }) => {
+      const res = await api.patch(`/items/${item.type}/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}/quantity`, { 
+        delta, 
+        action: 'purchase',
+        syncMaterials: false,
+        syncLinked: false 
+      })
+      return res.data
+    },
+    onMutate: async ({ item, delta }) => {
+      await queryClient.cancelQueries({ queryKey: ['items', 'inventory'] })
+      const previousItems = queryClient.getQueryData(['items', 'inventory', 'all'])
+      queryClient.setQueryData(['items', 'inventory', 'all'], old => 
+        old?.map(i => i._id === item._id 
+          ? { ...i, quantity: Math.max(0, i.quantity + delta) }
+          : i
+        )
+      )
+      setUndoStack(prev => [{
+        type: 'quantity',
+        item,
+        oldQuantity: item.quantity,
+        description: `${item.name} 구매추가 (+${delta})`
+      }, ...prev.slice(0, 4)])
+      setShowUndo(true)
+      return { previousItems }
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['items', 'inventory', 'all'], context.previousItems)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['items', 'inventory'] })
+    }
+  })
+  
   // 핸들러들
   const handleQuantityChange = (item, delta) => {
     quantityMutation.mutate({ item, delta })
@@ -978,6 +1052,10 @@ const Inventory = () => {
   
   const handleQuantitySet = (item, quantity) => {
     quantitySetMutation.mutate({ item, quantity })
+  }
+  
+  const handlePurchaseChange = (item, delta) => {
+    purchaseMutation.mutate({ item, delta })
   }
   
   const handleAddItem = () => {
@@ -1209,6 +1287,7 @@ const Inventory = () => {
               getItemTagInfo={getItemTagInfo}
               onQuantityChange={handleQuantityChange}
               onQuantitySet={handleQuantitySet}
+              onPurchaseChange={handlePurchaseChange}
               onEdit={handleEditItem}
               onDelete={handleDeleteItem}
               onWorkerJoin={handleWorkerJoin}

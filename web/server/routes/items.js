@@ -230,7 +230,14 @@ router.patch('/:type/:category/:name/quantity', authenticate, requireFeature('qu
       return res.status(400).json({ error: 'delta는 숫자여야 합니다.' });
     }
     
-    const actionText = delta > 0 ? `추가: +${delta}개` : `차감: ${delta}개`;
+    const isPurchase = action === 'purchase';
+    const actionText = isPurchase
+      ? `[구매] ${delta > 0 ? `추가: +${delta}개` : `차감: ${delta}개`}`
+      : (delta > 0 ? `추가: +${delta}개` : `차감: ${delta}개`);
+    
+    // 구매추가일 경우 재료 연동 및 분야 연동 스킵
+    const shouldSyncMaterials = isPurchase ? false : syncMaterials;
+    const shouldSyncLinked = isPurchase ? false : syncLinked;
     
     // 아이템 정보 조회
     const items = await db.getItems(type);
