@@ -380,26 +380,30 @@ const ItemRow = ({
           
           {/* 구매증감 프리셋 */}
           {showPurchase && (
-            <div className="flex flex-wrap gap-1 w-full mt-1">
-              <span className="w-full text-xs text-orange-400 mb-1">구매증감 (기여도 미반영)</span>
-              {[1, 5, 10, 32, 64, 100, 640, 3456].map((amount) => (
-                <button
-                  key={`add-${amount}`}
-                  onClick={() => onPurchaseChange(item, amount)}
-                  className="px-3 py-1.5 text-sm rounded-lg transition-colors bg-orange-500/20 hover:bg-orange-500/30 text-orange-400"
-                >
-                  +{amount}
-                </button>
-              ))}
-              {[1, 5, 10, 32, 64, 100, 640, 3456].map((amount) => (
-                <button
-                  key={`sub-${amount}`}
-                  onClick={() => onPurchaseChange(item, -amount)}
-                  className="px-3 py-1.5 text-sm rounded-lg transition-colors bg-red-500/20 hover:bg-red-500/30 text-red-400"
-                >
-                  -{amount}
-                </button>
-              ))}
+            <div className="w-full mt-1 space-y-1">
+              <span className="block text-xs text-orange-400 mb-1">구매증감 (기여도 미반영)</span>
+              <div className="flex flex-wrap gap-1">
+                {[1, 5, 10, 32, 64, 100, 640, 3456].map((amount) => (
+                  <button
+                    key={`add-${amount}`}
+                    onClick={() => onPurchaseChange(item, amount)}
+                    className="px-3 py-1.5 text-sm rounded-lg transition-colors bg-orange-500/20 hover:bg-orange-500/30 text-orange-400"
+                  >
+                    +{amount}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {[1, 5, 10, 32, 64, 100, 640, 3456].map((amount) => (
+                  <button
+                    key={`sub-${amount}`}
+                    onClick={() => onPurchaseChange(item, -amount)}
+                    className="px-3 py-1.5 text-sm rounded-lg transition-colors bg-red-500/20 hover:bg-red-500/30 text-red-400"
+                  >
+                    -{amount}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           
