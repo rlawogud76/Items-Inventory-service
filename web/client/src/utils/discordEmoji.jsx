@@ -9,11 +9,32 @@ import React from 'react';
 const EMOJI_PATTERN = /<(a)?:([^:]+):(\d+):?>/g;
 
 /**
+ * 순수 Discord 이모지 ID 패턴 (17-20자리 숫자만)
+ */
+const PURE_ID_PATTERN = /^(\d{17,20})$/;
+
+/**
  * Discord 이모지 ID로 CDN URL 생성
  */
 export function getEmojiUrl(id, animated = false) {
   const ext = animated ? 'gif' : 'png';
   return `https://cdn.discordapp.com/emojis/${id}.${ext}`;
+}
+
+/**
+ * 순수 ID를 Discord 이모지 형식으로 변환
+ * @param {string} text - 변환할 텍스트
+ * @returns {string} - 변환된 텍스트
+ */
+export function normalizeEmojiFormat(text) {
+  if (!text || typeof text !== 'string') return text;
+  
+  // 순수 ID만 있는 경우 (17-20자리 숫자만)
+  if (PURE_ID_PATTERN.test(text.trim())) {
+    return `<:emoji:${text.trim()}>`;
+  }
+  
+  return text;
 }
 
 /**
@@ -27,6 +48,9 @@ export function getEmojiUrl(id, animated = false) {
 export function parseDiscordEmojis(text, options = {}) {
   if (!text || typeof text !== 'string') return text;
   
+  // 순수 ID를 먼저 이모지 형식으로 변환
+  const normalizedText = normalizeEmojiFormat(text);
+  
   const { size = '1.2em', className = '' } = options;
   const parts = [];
   let lastIndex = 0;
@@ -36,10 +60,10 @@ export function parseDiscordEmojis(text, options = {}) {
   // 매번 새 정규식 인스턴스 생성 (글로벌 플래그의 lastIndex 문제 방지)
   const regex = new RegExp(EMOJI_PATTERN.source, 'g');
   
-  while ((match = regex.exec(text)) !== null) {
+  while ((match = regex.exec(normalizedText)) !== null) {
     // 이모지 앞의 텍스트 추가
     if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
+      parts.push(normalizedText.slice(lastIndex, match.index));
     }
     
     const [fullMatch, animated, name, id] = match;
@@ -72,11 +96,11 @@ export function parseDiscordEmojis(text, options = {}) {
   }
   
   // 남은 텍스트 추가
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
+  if (lastIndex < normalizedText.length) {
+    parts.push(normalizedText.slice(lastIndex));
   }
   
-  return parts.length > 0 ? parts : text;
+  return parts.length > 0 ? parts : normalizedText;
 }
 
 /**
@@ -101,6 +125,8 @@ export function DiscordText({ children, size = '1.2em', className = '', as: Comp
  */
 export function hasDiscordEmoji(text) {
   if (!text || typeof text !== 'string') return false;
+  // 순수 ID도 이모지로 인식
+  if (PURE_ID_PATTERN.test(text.trim())) return true;
   // 매번 새 정규식 인스턴스 생성 (글로벌 플래그의 lastIndex 문제 방지)
   const regex = new RegExp(EMOJI_PATTERN.source, 'g');
   return regex.test(text);
@@ -111,6 +137,8 @@ export function hasDiscordEmoji(text) {
  */
 export function stripDiscordEmojis(text) {
   if (!text || typeof text !== 'string') return text;
+  // 순수 ID만 있는 경우 빈 문자열 반환
+  if (PURE_ID_PATTERN.test(text.trim())) return '';
   // 매번 새 정규식 인스턴스 생성 (글로벌 플래그의 lastIndex 문제 방지)
   const regex = new RegExp(EMOJI_PATTERN.source, 'g');
   return text.replace(regex, '').trim();
@@ -121,5 +149,6 @@ export default {
   DiscordText,
   getEmojiUrl,
   hasDiscordEmoji,
-  stripDiscordEmojis
+  stripDiscordEmojis,
+  normalizeEmojiFormat
 };
